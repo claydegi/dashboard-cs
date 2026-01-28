@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Service - Dashboard Task</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="cs-page">
+    <div class="container">
+        <header>
+            <h1>Dashboard Task</h1>
+            <div class="user-section">
+                <label for="operatorName">Il tuo nome:</label>
+                <input type="text" id="operatorName" placeholder="Inserisci il tuo nome" class="operator-input">
+            </div>
+        </header>
+
+        <main>
+            <!-- Statistiche -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <span class="stat-number" id="statDaFare">0</span>
+                    <span class="stat-label">Da fare</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="statInCorso">0</span>
+                    <span class="stat-label">In corso</span>
+                </div>
+                <div class="stat-card stat-success">
+                    <span class="stat-number" id="statCompletati">0</span>
+                    <span class="stat-label">Completati oggi</span>
+                </div>
+            </section>
+
+            <!-- Filtri -->
+            <section class="filters-section">
+                <div class="filters">
+                    <select id="filterStato">
+                        <option value="">Tutti gli stati</option>
+                        <option value="da_fare">Da fare</option>
+                        <option value="in_corso">In corso</option>
+                    </select>
+                    <select id="filterPriorita">
+                        <option value="">Tutte le priorità</option>
+                        <option value="alta">Alta</option>
+                        <option value="media">Media</option>
+                        <option value="bassa">Bassa</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Lista Task -->
+            <section class="tasks-section">
+                <h2>I tuoi Task</h2>
+                <div id="taskList" class="task-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Commento -->
+    <div id="commentModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Aggiungi Commento</h2>
+            <form id="commentForm">
+                <input type="hidden" id="commentTaskId">
+                <div class="form-group">
+                    <label for="commentText">Commento</label>
+                    <textarea id="commentText" rows="4" required placeholder="Scrivi il tuo commento..."></textarea>
+                </div>
+                <button type="submit" class="btn btn-primary">Invia Commento</button>
+            </form>
+            <div id="commentsList" class="comments-list"></div>
+        </div>
+    </div>
+
+    <!-- Modal Conferma Completamento -->
+    <div id="completeModal" class="modal">
+        <div class="modal-content modal-small">
+            <h2>Conferma Completamento</h2>
+            <p>Sei sicuro di voler segnare questo task come completato?</p>
+            <p class="task-title-confirm" id="completeTaskTitle"></p>
+            <input type="hidden" id="completeTaskId">
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="cancelComplete">Annulla</button>
+                <button class="btn btn-success" id="confirmComplete">Conferma</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="cs.js"></script>
+</body>
+</html>

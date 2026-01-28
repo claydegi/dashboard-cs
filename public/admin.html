@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Dashboard CS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Dashboard Admin</h1>
+            <nav>
+                <a href="#" class="nav-link active" data-section="cs">Task CS</a>
+                <a href="#" class="nav-link" data-section="privati">Task Privati</a>
+                <a href="storico.html" class="nav-link nav-storico">Storico Completati</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Form nuovo task -->
+            <section class="form-section">
+                <h2>Nuovo Task</h2>
+                <form id="taskForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="titolo">Titolo *</label>
+                            <input type="text" id="titolo" name="titolo" required placeholder="Inserisci titolo task">
+                        </div>
+                        <div class="form-group">
+                            <label for="tipo">Tipo</label>
+                            <select id="tipo" name="tipo">
+                                <option value="cs">Task CS (visibile al CS)</option>
+                                <option value="privato">Privato (solo admin)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="descrizione">Descrizione</label>
+                        <textarea id="descrizione" name="descrizione" rows="3" placeholder="Descrizione dettagliata..."></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="priorita">Priorità</label>
+                            <select id="priorita" name="priorita">
+                                <option value="bassa">Bassa</option>
+                                <option value="media" selected>Media</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="scadenza">Scadenza</label>
+                            <input type="date" id="scadenza" name="scadenza">
+                        </div>
+                        <div class="form-group" id="assegnatoGroup">
+                            <label for="assegnato_a">Assegnato a</label>
+                            <input type="text" id="assegnato_a" name="assegnato_a" placeholder="Nome operatore CS">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary">Crea Task</button>
+                </form>
+            </section>
+
+            <!-- Filtri -->
+            <section class="filters-section">
+                <div class="filters">
+                    <select id="filterStato">
+                        <option value="">Tutti gli stati</option>
+                        <option value="da_fare">Da fare</option>
+                        <option value="in_corso">In corso</option>
+                        <option value="completato">Completato</option>
+                    </select>
+                    <select id="filterPriorita">
+                        <option value="">Tutte le priorità</option>
+                        <option value="alta">Alta</option>
+                        <option value="media">Media</option>
+                        <option value="bassa">Bassa</option>
+                    </select>
+                </div>
+            </section>
+
+            <!-- Lista Task CS -->
+            <section id="section-cs" class="tasks-section">
+                <h2>Task Customer Service</h2>
+                <div id="taskListCS" class="task-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- Lista Task Privati -->
+            <section id="section-privati" class="tasks-section" style="display: none;">
+                <h2>Task Privati Admin</h2>
+                <div id="taskListPrivati" class="task-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal Modifica Task -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2>Modifica Task</h2>
+            <form id="editForm">
+                <input type="hidden" id="editId">
+                <div class="form-group">
+                    <label for="editTitolo">Titolo</label>
+                    <input type="text" id="editTitolo" required>
+                </div>
+                <div class="form-group">
+                    <label for="editDescrizione">Descrizione</label>
+                    <textarea id="editDescrizione" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editStato">Stato</label>
+                        <select id="editStato">
+                            <option value="da_fare">Da fare</option>
+                            <option value="in_corso">In corso</option>
+                            <option value="completato">Completato</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPriorita">Priorità</label>
+                        <select id="editPriorita">
+                            <option value="bassa">Bassa</option>
+                            <option value="media">Media</option>
+                            <option value="alta">Alta</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="editScadenza">Scadenza</label>
+                        <input type="date" id="editScadenza">
+                    </div>
+                    <div class="form-group">
+                        <label for="editAssegnato">Assegnato a</label>
+                        <input type="text" id="editAssegnato">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" class="btn btn-primary">Salva</button>
+                    <button type="button" class="btn btn-danger" id="deleteBtn">Elimina</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="admin.js"></script>
+</body>
+</html>

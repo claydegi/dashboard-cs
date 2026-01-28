@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Storico Completati - Dashboard CS</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Storico Task Completati</h1>
+            <nav>
+                <a href="admin.html" class="nav-link nav-back">← Torna alla Dashboard</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Statistiche -->
+            <section class="stats-section">
+                <div class="stat-card">
+                    <span class="stat-number" id="statTotale">0</span>
+                    <span class="stat-label">Totale completati</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="statOggi">0</span>
+                    <span class="stat-label">Completati oggi</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-number" id="statSettimana">0</span>
+                    <span class="stat-label">Questa settimana</span>
+                </div>
+            </section>
+
+            <!-- Filtri -->
+            <section class="filters-section">
+                <div class="filters">
+                    <input type="date" id="filterDataDa" placeholder="Da data">
+                    <input type="date" id="filterDataA" placeholder="A data">
+                    <input type="text" id="filterOperatore" placeholder="Filtra per operatore">
+                    <button class="btn btn-secondary" id="clearFilters">Pulisci filtri</button>
+                </div>
+            </section>
+
+            <!-- Lista Storico -->
+            <section class="tasks-section">
+                <h2>Task Completati</h2>
+                <div id="storicoList" class="task-list storico-list">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="storico.js"></script>
+</body>
+</html>
