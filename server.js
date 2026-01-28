@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const https = require('https');
 const fs = require('fs');
+const { Pool } = require('pg');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -20,86 +21,40 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// ==================== DATABASE JSON ====================
-const DB_FILE = path.join(__dirname, 'database.json');
+// ==================== DATABASE POSTGRESQL ====================
 
-// Inizializza database se non esiste
-function initDB() {
-    if (!fs.existsSync(DB_FILE)) {
-        const initialData = { tasks: [], nextId: 1 };
-        fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL,
+    ssl: process.env.DATABASE_URL && !process.env.DATABASE_URL.includes('localhost')
+        ? { rejectUnauthorized: false }
+        : false
+});
+
+// Inizializza tabelle
+async function initDB() {
+    const client = await pool.connect();
+    try {
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS tasks (
+                id SERIAL PRIMARY KEY,
+                titolo TEXT NOT NULL,
+                descrizione TEXT DEFAULT '',
+                stato TEXT DEFAULT 'da_fare',
+                priorita TEXT DEFAULT 'media',
+                scadenza TEXT,
+                assegnato_a TEXT,
+                tipo TEXT DEFAULT 'cs',
+                commenti JSONB DEFAULT '[]',
+                creato_il TIMESTAMPTZ DEFAULT NOW(),
+                completato_il TIMESTAMPTZ,
+                completato_da TEXT
+            )
+        `);
+        console.log('[DB] Tabelle inizializzate');
+    } finally {
+        client.release();
     }
 }
-
-// Leggi database
-function readDB() {
-    initDB();
-    const data = fs.readFileSync(DB_FILE, 'utf8');
-    return JSON.parse(data);
-}
-
-// Scrivi database
-function writeDB(data) {
-    fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
-}
-
-// Ottieni tutti i task
-function getAllTasks() {
-    return readDB().tasks;
-}
-
-// Ottieni task per ID
-function getTaskById(id) {
-    const db = readDB();
-    return db.tasks.find(t => t.id === id);
-}
-
-// Crea task
-function createTask(taskData) {
-    const db = readDB();
-    const task = {
-        id: db.nextId++,
-        titolo: taskData.titolo,
-        descrizione: taskData.descrizione || '',
-        stato: 'da_fare',
-        priorita: taskData.priorita || 'media',
-        scadenza: taskData.scadenza || null,
-        assegnato_a: taskData.assegnato_a || null,
-        tipo: taskData.tipo || 'cs',
-        commenti: [],
-        creato_il: new Date().toISOString(),
-        completato_il: null,
-        completato_da: null
-    };
-    db.tasks.push(task);
-    writeDB(db);
-    return task;
-}
-
-// Aggiorna task
-function updateTask(id, updates) {
-    const db = readDB();
-    const index = db.tasks.findIndex(t => t.id === id);
-    if (index === -1) return null;
-
-    db.tasks[index] = { ...db.tasks[index], ...updates };
-    writeDB(db);
-    return db.tasks[index];
-}
-
-// Elimina task
-function deleteTask(id) {
-    const db = readDB();
-    const index = db.tasks.findIndex(t => t.id === id);
-    if (index === -1) return false;
-
-    db.tasks.splice(index, 1);
-    writeDB(db);
-    return true;
-}
-
-// Inizializza DB all'avvio
-initDB();
 
 // Middleware per verificare chiave admin
 function requireAdmin(req, res, next) {
@@ -113,136 +68,204 @@ function requireAdmin(req, res, next) {
 // ==================== API TASKS ====================
 
 // Lista tutti i task (admin)
-app.get('/api/tasks', requireAdmin, (req, res) => {
-    const tasks = getAllTasks().sort((a, b) => new Date(b.creato_il) - new Date(a.creato_il));
-    res.json(tasks);
+app.get('/api/tasks', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM tasks ORDER BY creato_il DESC');
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Lista task per CS (solo tipo 'cs' e non completati)
-app.get('/api/tasks/cs', (req, res) => {
-    const tasks = getAllTasks()
-        .filter(t => t.tipo === 'cs' && t.stato !== 'completato')
-        .sort((a, b) => {
-            const priorityOrder = { alta: 1, media: 2, bassa: 3 };
-            return priorityOrder[a.priorita] - priorityOrder[b.priorita];
-        });
-    res.json(tasks);
+app.get('/api/tasks/cs', async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM tasks
+            WHERE tipo = 'cs' AND stato != 'completato'
+            ORDER BY
+                CASE priorita
+                    WHEN 'alta' THEN 1
+                    WHEN 'media' THEN 2
+                    WHEN 'bassa' THEN 3
+                END,
+                scadenza ASC NULLS LAST
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Lista task privati admin
-app.get('/api/tasks/private', requireAdmin, (req, res) => {
-    const tasks = getAllTasks()
-        .filter(t => t.tipo === 'privato')
-        .sort((a, b) => new Date(b.creato_il) - new Date(a.creato_il));
-    res.json(tasks);
+app.get('/api/tasks/private', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM tasks WHERE tipo = 'privato' ORDER BY creato_il DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Storico task completati (admin)
-app.get('/api/tasks/completed', requireAdmin, (req, res) => {
-    const tasks = getAllTasks()
-        .filter(t => t.stato === 'completato')
-        .sort((a, b) => new Date(b.completato_il) - new Date(a.completato_il));
-    res.json(tasks);
+app.get('/api/tasks/completed', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM tasks WHERE stato = 'completato' ORDER BY completato_il DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Crea nuovo task
-app.post('/api/tasks', requireAdmin, (req, res) => {
+app.post('/api/tasks', requireAdmin, async (req, res) => {
     const { titolo, descrizione, priorita, scadenza, assegnato_a, tipo } = req.body;
 
     if (!titolo) {
         return res.status(400).json({ error: 'Il titolo è obbligatorio' });
     }
 
-    const task = createTask({
-        titolo,
-        descrizione,
-        priorita,
-        scadenza,
-        assegnato_a,
-        tipo
-    });
+    try {
+        const result = await pool.query(`
+            INSERT INTO tasks (titolo, descrizione, priorita, scadenza, assegnato_a, tipo)
+            VALUES ($1, $2, $3, $4, $5, $6)
+            RETURNING *
+        `, [titolo, descrizione || '', priorita || 'media', scadenza || null, assegnato_a || null, tipo || 'cs']);
 
-    res.status(201).json(task);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Modifica task
-app.put('/api/tasks/:id', requireAdmin, (req, res) => {
+app.put('/api/tasks/:id', requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
     const { titolo, descrizione, stato, priorita, scadenza, assegnato_a, tipo } = req.body;
 
-    const existing = getTaskById(id);
-    if (!existing) {
-        return res.status(404).json({ error: 'Task non trovato' });
+    try {
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Task non trovato' });
+        }
+
+        const current = existing.rows[0];
+        const result = await pool.query(`
+            UPDATE tasks SET
+                titolo = $1,
+                descrizione = $2,
+                stato = $3,
+                priorita = $4,
+                scadenza = $5,
+                assegnato_a = $6,
+                tipo = $7
+            WHERE id = $8
+            RETURNING *
+        `, [
+            titolo !== undefined ? titolo : current.titolo,
+            descrizione !== undefined ? descrizione : current.descrizione,
+            stato !== undefined ? stato : current.stato,
+            priorita !== undefined ? priorita : current.priorita,
+            scadenza !== undefined ? scadenza : current.scadenza,
+            assegnato_a !== undefined ? assegnato_a : current.assegnato_a,
+            tipo !== undefined ? tipo : current.tipo,
+            id
+        ]);
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
     }
-
-    const updates = {};
-    if (titolo !== undefined) updates.titolo = titolo;
-    if (descrizione !== undefined) updates.descrizione = descrizione;
-    if (stato !== undefined) updates.stato = stato;
-    if (priorita !== undefined) updates.priorita = priorita;
-    if (scadenza !== undefined) updates.scadenza = scadenza;
-    if (assegnato_a !== undefined) updates.assegnato_a = assegnato_a;
-    if (tipo !== undefined) updates.tipo = tipo;
-
-    const task = updateTask(id, updates);
-    res.json(task);
 });
 
 // Completa task (endpoint specifico per CS)
-app.put('/api/tasks/:id/complete', (req, res) => {
+app.put('/api/tasks/:id/complete', async (req, res) => {
     const id = parseInt(req.params.id);
     const { completato_da } = req.body;
 
-    const existing = getTaskById(id);
-    if (!existing) {
-        return res.status(404).json({ error: 'Task non trovato' });
+    try {
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Task non trovato' });
+        }
+
+        const result = await pool.query(`
+            UPDATE tasks SET
+                stato = 'completato',
+                completato_il = NOW(),
+                completato_da = $1
+            WHERE id = $2
+            RETURNING *
+        `, [completato_da || 'Operatore CS', id]);
+
+        const task = result.rows[0];
+
+        // Invia notifica Telegram
+        sendTelegramNotification(task, completato_da || 'Operatore CS');
+
+        res.json(task);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
     }
-
-    const task = updateTask(id, {
-        stato: 'completato',
-        completato_il: new Date().toISOString(),
-        completato_da: completato_da || 'Operatore CS'
-    });
-
-    // Invia notifica Telegram
-    sendTelegramNotification(task, completato_da || 'Operatore CS');
-
-    res.json(task);
 });
 
 // Cambia stato task (per CS - da_fare, in_corso)
-app.put('/api/tasks/:id/status', (req, res) => {
+app.put('/api/tasks/:id/status', async (req, res) => {
     const id = parseInt(req.params.id);
     const { stato } = req.body;
 
     if (!['da_fare', 'in_corso'].includes(stato)) {
-        return res.status(400).json({ error: 'Stato non valido. Usa "da_fare" o "in_corso"' });
+        return res.status(400).json({ error: 'Stato non valido' });
     }
 
-    const existing = getTaskById(id);
-    if (!existing) {
-        return res.status(404).json({ error: 'Task non trovato' });
-    }
+    try {
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Task non trovato' });
+        }
 
-    const task = updateTask(id, { stato });
-    res.json(task);
+        const result = await pool.query(`
+            UPDATE tasks SET stato = $1 WHERE id = $2 RETURNING *
+        `, [stato, id]);
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Elimina task
-app.delete('/api/tasks/:id', requireAdmin, (req, res) => {
+app.delete('/api/tasks/:id', requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
 
-    const existing = getTaskById(id);
-    if (!existing) {
-        return res.status(404).json({ error: 'Task non trovato' });
-    }
+    try {
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Task non trovato' });
+        }
 
-    deleteTask(id);
-    res.json({ message: 'Task eliminato' });
+        await pool.query('DELETE FROM tasks WHERE id = $1', [id]);
+        res.json({ message: 'Task eliminato' });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // Aggiungi commento
-app.post('/api/tasks/:id/comments', (req, res) => {
+app.post('/api/tasks/:id/comments', async (req, res) => {
     const id = parseInt(req.params.id);
     const { testo, autore } = req.body;
 
@@ -250,26 +273,33 @@ app.post('/api/tasks/:id/comments', (req, res) => {
         return res.status(400).json({ error: 'Il testo del commento è obbligatorio' });
     }
 
-    const existing = getTaskById(id);
-    if (!existing) {
-        return res.status(404).json({ error: 'Task non trovato' });
+    try {
+        const existing = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Task non trovato' });
+        }
+
+        const commenti = existing.rows[0].commenti || [];
+        commenti.push({
+            id: Date.now(),
+            testo,
+            autore: autore || 'Anonimo',
+            data: new Date().toISOString()
+        });
+
+        const result = await pool.query(`
+            UPDATE tasks SET commenti = $1 WHERE id = $2 RETURNING *
+        `, [JSON.stringify(commenti), id]);
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Errore server' });
     }
-
-    const commenti = [...(existing.commenti || [])];
-    commenti.push({
-        id: Date.now(),
-        testo,
-        autore: autore || 'Anonimo',
-        data: new Date().toISOString()
-    });
-
-    const task = updateTask(id, { commenti });
-    res.json(task);
 });
 
 // ==================== TELEGRAM ====================
 
-// Invia notifica Telegram quando task completato
 async function sendTelegramNotification(task, completatoDa) {
     if (CONFIG.TELEGRAM_BOT_TOKEN === 'IL_TUO_TOKEN_TELEGRAM') {
         console.log('[Telegram] Token non configurato, notifica saltata');
@@ -331,7 +361,6 @@ ${task.priorita === 'alta' ? '🔴 Priorità Alta' : task.priorita === 'media' ?
 
 let lastUpdateId = 0;
 
-// Polling per ricevere messaggi Telegram (vocali)
 async function startTelegramPolling() {
     if (CONFIG.TELEGRAM_BOT_TOKEN === 'IL_TUO_TOKEN_TELEGRAM') {
         console.log('[Telegram Bot] Token non configurato, polling disabilitato');
@@ -356,37 +385,37 @@ async function startTelegramPolling() {
                                 await handleTelegramMessage(update.message);
                             }
                         }
-                    } catch (e) {
-                        // Ignora errori di parsing
-                    }
+                    } catch (e) {}
                 });
             }).on('error', () => {});
-        } catch (e) {
-            // Ignora errori
-        }
+        } catch (e) {}
     }, 3000);
 }
 
-// Gestisce messaggi Telegram
 async function handleTelegramMessage(message) {
     if (!message) return;
 
     const chatId = message.chat.id;
 
-    // Messaggio vocale
     if (message.voice) {
         await handleVoiceMessage(message, chatId);
         return;
     }
 
-    // Messaggio di testo (crea task direttamente)
     if (message.text && !message.text.startsWith('/')) {
-        const task = createTask({ titolo: message.text, tipo: 'cs', priorita: 'media' });
-        await sendTelegramReply(chatId, `✅ Task creato:\n\n📋 *${task.titolo}*`);
+        try {
+            const result = await pool.query(`
+                INSERT INTO tasks (titolo, tipo, priorita)
+                VALUES ($1, 'cs', 'media')
+                RETURNING *
+            `, [message.text]);
+            await sendTelegramReply(chatId, `✅ Task creato:\n\n📋 *${result.rows[0].titolo}*`);
+        } catch (e) {
+            await sendTelegramReply(chatId, '❌ Errore nella creazione del task');
+        }
         return;
     }
 
-    // Comandi
     if (message.text === '/start') {
         await sendTelegramReply(chatId, `👋 Ciao! Sono il bot della Dashboard CS.
 
@@ -399,13 +428,10 @@ async function handleTelegramMessage(message) {
     }
 }
 
-// Gestisce messaggi vocali
 async function handleVoiceMessage(message, chatId) {
     try {
-        // Notifica che stiamo elaborando
         await sendTelegramReply(chatId, '🎤 Sto trascrivendo il vocale...');
 
-        // Ottieni file info
         const fileId = message.voice.file_id;
         const fileInfoUrl = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
 
@@ -418,8 +444,6 @@ async function handleVoiceMessage(message, chatId) {
                     if (fileInfo.ok) {
                         const filePath = fileInfo.result.file_path;
                         const fileUrl = `https://api.telegram.org/file/bot${CONFIG.TELEGRAM_BOT_TOKEN}/${filePath}`;
-
-                        // Scarica e trascrivi
                         await transcribeAndCreateTask(fileUrl, chatId);
                     }
                 } catch (e) {
@@ -432,16 +456,13 @@ async function handleVoiceMessage(message, chatId) {
     }
 }
 
-// Trascrivi audio con OpenAI Whisper
 async function transcribeAndCreateTask(audioUrl, chatId) {
     if (CONFIG.OPENAI_API_KEY === 'LA_TUA_API_KEY_OPENAI') {
         await sendTelegramReply(chatId, '❌ API OpenAI non configurata. Configura OPENAI_API_KEY.');
         return;
     }
 
-    // Scarica il file audio
     const tempFile = path.join(__dirname, 'temp_audio.ogg');
-
     const file = fs.createWriteStream(tempFile);
 
     https.get(audioUrl, (response) => {
@@ -450,7 +471,6 @@ async function transcribeAndCreateTask(audioUrl, chatId) {
             file.close();
 
             try {
-                // Usa form-data per inviare a OpenAI
                 const FormData = require('form-data');
                 const form = new FormData();
                 form.append('file', fs.createReadStream(tempFile), 'audio.ogg');
@@ -474,26 +494,27 @@ async function transcribeAndCreateTask(audioUrl, chatId) {
                         try {
                             const result = JSON.parse(data);
                             if (result.text) {
-                                const task = createTask({
-                                    titolo: result.text.length > 100 ? result.text.substring(0, 100) + '...' : result.text,
-                                    descrizione: result.text.length > 100 ? result.text : '',
-                                    tipo: 'cs',
-                                    priorita: 'media'
-                                });
-                                await sendTelegramReply(chatId, `✅ Task creato da vocale:\n\n📋 *${task.titolo}*\n\n📝 Trascrizione: "${result.text}"`);
+                                const titolo = result.text.length > 100 ? result.text.substring(0, 100) + '...' : result.text;
+                                const descrizione = result.text.length > 100 ? result.text : '';
+
+                                const dbResult = await pool.query(`
+                                    INSERT INTO tasks (titolo, descrizione, tipo, priorita)
+                                    VALUES ($1, $2, 'cs', 'media')
+                                    RETURNING *
+                                `, [titolo, descrizione]);
+
+                                await sendTelegramReply(chatId, `✅ Task creato da vocale:\n\n📋 *${dbResult.rows[0].titolo}*\n\n📝 Trascrizione: "${result.text}"`);
                             } else {
                                 await sendTelegramReply(chatId, '❌ Non sono riuscito a trascrivere il vocale');
                             }
                         } catch (e) {
                             await sendTelegramReply(chatId, '❌ Errore nella trascrizione');
                         }
-
-                        // Elimina file temporaneo
                         fs.unlink(tempFile, () => {});
                     });
                 });
 
-                req.on('error', async (e) => {
+                req.on('error', async () => {
                     await sendTelegramReply(chatId, '❌ Errore di connessione a OpenAI');
                     fs.unlink(tempFile, () => {});
                 });
@@ -504,12 +525,11 @@ async function transcribeAndCreateTask(audioUrl, chatId) {
                 fs.unlink(tempFile, () => {});
             }
         });
-    }).on('error', async (e) => {
+    }).on('error', async () => {
         await sendTelegramReply(chatId, '❌ Errore nel download del file audio');
     });
 }
 
-// Invia risposta Telegram
 async function sendTelegramReply(chatId, text) {
     const data = JSON.stringify({
         chat_id: chatId,
@@ -552,34 +572,32 @@ app.get('/storico', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'storico.html'));
 });
 
-// Homepage redirect
 app.get('/', (req, res) => {
     res.redirect('/cs');
 });
 
 // ==================== AVVIO SERVER ====================
 
-app.listen(PORT, () => {
-    console.log(`
+async function start() {
+    await initDB();
+
+    app.listen(PORT, () => {
+        console.log(`
 ╔════════════════════════════════════════════════════════════╗
 ║           Dashboard CS - Server Avviato                   ║
 ╠════════════════════════════════════════════════════════════╣
 ║                                                            ║
 ║   Server:     http://localhost:${PORT}                       ║
-║                                                            ║
-║   Admin:      http://localhost:${PORT}/admin?key=${CONFIG.ADMIN_KEY.substring(0, 8)}...  ║
-║   CS:         http://localhost:${PORT}/cs                    ║
-║   Storico:    http://localhost:${PORT}/storico?key=...       ║
-║                                                            ║
-║   Configura le variabili d'ambiente:                       ║
-║      - ADMIN_KEY         (chiave accesso admin)            ║
-║      - TELEGRAM_BOT_TOKEN (token bot Telegram)             ║
-║      - TELEGRAM_CHAT_ID   (ID chat/gruppo)                 ║
-║      - OPENAI_API_KEY     (per trascrizione vocali)        ║
+║   Database:   PostgreSQL (persistente)                     ║
 ║                                                            ║
 ╚════════════════════════════════════════════════════════════╝
-    `);
+        `);
 
-    // Avvia polling Telegram per vocali
-    startTelegramPolling();
+        startTelegramPolling();
+    });
+}
+
+start().catch(err => {
+    console.error('Errore avvio server:', err);
+    process.exit(1);
 });
