@@ -438,6 +438,34 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
 
         console.log(`[Reports] Nuovo report salvato: ${tipo} - ${titolo} (ID: ${result.rows[0].id})`);
         res.status(201).json(result.rows[0]);
+
+        // Controlla se tutti e 3 i report del giorno sono pronti
+        try {
+            const countResult = await pool.query(
+                'SELECT COUNT(DISTINCT tipo) as tipi FROM reports WHERE data_report = $1',
+                [data_report]
+            );
+            const tipiPresenti = parseInt(countResult.rows[0].tipi);
+
+            if (tipiPresenti === 3) {
+                // Formatta la data per il messaggio
+                let messaggio;
+                try {
+                    const d = new Date(data_report);
+                    const giorno = String(d.getDate()).padStart(2, '0');
+                    const mese = String(d.getMonth() + 1).padStart(2, '0');
+                    const anno = d.getFullYear();
+                    messaggio = `📊 Report del giorno ${giorno}/${mese}/${anno} pronti`;
+                } catch (e) {
+                    messaggio = '📊 Report pronti';
+                }
+
+                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, messaggio);
+                console.log(`[Reports] Notifica Telegram: tutti e 3 i report per ${data_report} sono pronti`);
+            }
+        } catch (notifErr) {
+            console.error('[Reports] Errore check notifica:', notifErr);
+        }
     } catch (err) {
         console.error('[Reports]', err);
         res.status(500).json({ error: 'Errore server' });
