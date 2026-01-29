@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Report OSSEOTOUCH - Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Report OSSEOTOUCH</h1>
+            <nav>
+                <a href="admin.html" class="nav-link nav-back">&#8592; Torna alla Dashboard</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Ultimi report (3 card, uno per tipo) -->
+            <section class="report-latest-section">
+                <h2>Ultimi report</h2>
+                <div id="latestReports" class="report-cards-grid">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- Archivio: 3 card cartella -->
+            <section class="report-archive-section">
+                <h2>Archivio</h2>
+                <div class="report-folders-grid">
+                    <a href="#" id="folderOrdini" class="report-folder report-folder-vendite_giornaliero">
+                        <div class="report-folder-icon">&#128203;</div>
+                        <div class="report-folder-title">Report ordini quotidiano</div>
+                        <div class="report-folder-desc">Report giornalieri delle vendite e margini</div>
+                    </a>
+                    <a href="#" id="folderTrend" class="report-folder report-folder-trend_mensile">
+                        <div class="report-folder-icon">&#128200;</div>
+                        <div class="report-folder-title">Report trend vendite</div>
+                        <div class="report-folder-desc">Analisi trend e andamento mensile</div>
+                    </a>
+                    <a href="#" id="folderFinanza" class="report-folder report-folder-finanziario">
+                        <div class="report-folder-icon">&#128176;</div>
+                        <div class="report-folder-title">Report finanziario</div>
+                        <div class="report-folder-desc">Situazione finanziaria, cassa e debiti</div>
+                    </a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="report.js"></script>
+</body>
+</html>

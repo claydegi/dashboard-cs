@@ -32,6 +32,12 @@ document.addEventListener('DOMContentLoaded', () => {
         storicoLink.href = `storico.html?key=${ADMIN_KEY}`;
     }
 
+    // Aggiorna link report con chiave
+    const reportLink = document.querySelector('.nav-report');
+    if (reportLink) {
+        reportLink.href = `report.html?key=${ADMIN_KEY}`;
+    }
+
     loadTasks();
     setupEventListeners();
 });

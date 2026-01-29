@@ -11,6 +11,7 @@ const PORT = process.env.PORT || 3000;
 // Configurazione
 const CONFIG = {
     ADMIN_KEY: process.env.ADMIN_KEY || 'chiave-segreta-admin-2024',
+    REPORTS_API_KEY: process.env.REPORTS_API_KEY || process.env.ADMIN_KEY || 'chiave-segreta-admin-2024',
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '7975162439:AAGB95NY4fAVdhNdgBY5X5QObHDNKHNkNFw',
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '-5130672016',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI'
@@ -50,6 +51,25 @@ async function initDB() {
                 completato_da TEXT
             )
         `);
+        // Tabella reports (OSSEOTOUCH)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS reports (
+                id SERIAL PRIMARY KEY,
+                tipo TEXT NOT NULL,
+                titolo TEXT NOT NULL,
+                data_report DATE NOT NULL,
+                mese_report TEXT,
+                contenuto_html TEXT NOT NULL,
+                file_originale TEXT,
+                dimensione_kb INTEGER,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo ON reports(tipo)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_data ON reports(data_report DESC)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo_data ON reports(tipo, data_report DESC)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -294,6 +314,146 @@ app.post('/api/tasks/:id/comments', async (req, res) => {
         res.json(result.rows[0]);
     } catch (err) {
         console.error(err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== API REPORTS (OSSEOTOUCH) ====================
+
+function requireReportsKey(req, res, next) {
+    const key = req.headers['x-api-key'];
+    if (key !== CONFIG.REPORTS_API_KEY) {
+        return res.status(401).json({ error: 'API key non valida' });
+    }
+    next();
+}
+
+// Ultimi report (uno per tipo)
+app.get('/api/reports/latest', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT ON (tipo) id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
+            FROM reports
+            ORDER BY tipo, data_report DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Reports]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Lista report con filtri e paginazione
+app.get('/api/reports', requireAdmin, async (req, res) => {
+    try {
+        const tipo = req.query.tipo;
+        const limit = parseInt(req.query.limit) || 50;
+        const offset = parseInt(req.query.offset) || 0;
+
+        let query, countQuery, params, countParams;
+
+        if (tipo) {
+            query = `
+                SELECT id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
+                FROM reports
+                WHERE tipo = $1
+                ORDER BY data_report DESC
+                LIMIT $2 OFFSET $3
+            `;
+            params = [tipo, limit, offset];
+            countQuery = 'SELECT COUNT(*) as totale FROM reports WHERE tipo = $1';
+            countParams = [tipo];
+        } else {
+            query = `
+                SELECT id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
+                FROM reports
+                ORDER BY data_report DESC
+                LIMIT $1 OFFSET $2
+            `;
+            params = [limit, offset];
+            countQuery = 'SELECT COUNT(*) as totale FROM reports';
+            countParams = [];
+        }
+
+        const [dataResult, countResult] = await Promise.all([
+            pool.query(query, params),
+            pool.query(countQuery, countParams)
+        ]);
+
+        res.json({
+            reports: dataResult.rows,
+            totale: parseInt(countResult.rows[0].totale),
+            limit,
+            offset
+        });
+    } catch (err) {
+        console.error('[Reports]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Singolo report - HTML completo
+app.get('/api/reports/:id/html', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT contenuto_html FROM reports WHERE id = $1',
+            [parseInt(req.params.id)]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).send('Report non trovato');
+        }
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Crea nuovo report (da COLTRI)
+app.post('/api/reports', requireReportsKey, async (req, res) => {
+    const { tipo, titolo, data_report, contenuto_html, mese_report, file_originale } = req.body;
+
+    if (!tipo || !titolo || !data_report || !contenuto_html) {
+        return res.status(400).json({
+            error: 'Campi obbligatori mancanti: tipo, titolo, data_report, contenuto_html'
+        });
+    }
+
+    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario'];
+    if (!tipiValidi.includes(tipo)) {
+        return res.status(400).json({
+            error: `Tipo non valido. Valori ammessi: ${tipiValidi.join(', ')}`
+        });
+    }
+
+    try {
+        const dimensione_kb = Math.round(Buffer.byteLength(contenuto_html, 'utf8') / 1024);
+
+        const result = await pool.query(`
+            INSERT INTO reports (tipo, titolo, data_report, mese_report, contenuto_html, file_originale, dimensione_kb)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id, tipo, titolo, data_report, dimensione_kb, created_at
+        `, [tipo, titolo, data_report, mese_report || null, contenuto_html, file_originale || null, dimensione_kb]);
+
+        console.log(`[Reports] Nuovo report salvato: ${tipo} - ${titolo} (ID: ${result.rows[0].id})`);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('[Reports]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Elimina report
+app.delete('/api/reports/:id', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM reports WHERE id = $1 RETURNING id', [parseInt(req.params.id)]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Report non trovato' });
+        }
+        res.json({ message: 'Report eliminato' });
+    } catch (err) {
+        console.error('[Reports]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
@@ -570,6 +730,22 @@ app.get('/cs', (req, res) => {
 
 app.get('/storico', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'storico.html'));
+});
+
+app.get('/report', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'report.html'));
+});
+
+app.get('/report-ordini', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'report-ordini.html'));
+});
+
+app.get('/report-trend', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'report-trend.html'));
+});
+
+app.get('/report-finanza', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'report-finanza.html'));
 });
 
 app.get('/', (req, res) => {

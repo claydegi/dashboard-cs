@@ -618,3 +618,197 @@ nav {
     from { transform: translateX(100%); opacity: 0; }
     to { transform: translateX(0); opacity: 1; }
 }
+
+/* ========================================
+   SEZIONE REPORT OSSEOTOUCH
+   ======================================== */
+
+.report-latest-section {
+    margin-bottom: 32px;
+}
+
+.report-latest-section h2,
+.report-archive-section h2 {
+    font-size: 1.25rem;
+    margin-bottom: 20px;
+    color: var(--gray-900);
+}
+
+/* Card report recenti */
+.report-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.report-card {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border-left: 5px solid var(--gray-300);
+}
+
+.report-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.report-card-vendite_giornaliero { border-left-color: var(--primary); }
+.report-card-trend_mensile { border-left-color: var(--danger); }
+.report-card-finanziario { border-left-color: var(--success); }
+
+.report-card-tipo {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-weight: 700;
+    margin-bottom: 8px;
+}
+
+.report-card-vendite_giornaliero .report-card-tipo { color: var(--primary); }
+.report-card-trend_mensile .report-card-tipo { color: var(--danger); }
+.report-card-finanziario .report-card-tipo { color: var(--success); }
+
+.report-card-titolo {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: var(--gray-900);
+}
+
+.report-card-data {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+.report-card-size {
+    font-size: 0.75rem;
+    color: var(--gray-300);
+    margin-top: 10px;
+}
+
+/* Card cartella archivio */
+.report-folders-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+.report-folder {
+    background: white;
+    border-radius: 12px;
+    padding: 32px 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    text-decoration: none;
+    display: block;
+    border-top: 4px solid var(--gray-300);
+    text-align: center;
+}
+
+.report-folder:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.report-folder-vendite_giornaliero { border-top-color: var(--primary); }
+.report-folder-trend_mensile { border-top-color: var(--danger); }
+.report-folder-finanziario { border-top-color: var(--success); }
+
+.report-folder-icon {
+    font-size: 2.5rem;
+    margin-bottom: 12px;
+}
+
+.report-folder-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 8px;
+}
+
+.report-folder-desc {
+    font-size: 0.85rem;
+    color: var(--gray-500);
+}
+
+/* Pagine cartella: sezioni per mese */
+.report-folder-content {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.report-month-section {
+    background: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.report-month-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--gray-900);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--gray-100);
+}
+
+.report-month-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Riga report nella cartella */
+.report-history-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    padding: 14px 18px;
+    border-radius: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s, border-color 0.2s;
+}
+
+.report-history-item:hover {
+    background: white;
+    border-color: var(--primary);
+}
+
+.report-item-titolo {
+    font-weight: 500;
+    color: var(--gray-900);
+}
+
+.report-item-data {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+/* Nav link Report */
+.nav-report {
+    background: var(--gray-100);
+}
+
+/* Responsive report */
+@media (max-width: 768px) {
+    .report-cards-grid,
+    .report-folders-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .report-history-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+}
