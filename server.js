@@ -69,12 +69,6 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo ON reports(tipo)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_data ON reports(data_report DESC)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo_data ON reports(tipo, data_report DESC)`);
-        // Pulizia duplicati esistenti (mantiene solo il più recente per tipo+data)
-        await client.query(`
-            DELETE FROM reports a USING reports b
-            WHERE a.tipo = b.tipo AND a.data_report = b.data_report
-            AND a.created_at < b.created_at
-        `);
         // Vincolo UNIQUE per evitare duplicati: un solo report per tipo+data
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_tipo_data_unique ON reports(tipo, data_report)`);
 
