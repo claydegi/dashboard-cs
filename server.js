@@ -69,6 +69,14 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo ON reports(tipo)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_data ON reports(data_report DESC)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo_data ON reports(tipo, data_report DESC)`);
+        // Pulizia duplicati esistenti (mantiene solo il più recente per tipo+data)
+        await client.query(`
+            DELETE FROM reports a USING reports b
+            WHERE a.tipo = b.tipo AND a.data_report = b.data_report
+            AND a.created_at < b.created_at
+        `);
+        // Vincolo UNIQUE per evitare duplicati: un solo report per tipo+data
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_tipo_data_unique ON reports(tipo, data_report)`);
 
         console.log('[DB] Tabelle inizializzate');
     } finally {
@@ -334,7 +342,7 @@ app.get('/api/reports/latest', requireAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT DISTINCT ON (tipo) id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
             FROM reports
-            ORDER BY tipo, data_report DESC
+            ORDER BY tipo, data_report DESC, created_at DESC
         `);
         res.json(result.rows);
     } catch (err) {
@@ -357,7 +365,7 @@ app.get('/api/reports', requireAdmin, async (req, res) => {
                 SELECT id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
                 FROM reports
                 WHERE tipo = $1
-                ORDER BY data_report DESC
+                ORDER BY data_report DESC, created_at DESC
                 LIMIT $2 OFFSET $3
             `;
             params = [tipo, limit, offset];
@@ -367,7 +375,7 @@ app.get('/api/reports', requireAdmin, async (req, res) => {
             query = `
                 SELECT id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
                 FROM reports
-                ORDER BY data_report DESC
+                ORDER BY data_report DESC, created_at DESC
                 LIMIT $1 OFFSET $2
             `;
             params = [limit, offset];
@@ -433,6 +441,13 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         const result = await pool.query(`
             INSERT INTO reports (tipo, titolo, data_report, mese_report, contenuto_html, file_originale, dimensione_kb)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
+            ON CONFLICT (tipo, data_report) DO UPDATE SET
+                titolo = EXCLUDED.titolo,
+                mese_report = EXCLUDED.mese_report,
+                contenuto_html = EXCLUDED.contenuto_html,
+                file_originale = EXCLUDED.file_originale,
+                dimensione_kb = EXCLUDED.dimensione_kb,
+                created_at = NOW()
             RETURNING id, tipo, titolo, data_report, dimensione_kb, created_at
         `, [tipo, titolo, data_report, mese_report || null, contenuto_html, file_originale || null, dimensione_kb]);
 
