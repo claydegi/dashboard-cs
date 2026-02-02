@@ -422,7 +422,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         });
     }
 
-    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario'];
+    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo'];
     if (!tipiValidi.includes(tipo)) {
         return res.status(400).json({
             error: `Tipo non valido. Valori ammessi: ${tipiValidi.join(', ')}`
@@ -448,7 +448,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         console.log(`[Reports] Nuovo report salvato: ${tipo} - ${titolo} (ID: ${result.rows[0].id})`);
         res.status(201).json(result.rows[0]);
 
-        // Controlla se tutti e 3 i report del giorno sono pronti
+        // Controlla se tutti e 4 i report del giorno sono pronti
         try {
             const countResult = await pool.query(
                 'SELECT COUNT(DISTINCT tipo) as tipi FROM reports WHERE data_report = $1',
@@ -456,7 +456,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
             );
             const tipiPresenti = parseInt(countResult.rows[0].tipi);
 
-            if (tipiPresenti === 3) {
+            if (tipiPresenti === 4) {
                 // Formatta la data per il messaggio
                 let messaggio;
                 try {
@@ -470,7 +470,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
                 }
 
                 sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, messaggio);
-                console.log(`[Reports] Notifica Telegram: tutti e 3 i report per ${data_report} sono pronti`);
+                console.log(`[Reports] Notifica Telegram: tutti e 4 i report per ${data_report} sono pronti`);
             }
         } catch (notifErr) {
             console.error('[Reports] Errore check notifica:', notifErr);

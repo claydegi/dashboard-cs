@@ -665,6 +665,7 @@ nav {
 .report-card-vendite_giornaliero { border-left-color: var(--primary); }
 .report-card-trend_mensile { border-left-color: var(--danger); }
 .report-card-finanziario { border-left-color: var(--success); }
+.report-card-trend_progressivo { border-left-color: var(--warning, #f59e0b); }
 
 .report-card-tipo {
     font-size: 0.75rem;
@@ -677,6 +678,7 @@ nav {
 .report-card-vendite_giornaliero .report-card-tipo { color: var(--primary); }
 .report-card-trend_mensile .report-card-tipo { color: var(--danger); }
 .report-card-finanziario .report-card-tipo { color: var(--success); }
+.report-card-trend_progressivo .report-card-tipo { color: var(--warning, #f59e0b); }
 
 .report-card-titolo {
     font-size: 1.1rem;
@@ -724,6 +726,7 @@ nav {
 .report-folder-vendite_giornaliero { border-top-color: var(--primary); }
 .report-folder-trend_mensile { border-top-color: var(--danger); }
 .report-folder-finanziario { border-top-color: var(--success); }
+.report-folder-trend_progressivo { border-top-color: var(--warning, #f59e0b); }
 
 .report-folder-icon {
     font-size: 2.5rem;

@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('folderOrdini').href = `report-ordini.html?key=${ADMIN_KEY}`;
     document.getElementById('folderTrend').href = `report-trend.html?key=${ADMIN_KEY}`;
     document.getElementById('folderFinanza').href = `report-finanza.html?key=${ADMIN_KEY}`;
+    document.getElementById('folderProgressivo').href = `report-progressivo.html?key=${ADMIN_KEY}`;
 
     caricaReportRecenti();
 });
@@ -32,7 +33,7 @@ async function caricaReportRecenti() {
             return;
         }
 
-        const ordine = ['vendite_giornaliero', 'trend_mensile', 'finanziario'];
+        const ordine = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo'];
         reports.sort((a, b) => ordine.indexOf(a.tipo) - ordine.indexOf(b.tipo));
 
         container.innerHTML = reports.map(r => `
@@ -57,7 +58,8 @@ function labelTipo(tipo) {
     const labels = {
         'vendite_giornaliero': 'Vendite giornaliero',
         'trend_mensile': 'Trend mensile',
-        'finanziario': 'Finanziario'
+        'finanziario': 'Finanziario',
+        'trend_progressivo': 'Progressivo YTD'
     };
     return labels[tipo] || tipo;
 }
