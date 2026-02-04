@@ -755,6 +755,114 @@ async function sendTelegramReply(chatId, text) {
     });
 }
 
+// ==================== REPORT KIM/MASSIMO (ANTONIA) ====================
+
+const ANTONIA_REPORTS_PATH = path.join(__dirname, '..', 'OSSEOTOUCH AI', 'ANTONIA', 'reports');
+
+// Report Kim - Crediti
+app.get('/api/reports-antonia/kim/crediti', requireAdmin, (req, res) => {
+    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_kim.html');
+    if (fs.existsSync(filePath)) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_crediti_kim.html non esiste.</p>');
+    }
+});
+
+// Report Kim - Vendite Progressivo
+app.get('/api/reports-antonia/kim/vendite', requireAdmin, (req, res) => {
+    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Kim.html');
+    if (fs.existsSync(filePath)) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_vendite_progressivo_Kim.html non esiste.</p>');
+    }
+});
+
+// Report Massimo - Crediti
+app.get('/api/reports-antonia/massimo/crediti', requireAdmin, (req, res) => {
+    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_Massimo.html');
+    if (fs.existsSync(filePath)) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_crediti_Massimo.html non esiste.</p>');
+    }
+});
+
+// Report Massimo - Vendite Progressivo
+app.get('/api/reports-antonia/massimo/vendite', requireAdmin, (req, res) => {
+    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Detto.html');
+    if (fs.existsSync(filePath)) {
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.sendFile(filePath);
+    } else {
+        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_vendite_progressivo_Detto.html non esiste.</p>');
+    }
+});
+
+// Info aggiornamento report Kim
+app.get('/api/reports-antonia/kim/info', requireAdmin, (req, res) => {
+    const creditiPath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_kim.html');
+    const venditePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Kim.html');
+
+    const info = { crediti: null, vendite: null };
+
+    if (fs.existsSync(creditiPath)) {
+        const stats = fs.statSync(creditiPath);
+        info.crediti = {
+            aggiornato: stats.mtime.toLocaleString('it-IT', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            })
+        };
+    }
+
+    if (fs.existsSync(venditePath)) {
+        const stats = fs.statSync(venditePath);
+        info.vendite = {
+            aggiornato: stats.mtime.toLocaleString('it-IT', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            })
+        };
+    }
+
+    res.json(info);
+});
+
+// Info aggiornamento report Massimo
+app.get('/api/reports-antonia/massimo/info', requireAdmin, (req, res) => {
+    const creditiPath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_Massimo.html');
+    const venditePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Detto.html');
+
+    const info = { crediti: null, vendite: null };
+
+    if (fs.existsSync(creditiPath)) {
+        const stats = fs.statSync(creditiPath);
+        info.crediti = {
+            aggiornato: stats.mtime.toLocaleString('it-IT', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            })
+        };
+    }
+
+    if (fs.existsSync(venditePath)) {
+        const stats = fs.statSync(venditePath);
+        info.vendite = {
+            aggiornato: stats.mtime.toLocaleString('it-IT', {
+                day: '2-digit', month: '2-digit', year: 'numeric',
+                hour: '2-digit', minute: '2-digit'
+            })
+        };
+    }
+
+    res.json(info);
+});
+
 // ==================== ROUTES PAGINE ====================
 
 app.get('/admin', (req, res) => {

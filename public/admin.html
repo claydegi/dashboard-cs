@@ -13,6 +13,8 @@
             <nav>
                 <a href="#" class="nav-link active" data-section="cs">Task CS</a>
                 <a href="#" class="nav-link" data-section="privati">Task Privati</a>
+                <a href="#" class="nav-link" data-section="report-kim">Report Kim</a>
+                <a href="#" class="nav-link" data-section="report-massimo">Report Massimo</a>
                 <a href="storico.html" class="nav-link nav-storico">Storico Completati</a>
                 <a href="report.html" class="nav-link nav-report">Report</a>
             </nav>
@@ -96,6 +98,36 @@
                 <h2>Task Privati Admin</h2>
                 <div id="taskListPrivati" class="task-list">
                     <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- Report Kim -->
+            <section id="section-report-kim" class="reports-section" style="display: none;">
+                <h2>Report Kim</h2>
+                <div class="reports-container">
+                    <div class="report-frame-wrapper">
+                        <h3>Report Crediti</h3>
+                        <iframe id="iframe-kim-crediti" class="report-iframe"></iframe>
+                    </div>
+                    <div class="report-frame-wrapper">
+                        <h3>Analisi Vendite Progressivo</h3>
+                        <iframe id="iframe-kim-vendite" class="report-iframe"></iframe>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Report Massimo -->
+            <section id="section-report-massimo" class="reports-section" style="display: none;">
+                <h2>Report Massimo</h2>
+                <div class="reports-container">
+                    <div class="report-frame-wrapper">
+                        <h3>Report Crediti</h3>
+                        <iframe id="iframe-massimo-crediti" class="report-iframe"></iframe>
+                    </div>
+                    <div class="report-frame-wrapper">
+                        <h3>Analisi Vendite Progressivo</h3>
+                        <iframe id="iframe-massimo-vendite" class="report-iframe"></iframe>
+                    </div>
                 </div>
             </section>
         </main>

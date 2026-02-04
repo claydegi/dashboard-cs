@@ -100,12 +100,84 @@ function switchSection(section) {
     // Mostra/nascondi sezioni
     document.getElementById('section-cs').style.display = section === 'cs' ? 'block' : 'none';
     document.getElementById('section-privati').style.display = section === 'privati' ? 'block' : 'none';
+    document.getElementById('section-report-kim').style.display = section === 'report-kim' ? 'block' : 'none';
+    document.getElementById('section-report-massimo').style.display = section === 'report-massimo' ? 'block' : 'none';
 
-    // Aggiorna tipo nel form
-    tipoSelect.value = section === 'cs' ? 'cs' : 'privato';
-    assegnatoGroup.style.display = section === 'cs' ? 'block' : 'none';
+    // Nascondi form e filtri per le sezioni report
+    const formSection = document.querySelector('.form-section');
+    const filtersSection = document.querySelector('.filters-section');
+    if (section === 'report-kim' || section === 'report-massimo') {
+        if (formSection) formSection.style.display = 'none';
+        if (filtersSection) filtersSection.style.display = 'none';
+    } else {
+        if (formSection) formSection.style.display = 'block';
+        if (filtersSection) filtersSection.style.display = 'block';
+    }
 
-    renderTasks();
+    // Carica report se necessario
+    if (section === 'report-kim') {
+        loadReportsKim();
+    } else if (section === 'report-massimo') {
+        loadReportsMassimo();
+    }
+
+    // Aggiorna tipo nel form (solo per sezioni task)
+    if (section === 'cs' || section === 'privati') {
+        tipoSelect.value = section === 'cs' ? 'cs' : 'privato';
+        assegnatoGroup.style.display = section === 'cs' ? 'block' : 'none';
+        renderTasks();
+    }
+}
+
+// Carica report Kim
+function loadReportsKim() {
+    const iframeCrediti = document.getElementById('iframe-kim-crediti');
+    const iframeVendite = document.getElementById('iframe-kim-vendite');
+
+    // Aggiungi timestamp per evitare cache
+    const ts = Date.now();
+    iframeCrediti.src = `${API_URL}/reports-antonia/kim/crediti?key=${ADMIN_KEY}&_t=${ts}`;
+    iframeVendite.src = `${API_URL}/reports-antonia/kim/vendite?key=${ADMIN_KEY}&_t=${ts}`;
+
+    // Carica info aggiornamento
+    loadReportInfo('kim');
+}
+
+// Carica report Massimo
+function loadReportsMassimo() {
+    const iframeCrediti = document.getElementById('iframe-massimo-crediti');
+    const iframeVendite = document.getElementById('iframe-massimo-vendite');
+
+    // Aggiungi timestamp per evitare cache
+    const ts = Date.now();
+    iframeCrediti.src = `${API_URL}/reports-antonia/massimo/crediti?key=${ADMIN_KEY}&_t=${ts}`;
+    iframeVendite.src = `${API_URL}/reports-antonia/massimo/vendite?key=${ADMIN_KEY}&_t=${ts}`;
+
+    // Carica info aggiornamento
+    loadReportInfo('massimo');
+}
+
+// Carica info aggiornamento report
+async function loadReportInfo(persona) {
+    try {
+        const response = await fetch(`${API_URL}/reports-antonia/${persona}/info?key=${ADMIN_KEY}`);
+        if (response.ok) {
+            const info = await response.json();
+
+            // Aggiorna titoli con data/ora
+            const creditiWrapper = document.querySelector(`#iframe-${persona}-crediti`).closest('.report-frame-wrapper');
+            const venditeWrapper = document.querySelector(`#iframe-${persona}-vendite`).closest('.report-frame-wrapper');
+
+            if (creditiWrapper && info.crediti) {
+                creditiWrapper.querySelector('h3').innerHTML = `Report Crediti <span class="report-update-time">Ultimo aggiornamento: ${info.crediti.aggiornato}</span>`;
+            }
+            if (venditeWrapper && info.vendite) {
+                venditeWrapper.querySelector('h3').innerHTML = `Report Vendite Progressivo 2026 <span class="report-update-time">Ultimo aggiornamento: ${info.vendite.aggiornato}</span>`;
+            }
+        }
+    } catch (error) {
+        console.error('Errore caricamento info report:', error);
+    }
 }
 
 // Renderizza task
