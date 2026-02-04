@@ -850,3 +850,10 @@ nav {
 .report-card-vendite_massimo { border-left-color: #9b59b6; }
 .report-card-vendite_kim .report-card-tipo,
 .report-card-vendite_massimo .report-card-tipo { color: #9b59b6; }
+
+/* Dashboard Agente - stile header */
+.report-motto {
+    color: var(--gray-600);
+    font-size: 0.95rem;
+    margin-top: 4px;
+}
