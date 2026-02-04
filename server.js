@@ -330,12 +330,13 @@ function requireReportsKey(req, res, next) {
     next();
 }
 
-// Ultimi report (uno per tipo)
+// Ultimi report (uno per tipo) - esclusi report Kim e Massimo che hanno tab dedicati
 app.get('/api/reports/latest', requireAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT DISTINCT ON (tipo) id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
             FROM reports
+            WHERE tipo NOT IN ('crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo')
             ORDER BY tipo, data_report DESC, created_at DESC
         `);
         res.json(result.rows);
