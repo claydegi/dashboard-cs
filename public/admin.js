@@ -130,53 +130,88 @@ function switchSection(section) {
 }
 
 // Carica report Kim
-function loadReportsKim() {
-    const iframeCrediti = document.getElementById('iframe-kim-crediti');
-    const iframeVendite = document.getElementById('iframe-kim-vendite');
+async function loadReportsKim() {
+    const container = document.getElementById('reports-kim-container');
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
 
-    // Aggiungi timestamp per evitare cache
-    const ts = Date.now();
-    iframeCrediti.src = `${API_URL}/reports-antonia/kim/crediti?key=${ADMIN_KEY}&_t=${ts}`;
-    iframeVendite.src = `${API_URL}/reports-antonia/kim/vendite?key=${ADMIN_KEY}&_t=${ts}`;
+    try {
+        const response = await fetch(`${API_URL}/reports-antonia/kim/info?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento');
+        const info = await response.json();
 
-    // Carica info aggiornamento
-    loadReportInfo('kim');
+        let html = '';
+
+        if (info.crediti) {
+            html += `
+                <div class="report-card report-card-crediti_kim" onclick="window.location.href='${API_URL}/reports-antonia/kim/crediti?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Crediti</div>
+                    <div class="report-card-titolo">Report Crediti Kim</div>
+                    <div class="report-card-data">Aggiornato: ${info.crediti.aggiornato}</div>
+                </div>
+            `;
+        }
+
+        if (info.vendite) {
+            html += `
+                <div class="report-card report-card-vendite_kim" onclick="window.location.href='${API_URL}/reports-antonia/kim/vendite?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Vendite Progressivo</div>
+                    <div class="report-card-titolo">Report Vendite Progressivo 2026</div>
+                    <div class="report-card-data">Aggiornato: ${info.vendite.aggiornato}</div>
+                </div>
+            `;
+        }
+
+        if (!html) {
+            html = '<div class="empty-state"><p>Nessun report disponibile</p></div>';
+        }
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Errore caricamento report Kim:', error);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
+    }
 }
 
 // Carica report Massimo
-function loadReportsMassimo() {
-    const iframeCrediti = document.getElementById('iframe-massimo-crediti');
-    const iframeVendite = document.getElementById('iframe-massimo-vendite');
+async function loadReportsMassimo() {
+    const container = document.getElementById('reports-massimo-container');
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
 
-    // Aggiungi timestamp per evitare cache
-    const ts = Date.now();
-    iframeCrediti.src = `${API_URL}/reports-antonia/massimo/crediti?key=${ADMIN_KEY}&_t=${ts}`;
-    iframeVendite.src = `${API_URL}/reports-antonia/massimo/vendite?key=${ADMIN_KEY}&_t=${ts}`;
-
-    // Carica info aggiornamento
-    loadReportInfo('massimo');
-}
-
-// Carica info aggiornamento report
-async function loadReportInfo(persona) {
     try {
-        const response = await fetch(`${API_URL}/reports-antonia/${persona}/info?key=${ADMIN_KEY}`);
-        if (response.ok) {
-            const info = await response.json();
+        const response = await fetch(`${API_URL}/reports-antonia/massimo/info?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento');
+        const info = await response.json();
 
-            // Aggiorna titoli con data/ora
-            const creditiWrapper = document.querySelector(`#iframe-${persona}-crediti`).closest('.report-frame-wrapper');
-            const venditeWrapper = document.querySelector(`#iframe-${persona}-vendite`).closest('.report-frame-wrapper');
+        let html = '';
 
-            if (creditiWrapper && info.crediti) {
-                creditiWrapper.querySelector('h3').innerHTML = `Report Crediti <span class="report-update-time">Ultimo aggiornamento: ${info.crediti.aggiornato}</span>`;
-            }
-            if (venditeWrapper && info.vendite) {
-                venditeWrapper.querySelector('h3').innerHTML = `Report Vendite Progressivo 2026 <span class="report-update-time">Ultimo aggiornamento: ${info.vendite.aggiornato}</span>`;
-            }
+        if (info.crediti) {
+            html += `
+                <div class="report-card report-card-crediti_massimo" onclick="window.location.href='${API_URL}/reports-antonia/massimo/crediti?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Crediti</div>
+                    <div class="report-card-titolo">Report Crediti Massimo</div>
+                    <div class="report-card-data">Aggiornato: ${info.crediti.aggiornato}</div>
+                </div>
+            `;
         }
+
+        if (info.vendite) {
+            html += `
+                <div class="report-card report-card-vendite_massimo" onclick="window.location.href='${API_URL}/reports-antonia/massimo/vendite?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Vendite Progressivo</div>
+                    <div class="report-card-titolo">Report Vendite Progressivo 2026</div>
+                    <div class="report-card-data">Aggiornato: ${info.vendite.aggiornato}</div>
+                </div>
+            `;
+        }
+
+        if (!html) {
+            html = '<div class="empty-state"><p>Nessun report disponibile</p></div>';
+        }
+
+        container.innerHTML = html;
     } catch (error) {
-        console.error('Errore caricamento info report:', error);
+        console.error('Errore caricamento report Massimo:', error);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
     }
 }
 
