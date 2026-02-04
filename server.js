@@ -422,7 +422,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         });
     }
 
-    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo'];
+    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo', 'crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo'];
     if (!tipiValidi.includes(tipo)) {
         return res.status(400).json({
             error: `Tipo non valido. Valori ammessi: ${tipiValidi.join(', ')}`
@@ -755,112 +755,170 @@ async function sendTelegramReply(chatId, text) {
     });
 }
 
-// ==================== REPORT KIM/MASSIMO (ANTONIA) ====================
+// ==================== REPORT KIM/MASSIMO (DAL DATABASE) ====================
 
-const ANTONIA_REPORTS_PATH = path.join(__dirname, '..', 'OSSEOTOUCH AI', 'ANTONIA', 'reports');
-
-// Report Kim - Crediti
-app.get('/api/reports-antonia/kim/crediti', requireAdmin, (req, res) => {
-    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_kim.html');
-    if (fs.existsSync(filePath)) {
+// Report Kim - Crediti (ultimo dal DB)
+app.get('/api/reports-antonia/kim/crediti', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'crediti_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report crediti Kim disponibile.</p>');
+        }
         res.set('Content-Type', 'text/html; charset=utf-8');
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_crediti_kim.html non esiste.</p>');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Kim Crediti]', err);
+        res.status(500).send('<h1>Errore server</h1>');
     }
 });
 
-// Report Kim - Vendite Progressivo
-app.get('/api/reports-antonia/kim/vendite', requireAdmin, (req, res) => {
-    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Kim.html');
-    if (fs.existsSync(filePath)) {
+// Report Kim - Vendite Progressivo (ultimo dal DB)
+app.get('/api/reports-antonia/kim/vendite', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'vendite_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report vendite Kim disponibile.</p>');
+        }
         res.set('Content-Type', 'text/html; charset=utf-8');
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_vendite_progressivo_Kim.html non esiste.</p>');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Kim Vendite]', err);
+        res.status(500).send('<h1>Errore server</h1>');
     }
 });
 
-// Report Massimo - Crediti
-app.get('/api/reports-antonia/massimo/crediti', requireAdmin, (req, res) => {
-    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_Massimo.html');
-    if (fs.existsSync(filePath)) {
+// Report Massimo - Crediti (ultimo dal DB)
+app.get('/api/reports-antonia/massimo/crediti', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'crediti_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report crediti Massimo disponibile.</p>');
+        }
         res.set('Content-Type', 'text/html; charset=utf-8');
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_crediti_Massimo.html non esiste.</p>');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Massimo Crediti]', err);
+        res.status(500).send('<h1>Errore server</h1>');
     }
 });
 
-// Report Massimo - Vendite Progressivo
-app.get('/api/reports-antonia/massimo/vendite', requireAdmin, (req, res) => {
-    const filePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Detto.html');
-    if (fs.existsSync(filePath)) {
+// Report Massimo - Vendite Progressivo (ultimo dal DB)
+app.get('/api/reports-antonia/massimo/vendite', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'vendite_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report vendite Massimo disponibile.</p>');
+        }
         res.set('Content-Type', 'text/html; charset=utf-8');
-        res.sendFile(filePath);
-    } else {
-        res.status(404).send('<h1>Report non trovato</h1><p>Il file Report_vendite_progressivo_Detto.html non esiste.</p>');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Massimo Vendite]', err);
+        res.status(500).send('<h1>Errore server</h1>');
     }
 });
 
-// Info aggiornamento report Kim
-app.get('/api/reports-antonia/kim/info', requireAdmin, (req, res) => {
-    const creditiPath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_kim.html');
-    const venditePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Kim.html');
+// Info aggiornamento report Kim (dal DB)
+app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
+    try {
+        const info = { crediti: null, vendite: null };
 
-    const info = { crediti: null, vendite: null };
+        const creditiResult = await pool.query(`
+            SELECT created_at FROM reports
+            WHERE tipo = 'crediti_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (creditiResult.rows.length > 0) {
+            info.crediti = {
+                aggiornato: new Date(creditiResult.rows[0].created_at).toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                })
+            };
+        }
 
-    if (fs.existsSync(creditiPath)) {
-        const stats = fs.statSync(creditiPath);
-        info.crediti = {
-            aggiornato: stats.mtime.toLocaleString('it-IT', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            })
-        };
+        const venditeResult = await pool.query(`
+            SELECT created_at FROM reports
+            WHERE tipo = 'vendite_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (venditeResult.rows.length > 0) {
+            info.vendite = {
+                aggiornato: new Date(venditeResult.rows[0].created_at).toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                })
+            };
+        }
+
+        res.json(info);
+    } catch (err) {
+        console.error('[Reports Kim Info]', err);
+        res.status(500).json({ error: 'Errore server' });
     }
-
-    if (fs.existsSync(venditePath)) {
-        const stats = fs.statSync(venditePath);
-        info.vendite = {
-            aggiornato: stats.mtime.toLocaleString('it-IT', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            })
-        };
-    }
-
-    res.json(info);
 });
 
-// Info aggiornamento report Massimo
-app.get('/api/reports-antonia/massimo/info', requireAdmin, (req, res) => {
-    const creditiPath = path.join(ANTONIA_REPORTS_PATH, 'Report_crediti_Massimo.html');
-    const venditePath = path.join(ANTONIA_REPORTS_PATH, 'Report_vendite_progressivo_Detto.html');
+// Info aggiornamento report Massimo (dal DB)
+app.get('/api/reports-antonia/massimo/info', requireAdmin, async (req, res) => {
+    try {
+        const info = { crediti: null, vendite: null };
 
-    const info = { crediti: null, vendite: null };
+        const creditiResult = await pool.query(`
+            SELECT created_at FROM reports
+            WHERE tipo = 'crediti_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (creditiResult.rows.length > 0) {
+            info.crediti = {
+                aggiornato: new Date(creditiResult.rows[0].created_at).toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                })
+            };
+        }
 
-    if (fs.existsSync(creditiPath)) {
-        const stats = fs.statSync(creditiPath);
-        info.crediti = {
-            aggiornato: stats.mtime.toLocaleString('it-IT', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            })
-        };
+        const venditeResult = await pool.query(`
+            SELECT created_at FROM reports
+            WHERE tipo = 'vendite_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (venditeResult.rows.length > 0) {
+            info.vendite = {
+                aggiornato: new Date(venditeResult.rows[0].created_at).toLocaleString('it-IT', {
+                    day: '2-digit', month: '2-digit', year: 'numeric',
+                    hour: '2-digit', minute: '2-digit'
+                })
+            };
+        }
+
+        res.json(info);
+    } catch (err) {
+        console.error('[Reports Massimo Info]', err);
+        res.status(500).json({ error: 'Errore server' });
     }
-
-    if (fs.existsSync(venditePath)) {
-        const stats = fs.statSync(venditePath);
-        info.vendite = {
-            aggiornato: stats.mtime.toLocaleString('it-IT', {
-                day: '2-digit', month: '2-digit', year: 'numeric',
-                hour: '2-digit', minute: '2-digit'
-            })
-        };
-    }
-
-    res.json(info);
 });
 
 // ==================== ROUTES PAGINE ====================
