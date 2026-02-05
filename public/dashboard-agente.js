@@ -83,11 +83,27 @@ async function caricaFatture() {
                     <button class="btn btn-primary btn-small" onclick="window.open('${API_URL}/fatture/${AGENTE}/download/${f.id}?key=${ADMIN_KEY}', '_blank')">
                         Visualizza PDF
                     </button>
+                    <button class="btn btn-danger btn-small" onclick="eliminaFattura(${f.id})">Elimina</button>
                 </div>
             </div>
         `).join('');
     } catch (err) {
         console.error('Errore caricamento fatture:', err);
         container.innerHTML = '<div class="empty-state"><p>Errore di connessione. Riprova.</p></div>';
+    }
+}
+
+async function eliminaFattura(id) {
+    if (!confirm('Sei sicuro di voler eliminare questa fattura?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/fatture/${id}?key=${ADMIN_KEY}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Errore eliminazione');
+        caricaFatture();
+    } catch (err) {
+        console.error('Errore eliminazione fattura:', err);
     }
 }
