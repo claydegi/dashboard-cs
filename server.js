@@ -14,7 +14,8 @@ const CONFIG = {
     REPORTS_API_KEY: process.env.REPORTS_API_KEY || process.env.ADMIN_KEY || 'chiave-segreta-admin-2024',
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '7975162439:AAGB95NY4fAVdhNdgBY5X5QObHDNKHNkNFw',
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '-5130672016',
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI'
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI',
+    TELEGRAM_CHAT_ID_KIM: process.env.TELEGRAM_CHAT_ID_KIM || '8418876575'
 };
 
 // Middleware
@@ -71,6 +72,21 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_reports_tipo_data ON reports(tipo, data_report DESC)`);
         // Vincolo UNIQUE per evitare duplicati: un solo report per tipo+data
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_reports_tipo_data_unique ON reports(tipo, data_report)`);
+
+        // Tabella fatture PDF
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS fatture (
+                id SERIAL PRIMARY KEY,
+                agente TEXT NOT NULL,
+                nome_file TEXT NOT NULL,
+                data_fattura DATE NOT NULL,
+                dimensione_kb INTEGER,
+                pdf_base64 TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_fatture_agente ON fatture(agente)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_fatture_agente_data ON fatture(agente, data_fattura DESC)`);
 
         console.log('[DB] Tabelle inizializzate');
     } finally {
@@ -448,6 +464,22 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
 
         console.log(`[Reports] Nuovo report salvato: ${tipo} - ${titolo} (ID: ${result.rows[0].id})`);
         res.status(201).json(result.rows[0]);
+
+        // Notifica Telegram a Kim quando viene caricato/aggiornato un suo report
+        if (tipo === 'crediti_kim' || tipo === 'vendite_kim') {
+            try {
+                const nomeReport = tipo === 'crediti_kim' ? 'Report Crediti' : 'Vendite Progressivo 2026';
+                const d = new Date(data_report);
+                const giorno = String(d.getDate()).padStart(2, '0');
+                const mese = String(d.getMonth() + 1).padStart(2, '0');
+                const anno = d.getFullYear();
+                const messaggioKim = `📋 *Nuovo ${nomeReport}*\n\n📄 ${titolo}\n📅 Data: ${giorno}/${mese}/${anno}\n\nIl report è stato aggiornato nella dashboard.`;
+                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_KIM, messaggioKim);
+                console.log(`[Reports] Notifica Telegram inviata a Kim per: ${tipo}`);
+            } catch (kimNotifErr) {
+                console.error('[Reports] Errore notifica Kim:', kimNotifErr);
+            }
+        }
 
         // Controlla se tutti e 4 i report del giorno sono pronti
         try {
@@ -841,34 +873,35 @@ app.get('/api/reports-antonia/massimo/vendite', requireAdmin, async (req, res) =
 // Info aggiornamento report Kim (dal DB)
 app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
     try {
-        const info = { crediti: null, vendite: null };
+        const info = { crediti: null, vendite: null, fatture: 0 };
+
+        const fattureCount = await pool.query(`SELECT COUNT(*) as totale FROM fatture WHERE agente = 'kim'`);
+        info.fatture = parseInt(fattureCount.rows[0].totale);
 
         const creditiResult = await pool.query(`
-            SELECT created_at FROM reports
+            SELECT data_report FROM reports
             WHERE tipo = 'crediti_kim'
             ORDER BY data_report DESC, created_at DESC
             LIMIT 1
         `);
         if (creditiResult.rows.length > 0) {
             info.crediti = {
-                aggiornato: new Date(creditiResult.rows[0].created_at).toLocaleString('it-IT', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
+                aggiornato: new Date(creditiResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
                 })
             };
         }
 
         const venditeResult = await pool.query(`
-            SELECT created_at FROM reports
+            SELECT data_report FROM reports
             WHERE tipo = 'vendite_kim'
             ORDER BY data_report DESC, created_at DESC
             LIMIT 1
         `);
         if (venditeResult.rows.length > 0) {
             info.vendite = {
-                aggiornato: new Date(venditeResult.rows[0].created_at).toLocaleString('it-IT', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
+                aggiornato: new Date(venditeResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
                 })
             };
         }
@@ -883,34 +916,35 @@ app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
 // Info aggiornamento report Massimo (dal DB)
 app.get('/api/reports-antonia/massimo/info', requireAdmin, async (req, res) => {
     try {
-        const info = { crediti: null, vendite: null };
+        const info = { crediti: null, vendite: null, fatture: 0 };
+
+        const fattureCount = await pool.query(`SELECT COUNT(*) as totale FROM fatture WHERE agente = 'massimo'`);
+        info.fatture = parseInt(fattureCount.rows[0].totale);
 
         const creditiResult = await pool.query(`
-            SELECT created_at FROM reports
+            SELECT data_report FROM reports
             WHERE tipo = 'crediti_massimo'
             ORDER BY data_report DESC, created_at DESC
             LIMIT 1
         `);
         if (creditiResult.rows.length > 0) {
             info.crediti = {
-                aggiornato: new Date(creditiResult.rows[0].created_at).toLocaleString('it-IT', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
+                aggiornato: new Date(creditiResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
                 })
             };
         }
 
         const venditeResult = await pool.query(`
-            SELECT created_at FROM reports
+            SELECT data_report FROM reports
             WHERE tipo = 'vendite_massimo'
             ORDER BY data_report DESC, created_at DESC
             LIMIT 1
         `);
         if (venditeResult.rows.length > 0) {
             info.vendite = {
-                aggiornato: new Date(venditeResult.rows[0].created_at).toLocaleString('it-IT', {
-                    day: '2-digit', month: '2-digit', year: 'numeric',
-                    hour: '2-digit', minute: '2-digit'
+                aggiornato: new Date(venditeResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
                 })
             };
         }
@@ -918,6 +952,113 @@ app.get('/api/reports-antonia/massimo/info', requireAdmin, async (req, res) => {
         res.json(info);
     } catch (err) {
         console.error('[Reports Massimo Info]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== FATTURE (PDF) ====================
+
+// Upload fattura PDF (admin)
+app.post('/api/fatture', requireAdmin, async (req, res) => {
+    const { agente, nome_file, data_fattura, pdf_base64 } = req.body;
+
+    if (!agente || !nome_file || !data_fattura || !pdf_base64) {
+        return res.status(400).json({ error: 'Campi obbligatori mancanti: agente, nome_file, data_fattura, pdf_base64' });
+    }
+
+    if (!['kim', 'massimo'].includes(agente)) {
+        return res.status(400).json({ error: 'Agente non valido. Valori ammessi: kim, massimo' });
+    }
+
+    try {
+        const base64Data = pdf_base64.includes(',') ? pdf_base64.split(',')[1] : pdf_base64;
+        const dimensione_kb = Math.round(Buffer.byteLength(base64Data, 'base64') / 1024);
+
+        const result = await pool.query(`
+            INSERT INTO fatture (agente, nome_file, data_fattura, dimensione_kb, pdf_base64)
+            VALUES ($1, $2, $3, $4, $5)
+            RETURNING id, agente, nome_file, data_fattura, dimensione_kb, created_at
+        `, [agente, nome_file, data_fattura, dimensione_kb, base64Data]);
+
+        console.log(`[Fatture] Nuova fattura caricata: ${nome_file} per ${agente} (ID: ${result.rows[0].id})`);
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('[Fatture]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Lista fatture per agente
+app.get('/api/fatture/:agente', requireAdmin, async (req, res) => {
+    const agente = req.params.agente;
+
+    if (!['kim', 'massimo'].includes(agente)) {
+        return res.status(400).json({ error: 'Agente non valido' });
+    }
+
+    try {
+        const result = await pool.query(`
+            SELECT id, agente, nome_file, data_fattura, dimensione_kb, created_at
+            FROM fatture
+            WHERE agente = $1
+            ORDER BY data_fattura DESC, created_at DESC
+        `, [agente]);
+
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Fatture]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Download/visualizza fattura PDF
+app.get('/api/fatture/:agente/download/:id', requireAdmin, async (req, res) => {
+    const agente = req.params.agente;
+    const id = parseInt(req.params.id);
+
+    try {
+        const result = await pool.query(
+            'SELECT nome_file, pdf_base64 FROM fatture WHERE id = $1 AND agente = $2',
+            [id, agente]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Fattura non trovata' });
+        }
+
+        const { nome_file, pdf_base64 } = result.rows[0];
+        const pdfBuffer = Buffer.from(pdf_base64, 'base64');
+
+        res.set({
+            'Content-Type': 'application/pdf',
+            'Content-Disposition': `inline; filename="${nome_file}"`,
+            'Content-Length': pdfBuffer.length
+        });
+        res.send(pdfBuffer);
+    } catch (err) {
+        console.error('[Fatture]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Elimina fattura
+app.delete('/api/fatture/:id', requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    try {
+        const result = await pool.query(
+            'DELETE FROM fatture WHERE id = $1 RETURNING id, nome_file',
+            [id]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Fattura non trovata' });
+        }
+
+        console.log(`[Fatture] Fattura eliminata: ${result.rows[0].nome_file} (ID: ${id})`);
+        res.json({ message: 'Fattura eliminata' });
+    } catch (err) {
+        console.error('[Fatture]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

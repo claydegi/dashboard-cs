@@ -114,11 +114,13 @@ function switchSection(section) {
         if (filtersSection) filtersSection.style.display = 'block';
     }
 
-    // Carica report se necessario
+    // Carica report e fatture se necessario
     if (section === 'report-kim') {
         loadReportsKim();
+        loadFatture('kim');
     } else if (section === 'report-massimo') {
         loadReportsMassimo();
+        loadFatture('massimo');
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -410,6 +412,110 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==================== FATTURE ====================
+
+// Upload fattura PDF
+async function uploadFattura(agente) {
+    const fileInput = document.getElementById(`fattura-file-${agente}`);
+    const dataInput = document.getElementById(`fattura-data-${agente}`);
+
+    if (!fileInput.files.length) {
+        showToast('Seleziona un file PDF', 'error');
+        return;
+    }
+
+    const file = fileInput.files[0];
+    if (file.type !== 'application/pdf') {
+        showToast('Il file deve essere un PDF', 'error');
+        return;
+    }
+
+    if (!dataInput.value) {
+        showToast('Inserisci la data della fattura', 'error');
+        return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = async function() {
+        try {
+            const response = await fetch(`${API_URL}/fatture?key=${ADMIN_KEY}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    agente: agente,
+                    nome_file: file.name,
+                    data_fattura: dataInput.value,
+                    pdf_base64: reader.result
+                })
+            });
+
+            if (!response.ok) throw new Error('Errore upload');
+
+            fileInput.value = '';
+            dataInput.value = '';
+            showToast('Fattura caricata con successo', 'success');
+            loadFatture(agente);
+        } catch (error) {
+            console.error('Errore upload fattura:', error);
+            showToast('Errore nel caricamento della fattura', 'error');
+        }
+    };
+    reader.readAsDataURL(file);
+}
+
+// Carica lista fatture
+async function loadFatture(agente) {
+    const container = document.getElementById(`fatture-${agente}-list`);
+    container.innerHTML = '<p class="loading">Caricamento fatture...</p>';
+
+    try {
+        const response = await fetch(`${API_URL}/fatture/${agente}?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento');
+        const fatture = await response.json();
+
+        if (fatture.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nessuna fattura caricata</p></div>';
+            return;
+        }
+
+        container.innerHTML = fatture.map(f => `
+            <div class="fattura-item">
+                <div class="fattura-info">
+                    <span class="fattura-nome">${escapeHtml(f.nome_file)}</span>
+                    <span class="fattura-data">${new Date(f.data_fattura).toLocaleDateString('it-IT')}</span>
+                    <span class="fattura-size">${f.dimensione_kb} KB</span>
+                </div>
+                <div class="fattura-actions">
+                    <button class="btn btn-secondary btn-small" onclick="window.open('${API_URL}/fatture/${agente}/download/${f.id}?key=${ADMIN_KEY}', '_blank')">Visualizza</button>
+                    <button class="btn btn-danger btn-small" onclick="deleteFattura(${f.id}, '${agente}')">Elimina</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (error) {
+        console.error('Errore caricamento fatture:', error);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
+    }
+}
+
+// Elimina fattura
+async function deleteFattura(id, agente) {
+    if (!confirm('Sei sicuro di voler eliminare questa fattura?')) return;
+
+    try {
+        const response = await fetch(`${API_URL}/fatture/${id}?key=${ADMIN_KEY}`, {
+            method: 'DELETE'
+        });
+
+        if (!response.ok) throw new Error('Errore eliminazione');
+
+        showToast('Fattura eliminata', 'success');
+        loadFatture(agente);
+    } catch (error) {
+        console.error('Errore eliminazione fattura:', error);
+        showToast('Errore nell\'eliminazione', 'error');
+    }
 }
 
 // Toast notification

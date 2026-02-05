@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     caricaReports();
+    caricaFatture();
 });
 
 async function caricaReports() {
@@ -53,4 +54,40 @@ async function caricaReports() {
 
 function apriReport(tipo) {
     window.location.href = `${API_URL}/reports-antonia/${AGENTE}/${tipo}?key=${ADMIN_KEY}`;
+}
+
+async function caricaFatture() {
+    const container = document.getElementById('fatture-container');
+    if (!container) return;
+
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
+
+    try {
+        const response = await fetch(`${API_URL}/fatture/${AGENTE}?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento');
+        const fatture = await response.json();
+
+        if (fatture.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nessuna fattura disponibile</p></div>';
+            return;
+        }
+
+        container.innerHTML = fatture.map(f => `
+            <div class="fattura-item">
+                <div class="fattura-info">
+                    <span class="fattura-nome">${f.nome_file}</span>
+                    <span class="fattura-data">${new Date(f.data_fattura).toLocaleDateString('it-IT')}</span>
+                    <span class="fattura-size">${f.dimensione_kb} KB</span>
+                </div>
+                <div class="fattura-actions">
+                    <button class="btn btn-primary btn-small" onclick="window.open('${API_URL}/fatture/${AGENTE}/download/${f.id}?key=${ADMIN_KEY}', '_blank')">
+                        Visualizza PDF
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        console.error('Errore caricamento fatture:', err);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione. Riprova.</p></div>';
+    }
 }

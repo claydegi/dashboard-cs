@@ -851,6 +851,95 @@ nav {
 .report-card-vendite_kim .report-card-tipo,
 .report-card-vendite_massimo .report-card-tipo { color: #9b59b6; }
 
+/* ========================================
+   SEZIONE FATTURE (PDF)
+   ======================================== */
+
+.fattura-upload-form {
+    background: var(--gray-50);
+    padding: 16px;
+    border-radius: 10px;
+    border: 1px dashed var(--gray-300);
+    margin-bottom: 16px;
+}
+
+.fattura-file-input {
+    padding: 8px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    background: white;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+.fatture-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.fattura-item {
+    background: var(--gray-50);
+    border: 1px solid var(--gray-200);
+    border-left: 4px solid #e67e22;
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: all 0.2s;
+}
+
+.fattura-item:hover {
+    background: white;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+.fattura-info {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+}
+
+.fattura-nome {
+    font-weight: 600;
+    color: var(--gray-900);
+}
+
+.fattura-data {
+    color: var(--gray-500);
+    font-size: 0.85rem;
+}
+
+.fattura-size {
+    color: var(--gray-400);
+    font-size: 0.75rem;
+}
+
+.fattura-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .fattura-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .fattura-actions {
+        width: 100%;
+    }
+
+    .fattura-actions .btn {
+        flex: 1;
+        text-align: center;
+    }
+}
+
 /* Dashboard Agente - stile header */
 .report-motto {
     color: var(--gray-600);
