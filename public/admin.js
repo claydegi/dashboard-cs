@@ -419,6 +419,7 @@ function escapeHtml(text) {
 // Upload fattura PDF
 async function uploadFattura(agente) {
     const fileInput = document.getElementById(`fattura-file-${agente}`);
+    const nomeInput = document.getElementById(`fattura-nome-${agente}`);
 
     if (!fileInput.files.length) {
         showToast('Seleziona un file PDF', 'error');
@@ -431,6 +432,7 @@ async function uploadFattura(agente) {
         return;
     }
 
+    const nomeFattura = nomeInput.value.trim() || file.name;
     const oggi = new Date().toISOString().split('T')[0];
 
     const reader = new FileReader();
@@ -441,7 +443,7 @@ async function uploadFattura(agente) {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     agente: agente,
-                    nome_file: file.name,
+                    nome_file: nomeFattura,
                     data_fattura: oggi,
                     pdf_base64: reader.result
                 })
@@ -450,6 +452,7 @@ async function uploadFattura(agente) {
             if (!response.ok) throw new Error('Errore upload');
 
             fileInput.value = '';
+            nomeInput.value = '';
             showToast('Fattura caricata con successo', 'success');
             loadFatture(agente);
         } catch (error) {
