@@ -523,18 +523,113 @@ async function apriNote(contattoId, cognome, nome) {
         if (note.length === 0) {
             lista.innerHTML = '<p style="color:#999;font-size:12px;">Nessuna nota ancora.</p>';
         } else {
-            let html = '';
-            for (const n of note) {
-                const dataFmt = n.created_at ? new Date(n.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-                html += `<div class="crm-nota-entry">
-                    <span class="crm-nota-data">${dataFmt}</span>
-                    <p class="crm-nota-testo">${esc(n.testo)}</p>
-                </div>`;
-            }
-            lista.innerHTML = html;
+            lista.innerHTML = renderNoteList(note);
         }
     } catch (err) {
         lista.innerHTML = '<p style="color:#e74c3c;font-size:12px;">Errore caricamento note.</p>';
+    }
+}
+
+function renderNoteList(note) {
+    let html = '';
+    for (const n of note) {
+        const dataFmt = n.created_at ? new Date(n.created_at).toLocaleString('it-IT', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : '';
+        html += `<div class="crm-nota-entry" id="nota-${n.id}">
+            <div class="crm-nota-header">
+                <span class="crm-nota-data">${dataFmt}</span>
+                <span class="crm-nota-actions">
+                    <span class="crm-nota-btn" title="Modifica" onclick="modificaNota(${n.id})">&#9998;</span>
+                    <span class="crm-nota-btn crm-nota-btn-del" title="Elimina" onclick="eliminaNota(${n.id})">&times;</span>
+                </span>
+            </div>
+            <p class="crm-nota-testo" id="nota-testo-${n.id}">${esc(n.testo)}</p>
+        </div>`;
+    }
+    return html;
+}
+
+async function eliminaNota(noteId) {
+    if (!confirm('Eliminare questa nota?')) return;
+    try {
+        const res = await fetch(`${API_URL}/crm/note/${noteId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Rimuovi dal DOM
+        const entry = document.getElementById(`nota-${noteId}`);
+        if (entry) entry.remove();
+        // Aggiorna conteggio
+        if (currentNoteContattoId && noteCountMap[currentNoteContattoId]) {
+            noteCountMap[currentNoteContattoId]--;
+            renderTableBody();
+        }
+        const lista = document.getElementById('notes-lista');
+        if (!lista.querySelector('.crm-nota-entry')) {
+            lista.innerHTML = '<p style="color:#999;font-size:12px;">Nessuna nota ancora.</p>';
+        }
+        mostraToast('Nota eliminata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+function modificaNota(noteId) {
+    const testoEl = document.getElementById(`nota-testo-${noteId}`);
+    if (!testoEl) return;
+    const testoAttuale = testoEl.textContent;
+    const entry = document.getElementById(`nota-${noteId}`);
+    // Sostituisci il testo con una textarea editabile
+    testoEl.style.display = 'none';
+    const editDiv = document.createElement('div');
+    editDiv.className = 'crm-nota-edit';
+    editDiv.innerHTML = `
+        <textarea class="crm-nota-edit-textarea" id="nota-edit-${noteId}" rows="3">${esc(testoAttuale)}</textarea>
+        <div class="crm-nota-edit-actions">
+            <button class="crm-btn-si" onclick="salvaModificaNota(${noteId})">Salva</button>
+            <button class="crm-btn-no" onclick="annullaModificaNota(${noteId})">Annulla</button>
+        </div>`;
+    entry.appendChild(editDiv);
+    document.getElementById(`nota-edit-${noteId}`).focus();
+}
+
+function annullaModificaNota(noteId) {
+    const entry = document.getElementById(`nota-${noteId}`);
+    const editDiv = entry.querySelector('.crm-nota-edit');
+    if (editDiv) editDiv.remove();
+    const testoEl = document.getElementById(`nota-testo-${noteId}`);
+    if (testoEl) testoEl.style.display = '';
+}
+
+async function salvaModificaNota(noteId) {
+    const textarea = document.getElementById(`nota-edit-${noteId}`);
+    if (!textarea) return;
+    const nuovoTesto = textarea.value.trim();
+    if (!nuovoTesto) {
+        mostraToast('Il testo non puo essere vuoto', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/crm/note/${noteId}?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ testo: nuovoTesto })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Aggiorna nel DOM
+        const testoEl = document.getElementById(`nota-testo-${noteId}`);
+        testoEl.textContent = nuovoTesto;
+        annullaModificaNota(noteId);
+        mostraToast('Nota modificata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
     }
 }
 
@@ -569,17 +664,13 @@ async function salvaNote() {
         noteCountMap[currentNoteContattoId] = (noteCountMap[currentNoteContattoId] || 0) + 1;
         renderTableBody();
 
-        // Aggiungi nota in cima alla lista
+        // Ricarica lista note dal server (per avere gli id corretti)
         const lista = document.getElementById('notes-lista');
-        const noNoteMsg = lista.querySelector('p');
-        if (noNoteMsg && noNoteMsg.textContent.includes('Nessuna nota')) {
-            lista.innerHTML = '';
-        }
-        const dataFmt = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-        const entry = document.createElement('div');
-        entry.className = 'crm-nota-entry';
-        entry.innerHTML = `<span class="crm-nota-data">${dataFmt}</span><p class="crm-nota-testo">${esc(testo)}</p>`;
-        lista.insertBefore(entry, lista.firstChild);
+        try {
+            const res2 = await fetch(`${API_URL}/crm/contatti/${currentNoteContattoId}/note?key=${ADMIN_KEY}`);
+            const noteAggiornate = await res2.json();
+            lista.innerHTML = noteAggiornate.length > 0 ? renderNoteList(noteAggiornate) : '<p style="color:#999;font-size:12px;">Nessuna nota ancora.</p>';
+        } catch (e) { /* ignora, la nota e' salvata comunque */ }
 
         textarea.value = '';
         mostraToast('Nota salvata', 'success');

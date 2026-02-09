@@ -1653,6 +1653,45 @@ app.post('/api/crm/contatti/:id/note', requireAdmin, async (req, res) => {
     }
 });
 
+// Note CRM: modifica nota
+app.put('/api/crm/note/:id', requireAdmin, async (req, res) => {
+    const noteId = parseInt(req.params.id);
+    const { testo } = req.body;
+    if (!testo || !testo.trim()) {
+        return res.status(400).json({ error: 'Testo nota obbligatorio' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE crm_note SET testo = $1 WHERE id = $2 RETURNING *',
+            [testo.trim(), noteId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Nota non trovata' });
+        }
+        console.log(`[CRM] Nota modificata: id ${noteId}`);
+        res.json({ ok: true, nota: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Edit Nota]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Note CRM: elimina nota
+app.delete('/api/crm/note/:id', requireAdmin, async (req, res) => {
+    const noteId = parseInt(req.params.id);
+    try {
+        const result = await pool.query('DELETE FROM crm_note WHERE id = $1 RETURNING *', [noteId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Nota non trovata' });
+        }
+        console.log(`[CRM] Nota eliminata: id ${noteId}`);
+        res.json({ ok: true, eliminata: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Delete Nota]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Note CRM: conteggio bulk per regione (per caricamento iniziale)
 app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();

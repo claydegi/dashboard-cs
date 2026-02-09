@@ -1316,7 +1316,7 @@ nav {
     overflow-y: auto;
     padding: 12px 16px;
 }
-.crm-note-item {
+.crm-nota-entry {
     padding: 10px 12px;
     background: #f8f9fa;
     border-radius: 8px;
@@ -1324,14 +1324,55 @@ nav {
     font-size: 13px;
     line-height: 1.5;
 }
-.crm-note-item .note-ts {
-    font-size: 10px;
-    color: #95a5a6;
+.crm-nota-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 4px;
 }
-.crm-note-item .note-text {
+.crm-nota-data {
+    font-size: 10px;
+    color: #95a5a6;
+}
+.crm-nota-actions {
+    display: flex;
+    gap: 6px;
+    opacity: 0;
+    transition: opacity 0.15s;
+}
+.crm-nota-entry:hover .crm-nota-actions {
+    opacity: 1;
+}
+.crm-nota-btn {
+    cursor: pointer;
+    font-size: 14px;
+    color: #7f8c8d;
+    padding: 0 2px;
+}
+.crm-nota-btn:hover { color: #2c3e50; }
+.crm-nota-btn-del:hover { color: #e74c3c; }
+.crm-nota-testo {
     color: #2c3e50;
     white-space: pre-wrap;
+    margin: 0;
+}
+.crm-nota-edit {
+    margin-top: 6px;
+}
+.crm-nota-edit-textarea {
+    width: 100%;
+    border: 1px solid #3498db;
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    font-family: inherit;
+    resize: vertical;
+    box-sizing: border-box;
+}
+.crm-nota-edit-actions {
+    display: flex;
+    gap: 6px;
+    margin-top: 6px;
 }
 .crm-notes-empty {
     color: #bdc3c7;
