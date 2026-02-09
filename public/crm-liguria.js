@@ -10,6 +10,7 @@ const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 
 let allContatti = [];
 let acquistiCache = {};
+let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
 let currentSort = 'cognome';
 let searchTerm = '';
 
@@ -63,6 +64,11 @@ async function caricaDati() {
         document.getElementById('stat-contatti').textContent = stats.tot_contatti;
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
+
+        // Salva mappa acquisti (contiene contatto_prodotto -> count)
+        if (allContatti.length > 0 && allContatti[0].acquisti_count) {
+            acquistiCountMap = allContatti[0].acquisti_count;
+        }
 
         // Build product set per contatto for sorting + applica R2 (MM obbligatorio)
         allContatti.forEach(c => {
@@ -154,8 +160,18 @@ function renderTableBody() {
                 const isRicorrente = PRODOTTI_RICORRENTI.includes(p);
 
                 if (isRicorrente) {
-                    const cls = isOdoo ? 'crm-x-new crm-x-ricorrente' : 'crm-x crm-x-ricorrente';
-                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" title="Clicca per storico acquisti">X</td>`;
+                    const acqKey = `${c.id}_${p}`;
+                    const haStorico = (acquistiCountMap[acqKey] || 0) > 0;
+                    let cls;
+                    if (!haStorico) {
+                        cls = 'crm-x-no-storico crm-x-ricorrente';
+                    } else if (isOdoo) {
+                        cls = 'crm-x-new crm-x-ricorrente';
+                    } else {
+                        cls = 'crm-x crm-x-ricorrente';
+                    }
+                    const titleText = haStorico ? 'Clicca per storico acquisti' : 'Nessun acquisto registrato - clicca per dettagli';
+                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" title="${titleText}">X</td>`;
                 } else if (isOdoo) {
                     html += '<td class="crm-x-new">X</td>';
                 } else {

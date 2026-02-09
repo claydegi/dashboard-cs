@@ -1038,6 +1038,12 @@ nav {
     border-radius: 3px;
 }
 
+#crm-table td.crm-x-no-storico {
+    text-align: center;
+    font-weight: bold;
+    color: #e74c3c;
+}
+
 #crm-table td.crm-x-ricorrente {
     cursor: pointer;
     text-decoration: underline;
@@ -1045,6 +1051,10 @@ nav {
 
 #crm-table td.crm-x-ricorrente:hover {
     background: #c8f0d8 !important;
+}
+
+#crm-table td.crm-x-no-storico.crm-x-ricorrente:hover {
+    background: #fdd !important;
 }
 
 #crm-table td.crm-score {

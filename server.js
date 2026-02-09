@@ -1202,9 +1202,24 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
                 data_inserimento: p.data_inserimento
             });
         }
+
+        // Carica acquisti ricorrenti per sapere chi ha storico fatture
+        let acqMap = {};
+        if (ids.length > 0) {
+            const acquisti = await pool.query(
+                'SELECT contatto_id, prodotto, COUNT(*) as cnt FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) GROUP BY contatto_id, prodotto',
+                [ids]
+            );
+            for (const a of acquisti.rows) {
+                const key = `${a.contatto_id}_${a.prodotto}`;
+                acqMap[key] = parseInt(a.cnt);
+            }
+        }
+
         const result = contatti.rows.map(c => ({
             ...c,
-            prodotti: prodMap[c.id] || []
+            prodotti: prodMap[c.id] || [],
+            acquisti_count: acqMap
         }));
         res.json(result);
     } catch (err) {
