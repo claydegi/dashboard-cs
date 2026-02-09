@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Liguria - OSSEOTOUCH</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container crm-container">
+        <header>
+            <div>
+                <h1>CRM Liguria</h1>
+                <p class="report-motto">Contatti e prodotti regione Liguria</p>
+            </div>
+            <nav>
+                <a href="#" class="nav-link nav-back" id="btn-back">Dashboard Kim</a>
+            </nav>
+        </header>
+
+        <section id="crm-stats" class="stats-section">
+            <div class="stat-card"><span class="stat-number" id="stat-contatti">-</span><span class="stat-label">Contatti</span></div>
+            <div class="stat-card"><span class="stat-number" id="stat-prodotti">-</span><span class="stat-label">Prodotti</span></div>
+            <div class="stat-card stat-success"><span class="stat-number" id="stat-odoo">-</span><span class="stat-label">Da Odoo sync</span></div>
+            <div class="stat-card"><span class="stat-number" id="stat-score">-</span><span class="stat-label">Con score</span></div>
+        </section>
+
+        <section class="crm-toolbar">
+            <input type="text" id="crm-search" placeholder="Cerca per nome, cognome, citta, email...">
+            <select id="crm-sort">
+                <option value="cognome">Ordina per Cognome</option>
+                <option value="citta">Ordina per Citta</option>
+                <option value="prodotti">Ordina per N. Prodotti</option>
+                <option value="score">Ordina per Score</option>
+            </select>
+        </section>
+
+        <section class="crm-table-wrapper">
+            <table id="crm-table">
+                <thead id="crm-thead"></thead>
+                <tbody id="crm-tbody">
+                    <tr><td colspan="24" class="loading">Caricamento...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="crm-legenda">
+            <h3>Legenda</h3>
+            <p><span style="display:inline-block;background:#27ae60;color:white;padding:1px 6px;border-radius:3px;font-weight:bold;">X</span> = Prodotto aggiunto da Odoo sync</p>
+            <p><span style="color:#27ae60;font-weight:bold;">X</span> = Prodotto presente (da migrazione Excel/Fatture)</p>
+            <p><span style="color:#27ae60;font-weight:bold;text-decoration:underline;cursor:pointer;">X</span> = Prodotto ricorrente (clicca per storico acquisti)</p>
+            <p><span style="color:#ccc;">&mdash;</span> = Dato mancante</p>
+            <p style="margin-top:10px;"><strong>Regole applicate:</strong></p>
+            <ul>
+                <li><strong>R1</strong> &mdash; Telefoni separati: fisso (0...) in Telefono, cellulare (3...) in Cellulare</li>
+                <li><strong>R2</strong> &mdash; Se possiede accessori MM, MM obbligatorio</li>
+                <li><strong>R3</strong> &mdash; Citta sempre in MAIUSCOLO</li>
+            </ul>
+        </section>
+    </div>
+
+    <script src="crm-liguria.js"></script>
+</body>
+</html>

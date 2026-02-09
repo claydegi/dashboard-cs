@@ -949,3 +949,190 @@ nav {
     font-size: 0.95rem;
     margin-top: 4px;
 }
+
+/* ========================================
+   SEZIONE CRM LIGURIA
+   ======================================== */
+
+.crm-container {
+    max-width: 1600px;
+}
+
+.crm-toolbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.crm-toolbar input,
+.crm-toolbar select {
+    padding: 10px 14px;
+    border: 1px solid var(--gray-300);
+    border-radius: 8px;
+    font-size: 0.9rem;
+    background: white;
+}
+
+.crm-toolbar input {
+    flex: 1;
+    min-width: 250px;
+}
+
+.crm-table-wrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+}
+
+#crm-table {
+    border-collapse: collapse;
+    width: 100%;
+}
+
+#crm-table th {
+    background: #2c3e50;
+    color: white;
+    padding: 8px 6px;
+    font-size: 11px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#crm-table th.prod {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    white-space: nowrap;
+    padding: 8px 3px;
+    min-width: 22px;
+    font-size: 10px;
+}
+
+#crm-table td {
+    padding: 5px 6px;
+    border-bottom: 1px solid #ecf0f1;
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+#crm-table tr.crm-row:nth-child(even) { background: #fafafa; }
+#crm-table tr.crm-row:hover { background: #f0f7ff !important; }
+#crm-table tr.crm-row-nuovo { background: #e8f8f0 !important; }
+
+#crm-table td.crm-x {
+    text-align: center;
+    font-weight: bold;
+    color: #27ae60;
+}
+
+#crm-table td.crm-x-new {
+    text-align: center;
+    font-weight: bold;
+    color: white;
+    background: #27ae60 !important;
+    border-radius: 3px;
+}
+
+#crm-table td.crm-x-ricorrente {
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+#crm-table td.crm-x-ricorrente:hover {
+    background: #c8f0d8 !important;
+}
+
+#crm-table td.crm-score {
+    text-align: center;
+    font-weight: bold;
+}
+
+#crm-table td.crm-empty {
+    color: #ccc;
+}
+
+/* Riga dettaglio acquisti espandibile */
+.crm-detail-row td.crm-detail-cell {
+    padding: 0;
+    border-bottom: 2px solid #3498db;
+}
+
+.crm-detail-content {
+    padding: 12px 20px;
+    background: #f8f9fa;
+    border-left: 4px solid #3498db;
+}
+
+.crm-detail-content strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+}
+
+.crm-detail-content p {
+    color: var(--gray-500);
+    font-size: 0.9rem;
+}
+
+.crm-acquisti-table {
+    width: auto;
+    margin: 8px 0;
+    border-collapse: collapse;
+    border-radius: 6px;
+    overflow: hidden;
+}
+
+.crm-acquisti-table th {
+    background: #34495e;
+    position: static;
+    cursor: default;
+    padding: 6px 12px;
+    font-size: 11px;
+}
+
+.crm-acquisti-table td {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: white;
+    border-bottom: 1px solid #ecf0f1;
+}
+
+/* Legenda CRM */
+.crm-legenda {
+    padding: 15px 20px;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    font-size: 12px;
+    margin-bottom: 24px;
+}
+
+.crm-legenda h3 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+.crm-legenda ul {
+    padding-left: 20px;
+}
+
+.crm-legenda li {
+    margin-bottom: 4px;
+}
+
+/* Card CRM in dashboard */
+.report-card-crm { border-left-color: #3498db; }
+.report-card-crm .report-card-tipo { color: #3498db; }
+
+@media (max-width: 768px) {
+    .crm-toolbar {
+        flex-direction: column;
+    }
+    .crm-toolbar input {
+        min-width: auto;
+        width: 100%;
+    }
+}

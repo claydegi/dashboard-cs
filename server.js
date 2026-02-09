@@ -88,6 +88,49 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_fatture_agente ON fatture(agente)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_fatture_agente_data ON fatture(agente, data_fattura DESC)`);
 
+        // Tabelle CRM
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_contatti (
+                id INTEGER PRIMARY KEY,
+                cognome TEXT,
+                nome TEXT,
+                email TEXT,
+                telefono TEXT,
+                cellulare TEXT,
+                citta TEXT,
+                regione TEXT,
+                nome_azienda TEXT,
+                fonte_sync TEXT,
+                data_inserimento TEXT,
+                score INTEGER DEFAULT 0
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_regione ON crm_contatti(regione)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_prodotti (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                prodotto TEXT NOT NULL,
+                data_inserimento TEXT,
+                fonte TEXT
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_prodotti_contatto ON crm_prodotti(contatto_id)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_acquisti (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                prodotto TEXT NOT NULL,
+                numero_fattura TEXT,
+                data_fattura TEXT,
+                quantita INTEGER DEFAULT 1,
+                fonte TEXT
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto ON crm_acquisti(contatto_id)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -1131,6 +1174,159 @@ app.delete('/api/fatture/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== API CRM ====================
+
+// Lista contatti CRM con prodotti e score
+app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
+    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    try {
+        const contatti = await pool.query(
+            `SELECT * FROM crm_contatti WHERE regione = $1
+             ORDER BY COALESCE(NULLIF(cognome, ''), nome_azienda) ASC, nome ASC`,
+            [regione]
+        );
+        const ids = contatti.rows.map(c => c.id);
+        let prodotti = { rows: [] };
+        if (ids.length > 0) {
+            prodotti = await pool.query(
+                'SELECT * FROM crm_prodotti WHERE contatto_id = ANY($1::int[])',
+                [ids]
+            );
+        }
+        const prodMap = {};
+        for (const p of prodotti.rows) {
+            if (!prodMap[p.contatto_id]) prodMap[p.contatto_id] = [];
+            prodMap[p.contatto_id].push({
+                prodotto: p.prodotto,
+                fonte: p.fonte,
+                data_inserimento: p.data_inserimento
+            });
+        }
+        const result = contatti.rows.map(c => ({
+            ...c,
+            prodotti: prodMap[c.id] || []
+        }));
+        res.json(result);
+    } catch (err) {
+        console.error('[CRM]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Storico acquisti ricorrenti per contatto
+app.get('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            'SELECT * FROM crm_acquisti WHERE contatto_id = $1 ORDER BY data_fattura DESC',
+            [id]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Statistiche CRM
+app.get('/api/crm/stats', requireAdmin, async (req, res) => {
+    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    try {
+        const totContatti = await pool.query(
+            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1', [regione]
+        );
+        const totProdotti = await pool.query(
+            `SELECT COUNT(*) as totale FROM crm_prodotti p
+             JOIN crm_contatti c ON p.contatto_id = c.id
+             WHERE c.regione = $1`, [regione]
+        );
+        const conScore = await pool.query(
+            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score > 0', [regione]
+        );
+        const nuoviOdoo = await pool.query(
+            `SELECT COUNT(*) as totale FROM crm_contatti
+             WHERE regione = $1 AND fonte_sync IS NOT NULL`, [regione]
+        );
+        res.json({
+            tot_contatti: parseInt(totContatti.rows[0].totale),
+            tot_prodotti: parseInt(totProdotti.rows[0].totale),
+            con_score: parseInt(conScore.rows[0].totale),
+            nuovi_odoo: parseInt(nuoviOdoo.rows[0].totale)
+        });
+    } catch (err) {
+        console.error('[CRM Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Sync CRM: bulk replace per regione
+app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
+    const { contatti, prodotti, acquisti, regione } = req.body;
+    if (!contatti || !regione) {
+        return res.status(400).json({ error: 'contatti e regione obbligatori' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Elimina dati esistenti per questa regione
+        const existing = await client.query(
+            'SELECT id FROM crm_contatti WHERE regione = $1', [regione]
+        );
+        const existingIds = existing.rows.map(r => r.id);
+        if (existingIds.length > 0) {
+            await client.query('DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[])', [existingIds]);
+            await client.query('DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[])', [existingIds]);
+            await client.query('DELETE FROM crm_contatti WHERE regione = $1', [regione]);
+        }
+
+        // Inserisci contatti
+        for (const c of contatti) {
+            await client.query(`
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
+                c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0]);
+        }
+
+        // Inserisci prodotti
+        if (prodotti && prodotti.length > 0) {
+            for (const p of prodotti) {
+                await client.query(`
+                    INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte)
+                    VALUES ($1, $2, $3, $4)
+                `, [p.contatto_id, p.prodotto, p.data_inserimento, p.fonte]);
+            }
+        }
+
+        // Inserisci acquisti ricorrenti
+        if (acquisti && acquisti.length > 0) {
+            for (const a of acquisti) {
+                await client.query(`
+                    INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, quantita, fonte)
+                    VALUES ($1, $2, $3, $4, $5, $6)
+                `, [a.contatto_id, a.prodotto, a.numero_fattura, a.data_fattura, a.quantita || 1, a.fonte]);
+            }
+        }
+
+        await client.query('COMMIT');
+        console.log(`[CRM Sync] ${regione}: ${contatti.length} contatti, ${(prodotti || []).length} prodotti, ${(acquisti || []).length} acquisti`);
+        res.json({
+            ok: true,
+            contatti: contatti.length,
+            prodotti: (prodotti || []).length,
+            acquisti: (acquisti || []).length
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Sync]', err);
+        res.status(500).json({ error: 'Errore sync: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // ==================== ROUTES PAGINE ====================
 
 app.get('/admin', (req, res) => {
@@ -1159,6 +1355,10 @@ app.get('/report-trend', (req, res) => {
 
 app.get('/report-finanza', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'report-finanza.html'));
+});
+
+app.get('/crm-liguria', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'crm-liguria.html'));
 });
 
 app.get('/', (req, res) => {
