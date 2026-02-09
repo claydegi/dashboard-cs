@@ -1245,7 +1245,7 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
         );
         const nuoviOdoo = await pool.query(
             `SELECT COUNT(*) as totale FROM crm_contatti
-             WHERE regione = $1 AND fonte_sync IS NOT NULL`, [regione]
+             WHERE regione = $1 AND fonte_sync IS NOT NULL AND fonte_sync != ''`, [regione]
         );
         res.json({
             tot_contatti: parseInt(totContatti.rows[0].totale),
