@@ -851,6 +851,9 @@ nav {
 .report-card-vendite_kim .report-card-tipo,
 .report-card-vendite_massimo .report-card-tipo { color: #9b59b6; }
 
+.report-card-attenzionare { border-left-color: #e74c3c; background: linear-gradient(135deg, #fff5f5, #ffffff); }
+.report-card-attenzionare .report-card-tipo { color: #e74c3c; }
+
 /* ========================================
    SEZIONE FATTURE (PDF)
    ======================================== */

@@ -36,6 +36,15 @@ async function caricaReports() {
             </div>
         `;
 
+        // Card Crediti da Attenzionare
+        html += `
+            <div class="report-card report-card-attenzionare" onclick="apriReport('attenzionare')">
+                <div class="report-card-tipo">Crediti da Attenzionare</div>
+                <div class="report-card-titolo">Posizioni critiche ${nomeAgente}</div>
+                <div class="report-card-data">${info.attenzionare ? 'Aggiornato: ' + info.attenzionare.aggiornato : 'Non disponibile'}</div>
+            </div>
+        `;
+
         // Card Report Vendite Progressivo
         html += `
             <div class="report-card report-card-vendite_${AGENTE}" onclick="apriReport('vendite')">

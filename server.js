@@ -352,7 +352,7 @@ app.get('/api/reports/latest', requireAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT DISTINCT ON (tipo) id, tipo, titolo, data_report, mese_report, dimensione_kb, created_at
             FROM reports
-            WHERE tipo NOT IN ('crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo')
+            WHERE tipo NOT IN ('crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo', 'attenzionare_kim', 'attenzionare_massimo')
             ORDER BY tipo, data_report DESC, created_at DESC
         `);
         res.json(result.rows);
@@ -439,7 +439,7 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         });
     }
 
-    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo', 'crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo'];
+    const tipiValidi = ['vendite_giornaliero', 'trend_mensile', 'finanziario', 'trend_progressivo', 'crediti_kim', 'crediti_massimo', 'vendite_kim', 'vendite_massimo', 'attenzionare_kim', 'attenzionare_massimo'];
     if (!tipiValidi.includes(tipo)) {
         return res.status(400).json({
             error: `Tipo non valido. Valori ammessi: ${tipiValidi.join(', ')}`
@@ -870,10 +870,50 @@ app.get('/api/reports-antonia/massimo/vendite', requireAdmin, async (req, res) =
     }
 });
 
+// Report Kim - Crediti da attenzionare (ultimo dal DB)
+app.get('/api/reports-antonia/kim/attenzionare', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'attenzionare_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report attenzionare Kim disponibile.</p>');
+        }
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Kim Attenzionare]', err);
+        res.status(500).send('<h1>Errore server</h1>');
+    }
+});
+
+// Report Massimo - Crediti da attenzionare (ultimo dal DB)
+app.get('/api/reports-antonia/massimo/attenzionare', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT contenuto_html FROM reports
+            WHERE tipo = 'attenzionare_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (result.rows.length === 0) {
+            return res.status(404).send('<h1>Report non trovato</h1><p>Nessun report attenzionare Massimo disponibile.</p>');
+        }
+        res.set('Content-Type', 'text/html; charset=utf-8');
+        res.send(result.rows[0].contenuto_html);
+    } catch (err) {
+        console.error('[Reports Massimo Attenzionare]', err);
+        res.status(500).send('<h1>Errore server</h1>');
+    }
+});
+
 // Info aggiornamento report Kim (dal DB)
 app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
     try {
-        const info = { crediti: null, vendite: null, fatture: 0 };
+        const info = { crediti: null, vendite: null, attenzionare: null, fatture: 0 };
 
         const fattureCount = await pool.query(`SELECT COUNT(*) as totale FROM fatture WHERE agente = 'kim'`);
         info.fatture = parseInt(fattureCount.rows[0].totale);
@@ -906,6 +946,20 @@ app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
             };
         }
 
+        const attenzionareResult = await pool.query(`
+            SELECT data_report FROM reports
+            WHERE tipo = 'attenzionare_kim'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (attenzionareResult.rows.length > 0) {
+            info.attenzionare = {
+                aggiornato: new Date(attenzionareResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
+                })
+            };
+        }
+
         res.json(info);
     } catch (err) {
         console.error('[Reports Kim Info]', err);
@@ -916,7 +970,7 @@ app.get('/api/reports-antonia/kim/info', requireAdmin, async (req, res) => {
 // Info aggiornamento report Massimo (dal DB)
 app.get('/api/reports-antonia/massimo/info', requireAdmin, async (req, res) => {
     try {
-        const info = { crediti: null, vendite: null, fatture: 0 };
+        const info = { crediti: null, vendite: null, attenzionare: null, fatture: 0 };
 
         const fattureCount = await pool.query(`SELECT COUNT(*) as totale FROM fatture WHERE agente = 'massimo'`);
         info.fatture = parseInt(fattureCount.rows[0].totale);
@@ -944,6 +998,20 @@ app.get('/api/reports-antonia/massimo/info', requireAdmin, async (req, res) => {
         if (venditeResult.rows.length > 0) {
             info.vendite = {
                 aggiornato: new Date(venditeResult.rows[0].data_report).toLocaleDateString('it-IT', {
+                    day: '2-digit', month: 'long', year: 'numeric'
+                })
+            };
+        }
+
+        const attenzionareResult = await pool.query(`
+            SELECT data_report FROM reports
+            WHERE tipo = 'attenzionare_massimo'
+            ORDER BY data_report DESC, created_at DESC
+            LIMIT 1
+        `);
+        if (attenzionareResult.rows.length > 0) {
+            info.attenzionare = {
+                aggiornato: new Date(attenzionareResult.rows[0].data_report).toLocaleDateString('it-IT', {
                     day: '2-digit', month: 'long', year: 'numeric'
                 })
             };
