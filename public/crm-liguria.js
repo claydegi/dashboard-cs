@@ -59,7 +59,6 @@ async function caricaDati() {
 
         // Stats
         document.getElementById('stat-contatti').textContent = stats.tot_contatti;
-        document.getElementById('stat-prodotti').textContent = stats.tot_prodotti;
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
 

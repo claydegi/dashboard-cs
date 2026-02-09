@@ -1235,21 +1235,16 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
         const totContatti = await pool.query(
             'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1', [regione]
         );
-        const totProdotti = await pool.query(
-            `SELECT COUNT(*) as totale FROM crm_prodotti p
-             JOIN crm_contatti c ON p.contatto_id = c.id
-             WHERE c.regione = $1`, [regione]
-        );
         const conScore = await pool.query(
             'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score > 0', [regione]
         );
         const nuoviOdoo = await pool.query(
-            `SELECT COUNT(*) as totale FROM crm_contatti
-             WHERE regione = $1 AND fonte_sync IS NOT NULL AND fonte_sync != ''`, [regione]
+            `SELECT COUNT(DISTINCT p.contatto_id) as totale FROM crm_prodotti p
+             JOIN crm_contatti c ON p.contatto_id = c.id
+             WHERE c.regione = $1 AND p.fonte LIKE 'odoo:%'`, [regione]
         );
         res.json({
             tot_contatti: parseInt(totContatti.rows[0].totale),
-            tot_prodotti: parseInt(totProdotti.rows[0].totale),
             con_score: parseInt(conScore.rows[0].totale),
             nuovi_odoo: parseInt(nuoviOdoo.rows[0].totale)
         });
