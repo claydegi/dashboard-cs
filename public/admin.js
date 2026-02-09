@@ -153,6 +153,16 @@ async function loadReportsKim() {
             `;
         }
 
+        if (info.attenzionare) {
+            html += `
+                <div class="report-card report-card-attenzionare" onclick="window.location.href='${API_URL}/reports-antonia/kim/attenzionare?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Crediti da Attenzionare</div>
+                    <div class="report-card-titolo">Posizioni critiche Kim</div>
+                    <div class="report-card-data">Aggiornato: ${info.attenzionare.aggiornato}</div>
+                </div>
+            `;
+        }
+
         if (info.vendite) {
             html += `
                 <div class="report-card report-card-vendite_kim" onclick="window.location.href='${API_URL}/reports-antonia/kim/vendite?key=${ADMIN_KEY}'">
@@ -192,6 +202,16 @@ async function loadReportsMassimo() {
                     <div class="report-card-tipo">Crediti</div>
                     <div class="report-card-titolo">Report Crediti Massimo</div>
                     <div class="report-card-data">Aggiornato: ${info.crediti.aggiornato}</div>
+                </div>
+            `;
+        }
+
+        if (info.attenzionare) {
+            html += `
+                <div class="report-card report-card-attenzionare" onclick="window.location.href='${API_URL}/reports-antonia/massimo/attenzionare?key=${ADMIN_KEY}'">
+                    <div class="report-card-tipo">Crediti da Attenzionare</div>
+                    <div class="report-card-titolo">Posizioni critiche Massimo</div>
+                    <div class="report-card-data">Aggiornato: ${info.attenzionare.aggiornato}</div>
                 </div>
             `;
         }
