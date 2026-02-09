@@ -368,14 +368,15 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
         contentHtml += `<strong>Storico ${prodotto}</strong><p>Nessun acquisto registrato nello storico.</p>`;
     } else {
         contentHtml += `<strong>Storico acquisti ${prodotto} (${filtrati.length} ${filtrati.length === 1 ? 'acquisto' : 'acquisti'})</strong>`;
-        contentHtml += '<table class="crm-acquisti-table"><thead><tr><th>Fattura</th><th>Data</th><th>Quantita</th><th>Fonte</th></tr></thead><tbody>';
+        contentHtml += '<table class="crm-acquisti-table"><thead><tr><th>Fattura</th><th>Data</th><th>Descrizione</th><th>Fonte</th><th></th></tr></thead><tbody>';
         for (const a of filtrati) {
             const dataFmt = a.data_fattura ? formatDate(a.data_fattura) : '-';
             contentHtml += `<tr>
                 <td>${esc(a.numero_fattura || '-')}</td>
                 <td>${dataFmt}</td>
-                <td style="text-align:center">${a.quantita || 1}</td>
+                <td>${esc(a.descrizione || '-')}</td>
                 <td>${esc(a.fonte || '-')}</td>
+                <td><span class="crm-delete-acq" title="Elimina" onclick="eliminaAcquisto(${a.id}, ${contattoId}, '${prodotto}')">&times;</span></td>
             </tr>`;
         }
         contentHtml += '</tbody></table>';
@@ -388,7 +389,7 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
             <div class="crm-add-acquisto-form">
                 <input type="text" placeholder="N. Fattura" id="acq-fattura-${contattoId}-${prodotto}" class="crm-input-small">
                 <input type="text" placeholder="gg/mm/aaaa" id="acq-data-${contattoId}-${prodotto}" class="crm-input-small" style="width:110px">
-                <input type="number" value="1" min="1" id="acq-qta-${contattoId}-${prodotto}" class="crm-input-small" style="width:60px">
+                <input type="text" placeholder="Descrizione (opzionale)" id="acq-desc-${contattoId}-${prodotto}" class="crm-input-small" style="width:200px">
                 <button class="crm-btn-si" onclick="salvaAcquisto(${contattoId}, '${prodotto}')">Salva</button>
             </div>
         </div>`;
@@ -401,13 +402,13 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
 async function salvaAcquisto(contattoId, prodotto) {
     const fattura = document.getElementById(`acq-fattura-${contattoId}-${prodotto}`);
     const dataInput = document.getElementById(`acq-data-${contattoId}-${prodotto}`);
-    const qtaInput = document.getElementById(`acq-qta-${contattoId}-${prodotto}`);
+    const descInput = document.getElementById(`acq-desc-${contattoId}-${prodotto}`);
 
     if (!fattura || !dataInput) return;
 
     const numeroFattura = fattura.value.trim();
     const dataItStr = dataInput.value.trim();
-    const quantita = parseInt(qtaInput.value) || 1;
+    const descrizione = descInput ? descInput.value.trim() : '';
 
     if (!numeroFattura) {
         mostraToast('Inserisci il numero fattura', 'error');
@@ -432,7 +433,7 @@ async function salvaAcquisto(contattoId, prodotto) {
         const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/acquisti?key=${ADMIN_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ prodotto, numero_fattura: numeroFattura, data_fattura: dataFattura, quantita })
+            body: JSON.stringify({ prodotto, numero_fattura: numeroFattura, data_fattura: dataFattura, descrizione })
         });
         const data = await res.json();
         if (!res.ok) {
@@ -459,6 +460,29 @@ async function salvaAcquisto(contattoId, prodotto) {
         document.querySelectorAll('.crm-detail-row').forEach(el => el.remove());
         renderTableBody();
         mostraToast(`Acquisto ${prodotto} registrato`, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+async function eliminaAcquisto(acquistoId, contattoId, prodotto) {
+    if (!confirm(`Eliminare questo acquisto ${prodotto}?`)) return;
+    try {
+        const res = await fetch(`${API_URL}/crm/acquisti/${acquistoId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Aggiorna count
+        delete acquistiCache[`${contattoId}`];
+        const acqKey = `${contattoId}_${prodotto}`;
+        if (acquistiCountMap[acqKey]) acquistiCountMap[acqKey]--;
+
+        // Chiudi detail row e re-render
+        document.querySelectorAll('.crm-detail-row').forEach(el => el.remove());
+        renderTableBody();
+        mostraToast('Acquisto eliminato', 'success');
     } catch (err) {
         mostraToast('Errore di connessione', 'error');
     }

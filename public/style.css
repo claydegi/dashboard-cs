@@ -1112,6 +1112,18 @@ nav {
     border-bottom: 1px solid #ecf0f1;
 }
 
+.crm-delete-acq {
+    cursor: pointer;
+    color: #e74c3c;
+    font-size: 16px;
+    font-weight: bold;
+    opacity: 0.5;
+    transition: opacity 0.15s;
+}
+.crm-delete-acq:hover {
+    opacity: 1;
+}
+
 /* Legenda CRM */
 .crm-legenda {
     padding: 15px 20px;

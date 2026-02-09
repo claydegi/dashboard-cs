@@ -126,9 +126,12 @@ async function initDB() {
                 numero_fattura TEXT,
                 data_fattura TEXT,
                 quantita INTEGER DEFAULT 1,
+                descrizione TEXT,
                 fonte TEXT
             )
         `);
+        // Migrazione: aggiungi colonna descrizione se non esiste (tabella creata prima del 9 feb 2026)
+        await client.query(`ALTER TABLE crm_acquisti ADD COLUMN IF NOT EXISTS descrizione TEXT`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto ON crm_acquisti(contatto_id)`);
 
         // Tabella note CRM (storico, una entry per ogni nota)
@@ -1538,7 +1541,7 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
 // Aggiungi acquisto ricorrente
 app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
-    const { prodotto, numero_fattura, data_fattura, quantita } = req.body;
+    const { prodotto, numero_fattura, data_fattura, descrizione } = req.body;
 
     if (!prodotto || !CRM_PRODOTTI_RICORRENTI.includes(prodotto)) {
         return res.status(400).json({ error: `Prodotto non valido. Solo ricorrenti: ${CRM_PRODOTTI_RICORRENTI.join(', ')}` });
@@ -1559,10 +1562,10 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
 
         // INSERT acquisto
         const result = await pool.query(`
-            INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, quantita, fonte)
+            INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, descrizione, fonte)
             VALUES ($1, $2, $3, $4, $5, 'dashboard_manual')
             RETURNING *
-        `, [contattoId, prodotto, numero_fattura.trim(), data_fattura, quantita || 1]);
+        `, [contattoId, prodotto, numero_fattura.trim(), data_fattura, (descrizione || '').trim() || null]);
 
         // Se il contatto non ha il prodotto in crm_prodotti, aggiungilo
         let prodottoAggiunto = false;
@@ -1587,6 +1590,22 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[CRM Add Acquisto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Elimina acquisto ricorrente
+app.delete('/api/crm/acquisti/:id', requireAdmin, async (req, res) => {
+    const acquistoId = parseInt(req.params.id);
+    try {
+        const result = await pool.query('DELETE FROM crm_acquisti WHERE id = $1 RETURNING *', [acquistoId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Acquisto non trovato' });
+        }
+        console.log(`[CRM] Acquisto eliminato: id ${acquistoId}, ${result.rows[0].prodotto}, fattura ${result.rows[0].numero_fattura}`);
+        res.json({ ok: true, eliminato: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Delete Acquisto]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
