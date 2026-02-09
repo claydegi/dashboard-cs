@@ -1236,7 +1236,7 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
             'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1', [regione]
         );
         const conScore = await pool.query(
-            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score > 0', [regione]
+            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score >= 40', [regione]
         );
         const nuoviOdoo = await pool.query(
             `SELECT COUNT(DISTINCT p.contatto_id) as totale FROM crm_prodotti p
@@ -1283,6 +1283,24 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0]);
+        }
+
+        // R2: Se un contatto ha prodotti che richiedono MM ma non ha MM, aggiungi MM
+        const INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
+        if (prodotti && prodotti.length > 0) {
+            const prodPerContatto = {};
+            for (const p of prodotti) {
+                if (!prodPerContatto[p.contatto_id]) prodPerContatto[p.contatto_id] = new Set();
+                prodPerContatto[p.contatto_id].add(p.prodotto);
+            }
+            for (const [cid, prods] of Object.entries(prodPerContatto)) {
+                if (!prods.has('MM')) {
+                    const richiedeMM = [...prods].some(p => !INDIPENDENTI_DA_MM.includes(p));
+                    if (richiedeMM) {
+                        prodotti.push({ contatto_id: parseInt(cid), prodotto: 'MM', data_inserimento: new Date().toISOString().split('T')[0], fonte: 'regola_R2' });
+                    }
+                }
+            }
         }
 
         // Inserisci prodotti

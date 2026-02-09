@@ -5,6 +5,8 @@ const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
 const PRODOTTI = ['MM','ELEVATE','BLACK RUBY','LC','FIRST','EASY IN','EASY PIN',
                   'CEP','GENOA','EASYROOT','IMPIANTI','SUTURE','BLEXO','GUIDATA','PT1'];
 const PRODOTTI_RICORRENTI = ['BLEXO', 'CEP', 'SUTURE'];
+// R2: prodotti indipendenti da MM (non richiedono Magnetic Mallet)
+const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 
 let allContatti = [];
 let acquistiCache = {};
@@ -62,9 +64,19 @@ async function caricaDati() {
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
 
-        // Build product set per contatto for sorting
+        // Build product set per contatto for sorting + applica R2 (MM obbligatorio)
         allContatti.forEach(c => {
             c._prodSet = new Set((c.prodotti || []).map(p => p.prodotto));
+
+            // R2: se ha prodotti che richiedono MM ma non ha MM, aggiungi MM
+            if (!c._prodSet.has('MM')) {
+                const hasProdottoCheRichiedeMM = [...c._prodSet].some(p => !PRODOTTI_INDIPENDENTI_DA_MM.includes(p));
+                if (hasProdottoCheRichiedeMM) {
+                    c._prodSet.add('MM');
+                    c.prodotti.push({ prodotto: 'MM', fonte: 'regola_R2', data_inserimento: null });
+                }
+            }
+
             c._numProd = c._prodSet.size;
             c._displayCognome = c.cognome || c.nome_azienda || '';
             c._displayNome = c.cognome ? (c.nome || '') : '';
