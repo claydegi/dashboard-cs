@@ -38,7 +38,7 @@
             <table id="crm-table">
                 <thead id="crm-thead"></thead>
                 <tbody id="crm-tbody">
-                    <tr><td colspan="24" class="loading">Caricamento...</td></tr>
+                    <tr><td colspan="25" class="loading">Caricamento...</td></tr>
                 </tbody>
             </table>
         </section>
@@ -47,17 +47,46 @@
             <h3>Legenda</h3>
             <p><span style="display:inline-block;background:#27ae60;color:white;padding:1px 6px;border-radius:3px;font-weight:bold;">X</span> = Prodotto aggiunto da Odoo sync</p>
             <p><span style="color:#27ae60;font-weight:bold;">X</span> = Prodotto presente (da migrazione Excel/Fatture)</p>
+            <p><span style="color:#2980b9;font-weight:bold;">X</span> = Prodotto aggiunto manualmente dalla dashboard</p>
             <p><span style="color:#27ae60;font-weight:bold;text-decoration:underline;cursor:pointer;">X</span> = Prodotto ricorrente con storico acquisti (clicca per dettagli)</p>
             <p><span style="color:#e74c3c;font-weight:bold;text-decoration:underline;cursor:pointer;">X</span> = Prodotto ricorrente <strong>senza storico fatture</strong> (da verificare)</p>
             <p><span style="color:#ccc;">&mdash;</span> = Dato mancante</p>
+            <p style="margin-top:10px;"><strong>Interazioni:</strong></p>
+            <ul>
+                <li><strong>Click</strong> su cella vuota &rarr; aggiunge prodotto (con conferma)</li>
+                <li><strong>Doppio click</strong> su X &rarr; rimuove prodotto (con conferma)</li>
+                <li><strong>Click</strong> su X ricorrente (BLEXO/CEP/SUTURE) &rarr; storico acquisti + form inserimento</li>
+                <li><strong>&#9998;</strong> &rarr; apre pannello note (testo o dettatura vocale)</li>
+            </ul>
             <p style="margin-top:10px;"><strong>Regole applicate:</strong></p>
             <ul>
                 <li><strong>R1</strong> &mdash; Telefoni separati: fisso (0...) in Telefono, cellulare (3...) in Cellulare</li>
-                <li><strong>R2</strong> &mdash; Se possiede accessori MM, MM obbligatorio</li>
+                <li><strong>R2</strong> &mdash; Se possiede accessori MM, MM obbligatorio (automatico)</li>
                 <li><strong>R3</strong> &mdash; Citta sempre in MAIUSCOLO</li>
             </ul>
         </section>
     </div>
+
+    <!-- Pannello Note (slide-in da destra) -->
+    <div id="crm-notes-panel" class="crm-notes-panel">
+        <div class="crm-notes-header">
+            <h3 id="notes-panel-title">Note</h3>
+            <span class="crm-notes-close" onclick="chiudiNote()">&times;</span>
+        </div>
+        <div id="notes-lista" class="crm-notes-lista"></div>
+        <div class="crm-notes-input">
+            <textarea id="notes-textarea" placeholder="Scrivi una nota..." rows="3"></textarea>
+            <div class="crm-notes-actions">
+                <button class="crm-mic-btn" id="btn-mic" onclick="toggleDettatura()" title="Dettatura vocale">&#127908;</button>
+                <span id="mic-status" class="crm-mic-status"></span>
+                <div style="flex:1"></div>
+                <button class="crm-btn-si" onclick="salvaNote()">Salva nota</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
 
     <script src="crm-liguria.js"></script>
 </body>

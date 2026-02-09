@@ -11,8 +11,11 @@ const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 let allContatti = [];
 let acquistiCache = {};
 let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
+let noteCountMap = {};      // mappa contatto_id -> num note
 let currentSort = 'cognome';
 let searchTerm = '';
+let currentNoteContattoId = null;
+let recognition = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -36,6 +39,13 @@ document.addEventListener('DOMContentLoaded', () => {
         sortContatti();
         renderTableBody();
     });
+
+    // Chiudi popup conferma cliccando fuori
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.crm-confirm-popup') && !e.target.closest('.crm-cell-empty') && !e.target.closest('.crm-x') && !e.target.closest('.crm-x-new') && !e.target.closest('.crm-x-no-storico')) {
+            chiudiPopup();
+        }
+    });
 });
 
 function renderTableHeader() {
@@ -44,21 +54,27 @@ function renderTableHeader() {
     for (const p of PRODOTTI) {
         html += `<th class="prod">${p}</th>`;
     }
-    html += '<th>Score</th></tr>';
+    html += '<th>Score</th><th class="prod" title="Note">&#9998;</th></tr>';
     thead.innerHTML = html;
 }
 
 async function caricaDati() {
     try {
-        const [contattiRes, statsRes] = await Promise.all([
+        const [contattiRes, statsRes, noteRes] = await Promise.all([
             fetch(`${API_URL}/crm/contatti?regione=LIGURIA&key=${ADMIN_KEY}`),
-            fetch(`${API_URL}/crm/stats?regione=LIGURIA&key=${ADMIN_KEY}`)
+            fetch(`${API_URL}/crm/stats?regione=LIGURIA&key=${ADMIN_KEY}`),
+            fetch(`${API_URL}/crm/note/bulk?regione=LIGURIA&key=${ADMIN_KEY}`)
         ]);
 
         if (!contattiRes.ok || !statsRes.ok) throw new Error('Errore caricamento');
 
         allContatti = await contattiRes.json();
         const stats = await statsRes.json();
+
+        // Note count
+        if (noteRes.ok) {
+            noteCountMap = await noteRes.json();
+        }
 
         // Stats
         document.getElementById('stat-contatti').textContent = stats.tot_contatti;
@@ -93,7 +109,7 @@ async function caricaDati() {
     } catch (err) {
         console.error('Errore:', err);
         document.getElementById('crm-tbody').innerHTML =
-            '<tr><td colspan="24"><div class="empty-state"><p>Errore di connessione. Riprova.</p></div></td></tr>';
+            '<tr><td colspan="25"><div class="empty-state"><p>Errore di connessione. Riprova.</p></div></td></tr>';
     }
 }
 
@@ -129,7 +145,7 @@ function renderTableBody() {
         : allContatti;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="24"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="25"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
         return;
     }
 
@@ -157,6 +173,7 @@ function renderTableBody() {
             if (c._prodSet.has(p)) {
                 const prodInfo = (c.prodotti || []).find(pr => pr.prodotto === p);
                 const isOdoo = prodInfo && prodInfo.fonte && prodInfo.fonte.startsWith('odoo:');
+                const isManual = prodInfo && prodInfo.fonte === 'dashboard_manual';
                 const isRicorrente = PRODOTTI_RICORRENTI.includes(p);
 
                 if (isRicorrente) {
@@ -171,14 +188,17 @@ function renderTableBody() {
                         cls = 'crm-x crm-x-ricorrente';
                     }
                     const titleText = haStorico ? 'Clicca per storico acquisti' : 'Nessun acquisto registrato - clicca per dettagli';
-                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" title="${titleText}">X</td>`;
+                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="${titleText}">X</td>`;
                 } else if (isOdoo) {
-                    html += '<td class="crm-x-new">X</td>';
+                    html += `<td class="crm-x-new" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="Doppio click per rimuovere">X</td>`;
+                } else if (isManual) {
+                    html += `<td class="crm-x crm-x-manual" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="Aggiunto manualmente - doppio click per rimuovere">X</td>`;
                 } else {
-                    html += '<td class="crm-x">X</td>';
+                    html += `<td class="crm-x" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="Doppio click per rimuovere">X</td>`;
                 }
             } else {
-                html += '<td></td>';
+                // Cella vuota cliccabile per aggiungere prodotto
+                html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Aggiungi ${p}"></td>`;
             }
         }
 
@@ -189,17 +209,126 @@ function renderTableBody() {
             html += '<td></td>';
         }
 
+        // Note
+        const numNote = noteCountMap[c.id] || 0;
+        const noteClass = numNote > 0 ? 'crm-note-icon crm-note-has' : 'crm-note-icon';
+        const noteTitle = numNote > 0 ? `${numNote} nota/e - clicca per vedere` : 'Aggiungi nota';
+        html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
+
         html += '</tr>';
     });
 
     tbody.innerHTML = html;
 }
 
+// ==================== FEATURE 1: ADD/REMOVE PRODOTTI ====================
+
+function aggiungiProdotto(contattoId, prodotto, cellEl) {
+    chiudiPopup();
+    const rect = cellEl.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.className = 'crm-confirm-popup';
+    popup.innerHTML = `
+        <p>Aggiungere <strong>${prodotto}</strong>?</p>
+        <div class="crm-confirm-btns">
+            <button class="crm-btn-si" onclick="confermaAggiungiProdotto(${contattoId}, '${prodotto}')">Si</button>
+            <button class="crm-btn-no" onclick="chiudiPopup()">No</button>
+        </div>
+    `;
+    popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    popup.style.left = (rect.left + window.scrollX) + 'px';
+    document.body.appendChild(popup);
+}
+
+async function confermaAggiungiProdotto(contattoId, prodotto) {
+    chiudiPopup();
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/prodotti?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prodotto })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Aggiorna dati locali
+        const contatto = allContatti.find(c => c.id === contattoId);
+        if (contatto) {
+            for (const p of data.prodotti_aggiunti) {
+                if (!contatto._prodSet.has(p)) {
+                    contatto._prodSet.add(p);
+                    contatto.prodotti.push({ prodotto: p, fonte: 'dashboard_manual', data_inserimento: new Date().toISOString().split('T')[0] });
+                }
+            }
+            contatto._numProd = contatto._prodSet.size;
+        }
+        renderTableBody();
+        mostraToast(data.messaggio, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+function rimuoviProdotto(contattoId, prodotto, cellEl, event) {
+    if (event) event.stopPropagation();
+    chiudiPopup();
+    const rect = cellEl.getBoundingClientRect();
+    const popup = document.createElement('div');
+    popup.className = 'crm-confirm-popup';
+    popup.innerHTML = `
+        <p>Rimuovere <strong>${prodotto}</strong>?</p>
+        <div class="crm-confirm-btns">
+            <button class="crm-btn-si crm-btn-danger" onclick="confermaRimuoviProdotto(${contattoId}, '${prodotto}')">Si</button>
+            <button class="crm-btn-no" onclick="chiudiPopup()">No</button>
+        </div>
+    `;
+    popup.style.top = (rect.bottom + window.scrollY + 4) + 'px';
+    popup.style.left = (rect.left + window.scrollX) + 'px';
+    document.body.appendChild(popup);
+}
+
+async function confermaRimuoviProdotto(contattoId, prodotto) {
+    chiudiPopup();
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/prodotti/${encodeURIComponent(prodotto)}?key=${ADMIN_KEY}`, {
+            method: 'DELETE'
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Aggiorna dati locali
+        const contatto = allContatti.find(c => c.id === contattoId);
+        if (contatto) {
+            for (const p of data.prodotti_rimossi) {
+                contatto._prodSet.delete(p);
+                contatto.prodotti = contatto.prodotti.filter(pr => pr.prodotto !== p);
+            }
+            contatto._numProd = contatto._prodSet.size;
+        }
+        // Chiudi eventuali detail row aperti
+        document.querySelectorAll('.crm-detail-row').forEach(el => el.remove());
+        renderTableBody();
+        mostraToast(data.messaggio, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+function chiudiPopup() {
+    document.querySelectorAll('.crm-confirm-popup').forEach(el => el.remove());
+}
+
+// ==================== FEATURE 2: ACQUISTI RICORRENTI ====================
+
 async function toggleAcquisti(contattoId, prodotto, cellEl) {
     const row = cellEl.closest('tr');
     const existingDetail = row.nextElementSibling;
 
-    // Se il dettaglio è già visibile, chiudilo
+    // Se il dettaglio e' gia' visibile, chiudilo
     if (existingDetail && existingDetail.classList.contains('crm-detail-row')) {
         existingDetail.remove();
         return;
@@ -231,36 +360,302 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
     // Crea riga dettaglio
     const detailRow = document.createElement('tr');
     detailRow.classList.add('crm-detail-row');
-    const totalCols = 7 + PRODOTTI.length + 1; // # + 6 campi + prodotti + score
+    const totalCols = 7 + PRODOTTI.length + 2; // # + 6 campi + prodotti + score + note
+
+    let contentHtml = `<td colspan="${totalCols}" class="crm-detail-cell"><div class="crm-detail-content">`;
 
     if (filtrati.length === 0) {
-        detailRow.innerHTML = `<td colspan="${totalCols}" class="crm-detail-cell">
-            <div class="crm-detail-content">
-                <strong>Storico ${prodotto}</strong>
-                <p>Nessun acquisto registrato nello storico.</p>
-            </div>
-        </td>`;
+        contentHtml += `<strong>Storico ${prodotto}</strong><p>Nessun acquisto registrato nello storico.</p>`;
     } else {
-        let tableHtml = `<td colspan="${totalCols}" class="crm-detail-cell">
-            <div class="crm-detail-content">
-                <strong>Storico acquisti ${prodotto} (${filtrati.length} ${filtrati.length === 1 ? 'acquisto' : 'acquisti'})</strong>
-                <table class="crm-acquisti-table">
-                    <thead><tr><th>Fattura</th><th>Data</th><th>Quantita</th><th>Fonte</th></tr></thead>
-                    <tbody>`;
+        contentHtml += `<strong>Storico acquisti ${prodotto} (${filtrati.length} ${filtrati.length === 1 ? 'acquisto' : 'acquisti'})</strong>`;
+        contentHtml += '<table class="crm-acquisti-table"><thead><tr><th>Fattura</th><th>Data</th><th>Quantita</th><th>Fonte</th></tr></thead><tbody>';
         for (const a of filtrati) {
             const dataFmt = a.data_fattura ? formatDate(a.data_fattura) : '-';
-            tableHtml += `<tr>
+            contentHtml += `<tr>
                 <td>${esc(a.numero_fattura || '-')}</td>
                 <td>${dataFmt}</td>
                 <td style="text-align:center">${a.quantita || 1}</td>
                 <td>${esc(a.fonte || '-')}</td>
             </tr>`;
         }
-        tableHtml += '</tbody></table></div></td>';
-        detailRow.innerHTML = tableHtml;
+        contentHtml += '</tbody></table>';
     }
 
+    // Form aggiungi acquisto
+    contentHtml += `
+        <div class="crm-add-acquisto" style="margin-top:12px;padding-top:12px;border-top:1px dashed #ccc;">
+            <strong style="font-size:12px;">Aggiungi acquisto ${prodotto}:</strong>
+            <div class="crm-add-acquisto-form">
+                <input type="text" placeholder="N. Fattura" id="acq-fattura-${contattoId}-${prodotto}" class="crm-input-small">
+                <input type="text" placeholder="gg/mm/aaaa" id="acq-data-${contattoId}-${prodotto}" class="crm-input-small" style="width:110px">
+                <input type="number" value="1" min="1" id="acq-qta-${contattoId}-${prodotto}" class="crm-input-small" style="width:60px">
+                <button class="crm-btn-si" onclick="salvaAcquisto(${contattoId}, '${prodotto}')">Salva</button>
+            </div>
+        </div>`;
+
+    contentHtml += '</div></td>';
+    detailRow.innerHTML = contentHtml;
     row.after(detailRow);
+}
+
+async function salvaAcquisto(contattoId, prodotto) {
+    const fattura = document.getElementById(`acq-fattura-${contattoId}-${prodotto}`);
+    const dataInput = document.getElementById(`acq-data-${contattoId}-${prodotto}`);
+    const qtaInput = document.getElementById(`acq-qta-${contattoId}-${prodotto}`);
+
+    if (!fattura || !dataInput) return;
+
+    const numeroFattura = fattura.value.trim();
+    const dataItStr = dataInput.value.trim();
+    const quantita = parseInt(qtaInput.value) || 1;
+
+    if (!numeroFattura) {
+        mostraToast('Inserisci il numero fattura', 'error');
+        fattura.focus();
+        return;
+    }
+    if (!dataItStr) {
+        mostraToast('Inserisci la data (gg/mm/aaaa)', 'error');
+        dataInput.focus();
+        return;
+    }
+
+    // Converti gg/mm/aaaa -> YYYY-MM-DD
+    const dataFattura = convertiDataItToIso(dataItStr);
+    if (!dataFattura) {
+        mostraToast('Formato data non valido. Usa gg/mm/aaaa', 'error');
+        dataInput.focus();
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/acquisti?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prodotto, numero_fattura: numeroFattura, data_fattura: dataFattura, quantita })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+
+        // Invalida cache e aggiorna count
+        delete acquistiCache[`${contattoId}`];
+        const acqKey = `${contattoId}_${prodotto}`;
+        acquistiCountMap[acqKey] = (acquistiCountMap[acqKey] || 0) + 1;
+
+        // Se il prodotto e' stato aggiunto automaticamente, aggiorna dati locali
+        if (data.prodotto_aggiunto) {
+            const contatto = allContatti.find(c => c.id === contattoId);
+            if (contatto && !contatto._prodSet.has(prodotto)) {
+                contatto._prodSet.add(prodotto);
+                contatto.prodotti.push({ prodotto, fonte: 'dashboard_manual', data_inserimento: new Date().toISOString().split('T')[0] });
+                contatto._numProd = contatto._prodSet.size;
+            }
+        }
+
+        // Chiudi detail row e re-render (la X passera' da rossa a verde se era il primo acquisto)
+        document.querySelectorAll('.crm-detail-row').forEach(el => el.remove());
+        renderTableBody();
+        mostraToast(`Acquisto ${prodotto} registrato`, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+function convertiDataItToIso(dataIt) {
+    // gg/mm/aaaa -> YYYY-MM-DD
+    const match = dataIt.match(/^(\d{1,2})[\/\-\.](\d{1,2})[\/\-\.](\d{4})$/);
+    if (!match) return null;
+    const gg = match[1].padStart(2, '0');
+    const mm = match[2].padStart(2, '0');
+    const aaaa = match[3];
+    if (parseInt(mm) < 1 || parseInt(mm) > 12 || parseInt(gg) < 1 || parseInt(gg) > 31) return null;
+    return `${aaaa}-${mm}-${gg}`;
+}
+
+// ==================== FEATURE 3: NOTE CON AUDIO ====================
+
+async function apriNote(contattoId, cognome, nome) {
+    currentNoteContattoId = contattoId;
+    const panel = document.getElementById('crm-notes-panel');
+    const title = document.getElementById('notes-panel-title');
+    const lista = document.getElementById('notes-lista');
+    const textarea = document.getElementById('notes-textarea');
+
+    title.textContent = `Note: ${cognome}${nome ? ' ' + nome : ''}`;
+    textarea.value = '';
+    lista.innerHTML = '<p style="color:#999;font-size:12px;">Caricamento...</p>';
+
+    panel.classList.add('open');
+
+    // Carica note
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/note?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore');
+        const note = await res.json();
+
+        if (note.length === 0) {
+            lista.innerHTML = '<p style="color:#999;font-size:12px;">Nessuna nota ancora.</p>';
+        } else {
+            let html = '';
+            for (const n of note) {
+                const dataFmt = n.created_at ? new Date(n.created_at).toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
+                html += `<div class="crm-nota-entry">
+                    <span class="crm-nota-data">${dataFmt}</span>
+                    <p class="crm-nota-testo">${esc(n.testo)}</p>
+                </div>`;
+            }
+            lista.innerHTML = html;
+        }
+    } catch (err) {
+        lista.innerHTML = '<p style="color:#e74c3c;font-size:12px;">Errore caricamento note.</p>';
+    }
+}
+
+function chiudiNote() {
+    document.getElementById('crm-notes-panel').classList.remove('open');
+    currentNoteContattoId = null;
+    stopDettatura();
+}
+
+async function salvaNote() {
+    if (!currentNoteContattoId) return;
+    const textarea = document.getElementById('notes-textarea');
+    const testo = textarea.value.trim();
+    if (!testo) {
+        mostraToast('Scrivi qualcosa prima di salvare', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${currentNoteContattoId}/note?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ testo })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+
+        // Aggiorna conteggio note locali
+        noteCountMap[currentNoteContattoId] = (noteCountMap[currentNoteContattoId] || 0) + 1;
+        renderTableBody();
+
+        // Aggiungi nota in cima alla lista
+        const lista = document.getElementById('notes-lista');
+        const noNoteMsg = lista.querySelector('p');
+        if (noNoteMsg && noNoteMsg.textContent.includes('Nessuna nota')) {
+            lista.innerHTML = '';
+        }
+        const dataFmt = new Date().toLocaleString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const entry = document.createElement('div');
+        entry.className = 'crm-nota-entry';
+        entry.innerHTML = `<span class="crm-nota-data">${dataFmt}</span><p class="crm-nota-testo">${esc(testo)}</p>`;
+        lista.insertBefore(entry, lista.firstChild);
+
+        textarea.value = '';
+        mostraToast('Nota salvata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+// ==================== TRASCRIZIONE AUDIO ====================
+
+function toggleDettatura() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+        mostraToast('Browser non supportato. Usa Chrome o Edge.', 'error');
+        return;
+    }
+
+    if (recognition) {
+        stopDettatura();
+        return;
+    }
+
+    recognition = new SpeechRecognition();
+    recognition.lang = 'it-IT';
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    const micBtn = document.getElementById('btn-mic');
+    const micStatus = document.getElementById('mic-status');
+    const textarea = document.getElementById('notes-textarea');
+
+    let finalTranscript = textarea.value;
+
+    recognition.onstart = () => {
+        micBtn.classList.add('recording');
+        micStatus.textContent = 'In ascolto...';
+    };
+
+    recognition.onresult = (event) => {
+        let interim = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += (finalTranscript ? ' ' : '') + transcript;
+            } else {
+                interim += transcript;
+            }
+        }
+        textarea.value = finalTranscript + (interim ? ' ' + interim : '');
+    };
+
+    recognition.onerror = (event) => {
+        console.error('Speech recognition error:', event.error);
+        if (event.error === 'not-allowed') {
+            mostraToast('Permesso microfono negato', 'error');
+        }
+        stopDettatura();
+    };
+
+    recognition.onend = () => {
+        // Auto-restart se ancora in modalita' registrazione
+        if (recognition) {
+            try { recognition.start(); } catch (e) { stopDettatura(); }
+        }
+    };
+
+    try {
+        recognition.start();
+    } catch (e) {
+        mostraToast('Errore avvio microfono', 'error');
+        stopDettatura();
+    }
+}
+
+function stopDettatura() {
+    if (recognition) {
+        const r = recognition;
+        recognition = null; // Imposta a null PRIMA di stop per evitare auto-restart
+        try { r.stop(); } catch (e) {}
+    }
+    const micBtn = document.getElementById('btn-mic');
+    const micStatus = document.getElementById('mic-status');
+    if (micBtn) micBtn.classList.remove('recording');
+    if (micStatus) micStatus.textContent = '';
+}
+
+// ==================== UTILITY ====================
+
+function mostraToast(messaggio, tipo) {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const toast = document.createElement('div');
+    toast.className = `crm-toast crm-toast-${tipo || 'info'}`;
+    toast.textContent = messaggio;
+    container.appendChild(toast);
+    setTimeout(() => toast.classList.add('show'), 10);
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 3000);
 }
 
 function formatDate(dateStr) {
@@ -272,5 +667,5 @@ function formatDate(dateStr) {
 
 function esc(str) {
     if (!str) return '';
-    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }

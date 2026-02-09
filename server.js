@@ -131,6 +131,21 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto ON crm_acquisti(contatto_id)`);
 
+        // Tabella note CRM (storico, una entry per ogni nota)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_note (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                testo TEXT NOT NULL,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_note_contatto ON crm_note(contatto_id)`);
+
+        // Indici composti per performance CRM
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_prodotti_contatto_prodotto ON crm_prodotti(contatto_id, prodotto)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto_prodotto ON crm_acquisti(contatto_id, prodotto)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -1280,22 +1295,35 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // Elimina dati esistenti per questa regione
+        // Elimina dati esistenti per questa regione (PRESERVA dati dashboard_manual)
         const existing = await client.query(
             'SELECT id FROM crm_contatti WHERE regione = $1', [regione]
         );
         const existingIds = existing.rows.map(r => r.id);
         if (existingIds.length > 0) {
-            await client.query('DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[])', [existingIds]);
-            await client.query('DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[])', [existingIds]);
-            await client.query('DELETE FROM crm_contatti WHERE regione = $1', [regione]);
+            // Elimina solo acquisti e prodotti NON manuali
+            await client.query(
+                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != 'dashboard_manual')",
+                [existingIds]
+            );
+            await client.query(
+                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != 'dashboard_manual')",
+                [existingIds]
+            );
+            // crm_note: mai toccata dal sync
         }
 
-        // Inserisci contatti
+        // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
                 INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                ON CONFLICT (id) DO UPDATE SET
+                    cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
+                    telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
+                    regione = EXCLUDED.regione, nome_azienda = EXCLUDED.nome_azienda,
+                    fonte_sync = EXCLUDED.fonte_sync, data_inserimento = EXCLUDED.data_inserimento,
+                    score = EXCLUDED.score
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0]);
         }
@@ -1328,6 +1356,18 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
+        // Deduplicazione: se il sync ha portato lo stesso prodotto gia' presente come dashboard_manual, rimuovi il duplicato manuale
+        if (existingIds.length > 0) {
+            await client.query(`
+                DELETE FROM crm_prodotti WHERE id IN (
+                    SELECT dm.id FROM crm_prodotti dm
+                    INNER JOIN crm_prodotti sync ON dm.contatto_id = sync.contatto_id AND dm.prodotto = sync.prodotto
+                    WHERE dm.fonte = 'dashboard_manual' AND sync.fonte != 'dashboard_manual'
+                    AND dm.contatto_id = ANY($1::int[])
+                )
+            `, [existingIds]);
+        }
+
         // Inserisci acquisti ricorrenti
         if (acquisti && acquisti.length > 0) {
             for (const a of acquisti) {
@@ -1352,6 +1392,267 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         res.status(500).json({ error: 'Errore sync: ' + err.message });
     } finally {
         client.release();
+    }
+});
+
+// ==================== API CRM INTERATTIVE ====================
+
+const CRM_PRODOTTI = ['MM','ELEVATE','BLACK RUBY','LC','FIRST','EASY IN','EASY PIN',
+                      'CEP','GENOA','EASYROOT','IMPIANTI','SUTURE','BLEXO','GUIDATA','PT1'];
+const CRM_PRODOTTI_RICORRENTI = ['BLEXO', 'CEP', 'SUTURE'];
+const CRM_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
+
+// Aggiungi prodotto a un contatto
+app.post('/api/crm/contatti/:id/prodotti', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { prodotto } = req.body;
+
+    if (!prodotto || !CRM_PRODOTTI.includes(prodotto)) {
+        return res.status(400).json({ error: `Prodotto non valido. Valori ammessi: ${CRM_PRODOTTI.join(', ')}` });
+    }
+
+    try {
+        // Verifica che il contatto esista
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        // Controlla duplicati
+        const existing = await pool.query(
+            'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+            [contattoId, prodotto]
+        );
+        if (existing.rows.length > 0) {
+            return res.status(409).json({ error: `${prodotto} gia\' presente per questo contatto` });
+        }
+
+        const prodottiAggiunti = [prodotto];
+        const oggi = new Date().toISOString().split('T')[0];
+
+        // INSERT prodotto
+        await pool.query(
+            'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+            [contattoId, prodotto, oggi, 'dashboard_manual']
+        );
+
+        // R2: se il prodotto richiede MM e il contatto non ha MM, aggiungi MM
+        if (!CRM_INDIPENDENTI_DA_MM.includes(prodotto) && prodotto !== 'MM') {
+            const hasMM = await pool.query(
+                'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+                [contattoId, 'MM']
+            );
+            if (hasMM.rows.length === 0) {
+                await pool.query(
+                    'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                    [contattoId, 'MM', oggi, 'regola_R2_dashboard']
+                );
+                prodottiAggiunti.push('MM');
+            }
+        }
+
+        console.log(`[CRM] Prodotti aggiunti a contatto ${contattoId}: ${prodottiAggiunti.join(', ')}`);
+        res.json({
+            ok: true,
+            prodotti_aggiunti: prodottiAggiunti,
+            messaggio: prodottiAggiunti.length > 1
+                ? `${prodotto} aggiunto. MM aggiunto automaticamente (regola R2).`
+                : `${prodotto} aggiunto.`
+        });
+    } catch (err) {
+        console.error('[CRM Add Prodotto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Rimuovi prodotto da un contatto
+app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const prodotto = decodeURIComponent(req.params.prodotto);
+
+    if (!CRM_PRODOTTI.includes(prodotto)) {
+        return res.status(400).json({ error: 'Prodotto non valido' });
+    }
+
+    try {
+        // Verifica che il prodotto esista
+        const existing = await pool.query(
+            'SELECT id, fonte FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+            [contattoId, prodotto]
+        );
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: `${prodotto} non trovato per questo contatto` });
+        }
+
+        const prodottiRimossi = [prodotto];
+
+        // Rimuovi il prodotto
+        await pool.query(
+            'DELETE FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+            [contattoId, prodotto]
+        );
+
+        // Reverse R2: se era un prodotto che richiedeva MM, controlla se MM va rimosso
+        if (!CRM_INDIPENDENTI_DA_MM.includes(prodotto) && prodotto !== 'MM') {
+            // Controlla se rimangono altri prodotti che richiedono MM
+            const remaining = await pool.query(
+                'SELECT prodotto FROM crm_prodotti WHERE contatto_id = $1',
+                [contattoId]
+            );
+            const remainingProds = remaining.rows.map(r => r.prodotto);
+            const ancoraRichiedeMM = remainingProds.some(p => p !== 'MM' && !CRM_INDIPENDENTI_DA_MM.includes(p));
+
+            if (!ancoraRichiedeMM && remainingProds.includes('MM')) {
+                // Rimuovi MM solo se fonte dashboard_manual o regola_R2*
+                const mmRecord = await pool.query(
+                    "SELECT id, fonte FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                    [contattoId]
+                );
+                if (mmRecord.rows.length > 0) {
+                    const mmFonte = mmRecord.rows[0].fonte || '';
+                    if (mmFonte === 'dashboard_manual' || mmFonte.startsWith('regola_R2')) {
+                        await pool.query(
+                            "DELETE FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                            [contattoId]
+                        );
+                        prodottiRimossi.push('MM');
+                    }
+                }
+            }
+        }
+
+        console.log(`[CRM] Prodotti rimossi da contatto ${contattoId}: ${prodottiRimossi.join(', ')}`);
+        res.json({
+            ok: true,
+            prodotti_rimossi: prodottiRimossi,
+            messaggio: prodottiRimossi.length > 1
+                ? `${prodotto} rimosso. MM rimosso automaticamente (non piu\' necessario).`
+                : `${prodotto} rimosso.`
+        });
+    } catch (err) {
+        console.error('[CRM Remove Prodotto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Aggiungi acquisto ricorrente
+app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { prodotto, numero_fattura, data_fattura, quantita } = req.body;
+
+    if (!prodotto || !CRM_PRODOTTI_RICORRENTI.includes(prodotto)) {
+        return res.status(400).json({ error: `Prodotto non valido. Solo ricorrenti: ${CRM_PRODOTTI_RICORRENTI.join(', ')}` });
+    }
+    if (!numero_fattura || !numero_fattura.trim()) {
+        return res.status(400).json({ error: 'Numero fattura obbligatorio' });
+    }
+    if (!data_fattura) {
+        return res.status(400).json({ error: 'Data fattura obbligatoria' });
+    }
+
+    try {
+        // Verifica contatto
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        // INSERT acquisto
+        const result = await pool.query(`
+            INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, quantita, fonte)
+            VALUES ($1, $2, $3, $4, $5, 'dashboard_manual')
+            RETURNING *
+        `, [contattoId, prodotto, numero_fattura.trim(), data_fattura, quantita || 1]);
+
+        // Se il contatto non ha il prodotto in crm_prodotti, aggiungilo
+        let prodottoAggiunto = false;
+        const hasProd = await pool.query(
+            'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+            [contattoId, prodotto]
+        );
+        if (hasProd.rows.length === 0) {
+            const oggi = new Date().toISOString().split('T')[0];
+            await pool.query(
+                'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                [contattoId, prodotto, oggi, 'dashboard_manual']
+            );
+            prodottoAggiunto = true;
+        }
+
+        console.log(`[CRM] Acquisto aggiunto: contatto ${contattoId}, ${prodotto}, fattura ${numero_fattura}`);
+        res.json({
+            ok: true,
+            acquisto: result.rows[0],
+            prodotto_aggiunto: prodottoAggiunto
+        });
+    } catch (err) {
+        console.error('[CRM Add Acquisto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Note CRM: lista note per contatto
+app.get('/api/crm/contatti/:id/note', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            'SELECT * FROM crm_note WHERE contatto_id = $1 ORDER BY created_at DESC',
+            [contattoId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM Note]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Note CRM: aggiungi nota
+app.post('/api/crm/contatti/:id/note', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { testo } = req.body;
+
+    if (!testo || !testo.trim()) {
+        return res.status(400).json({ error: 'Testo nota obbligatorio' });
+    }
+
+    try {
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO crm_note (contatto_id, testo) VALUES ($1, $2) RETURNING *',
+            [contattoId, testo.trim()]
+        );
+
+        console.log(`[CRM] Nota aggiunta per contatto ${contattoId}`);
+        res.json({ ok: true, nota: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Add Nota]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Note CRM: conteggio bulk per regione (per caricamento iniziale)
+app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
+    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    try {
+        const result = await pool.query(`
+            SELECT n.contatto_id, COUNT(*) as num_note
+            FROM crm_note n
+            JOIN crm_contatti c ON n.contatto_id = c.id
+            WHERE c.regione = $1
+            GROUP BY n.contatto_id
+        `, [regione]);
+        const noteMap = {};
+        for (const r of result.rows) {
+            noteMap[r.contatto_id] = parseInt(r.num_note);
+        }
+        res.json(noteMap);
+    } catch (err) {
+        console.error('[CRM Note Bulk]', err);
+        res.status(500).json({ error: 'Errore server' });
     }
 });
 
