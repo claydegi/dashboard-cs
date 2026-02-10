@@ -182,6 +182,39 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS tipo TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mercato TEXT`);
 
+        // Tabella audit log CRM (traccia ogni azione di cancellazione)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_audit_log (
+                id SERIAL PRIMARY KEY,
+                azione TEXT NOT NULL,
+                tabella TEXT NOT NULL,
+                record_id INTEGER,
+                contatto_id INTEGER,
+                dettagli JSONB,
+                utente TEXT DEFAULT 'admin',
+                ip TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_azione ON crm_audit_log(azione)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_audit_created ON crm_audit_log(created_at DESC)`);
+
+        // Tabella cestino CRM (soft-delete: i record cancellati finiscono qui)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_cestino (
+                id SERIAL PRIMARY KEY,
+                tabella_origine TEXT NOT NULL,
+                record_id INTEGER NOT NULL,
+                contatto_id INTEGER,
+                dati JSONB NOT NULL,
+                cancellato_il TIMESTAMPTZ DEFAULT NOW(),
+                cancellato_da TEXT DEFAULT 'admin'
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_tabella ON crm_cestino(tabella_origine)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_data ON crm_cestino(cancellato_il DESC)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_contatto ON crm_cestino(contatto_id)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -880,6 +913,36 @@ async function sendTelegramReply(chatId, text) {
         req.write(data);
         req.end();
     });
+}
+
+// ==================== CRM AUDIT & SOFT-DELETE ====================
+
+async function logAndTrash(client, { azione, tabella, recordId, contattoId, dati, ip }) {
+    // 1. Salva nel cestino (soft-delete)
+    await client.query(
+        `INSERT INTO crm_cestino (tabella_origine, record_id, contatto_id, dati)
+         VALUES ($1, $2, $3, $4)`,
+        [tabella, recordId, contattoId, JSON.stringify(dati)]
+    );
+    // 2. Registra nell'audit log
+    await client.query(
+        `INSERT INTO crm_audit_log (azione, tabella, record_id, contatto_id, dettagli, ip)
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [azione, tabella, recordId, contattoId, JSON.stringify(dati), ip]
+    );
+    // 3. Controlla soglia alert (>5 cancellazioni in 10 minuti)
+    const countResult = await client.query(
+        `SELECT COUNT(*) as cnt FROM crm_audit_log
+         WHERE azione LIKE 'delete_%' AND created_at > NOW() - INTERVAL '10 minutes'`
+    );
+    const count = parseInt(countResult.rows[0].cnt);
+    if (count > 0 && count % 5 === 0) {
+        const msg = `⚠️ *ALERT CRM*\n\n🗑️ ${count} cancellazioni negli ultimi 10 minuti\n\n` +
+                    `Ultima: ${azione}\nTabella: ${tabella}\nContatto ID: ${contattoId}\n` +
+                    `IP: ${ip || 'N/A'}\n\n_Controlla la dashboard._`;
+        sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, msg);
+        console.log(`[CRM Audit] Alert Telegram inviato: ${count} cancellazioni in 10 min`);
+    }
 }
 
 // ==================== REPORT KIM/MASSIMO (DAL DATABASE) ====================
@@ -1738,7 +1801,7 @@ app.post('/api/crm/contatti/:id/prodotti', requireAdmin, async (req, res) => {
     }
 });
 
-// Rimuovi prodotto da un contatto
+// Rimuovi prodotto da un contatto (con soft-delete + audit)
 app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
     const prodotto = decodeURIComponent(req.params.prodotto);
@@ -1747,28 +1810,41 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
         return res.status(400).json({ error: 'Prodotto non valido' });
     }
 
+    const client = await pool.connect();
     try {
+        await client.query('BEGIN');
+
         // Verifica che il prodotto esista
-        const existing = await pool.query(
-            'SELECT id, fonte FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+        const existing = await client.query(
+            'SELECT * FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
             [contattoId, prodotto]
         );
         if (existing.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: `${prodotto} non trovato per questo contatto` });
         }
 
         const prodottiRimossi = [prodotto];
 
+        // Audit + cestino per il prodotto principale
+        await logAndTrash(client, {
+            azione: 'delete_prodotto',
+            tabella: 'crm_prodotti',
+            recordId: existing.rows[0].id,
+            contattoId: contattoId,
+            dati: existing.rows[0],
+            ip: req.ip
+        });
+
         // Rimuovi il prodotto
-        await pool.query(
+        await client.query(
             'DELETE FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
             [contattoId, prodotto]
         );
 
         // Reverse R2: se era un prodotto che richiedeva MM, controlla se MM va rimosso
         if (!CRM_INDIPENDENTI_DA_MM.includes(prodotto) && prodotto !== 'MM') {
-            // Controlla se rimangono altri prodotti che richiedono MM
-            const remaining = await pool.query(
+            const remaining = await client.query(
                 'SELECT prodotto FROM crm_prodotti WHERE contatto_id = $1',
                 [contattoId]
             );
@@ -1776,15 +1852,23 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
             const ancoraRichiedeMM = remainingProds.some(p => p !== 'MM' && !CRM_INDIPENDENTI_DA_MM.includes(p));
 
             if (!ancoraRichiedeMM && remainingProds.includes('MM')) {
-                // Rimuovi MM solo se fonte dashboard_manual o regola_R2*
-                const mmRecord = await pool.query(
-                    "SELECT id, fonte FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                const mmRecord = await client.query(
+                    "SELECT * FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
                     [contattoId]
                 );
                 if (mmRecord.rows.length > 0) {
                     const mmFonte = mmRecord.rows[0].fonte || '';
                     if (mmFonte === 'dashboard_manual' || mmFonte.startsWith('regola_R2')) {
-                        await pool.query(
+                        // Audit + cestino anche per MM
+                        await logAndTrash(client, {
+                            azione: 'delete_prodotto',
+                            tabella: 'crm_prodotti',
+                            recordId: mmRecord.rows[0].id,
+                            contattoId: contattoId,
+                            dati: mmRecord.rows[0],
+                            ip: req.ip
+                        });
+                        await client.query(
                             "DELETE FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
                             [contattoId]
                         );
@@ -1794,6 +1878,7 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
             }
         }
 
+        await client.query('COMMIT');
         console.log(`[CRM] Prodotti rimossi da contatto ${contattoId}: ${prodottiRimossi.join(', ')}`);
         res.json({
             ok: true,
@@ -1803,8 +1888,11 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
                 : `${prodotto} rimosso.`
         });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('[CRM Remove Prodotto]', err);
         res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
@@ -1919,16 +2007,37 @@ app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
 // Elimina acquisto ricorrente
 app.delete('/api/crm/acquisti/:id', requireAdmin, async (req, res) => {
     const acquistoId = parseInt(req.params.id);
+    const client = await pool.connect();
     try {
-        const result = await pool.query('DELETE FROM crm_acquisti WHERE id = $1 RETURNING *', [acquistoId]);
+        await client.query('BEGIN');
+
+        const result = await client.query('SELECT * FROM crm_acquisti WHERE id = $1', [acquistoId]);
         if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Acquisto non trovato' });
         }
-        console.log(`[CRM] Acquisto eliminato: id ${acquistoId}, ${result.rows[0].prodotto}, fattura ${result.rows[0].numero_fattura}`);
-        res.json({ ok: true, eliminato: result.rows[0] });
+        const record = result.rows[0];
+
+        await logAndTrash(client, {
+            azione: 'delete_acquisto',
+            tabella: 'crm_acquisti',
+            recordId: acquistoId,
+            contattoId: record.contatto_id,
+            dati: record,
+            ip: req.ip
+        });
+
+        await client.query('DELETE FROM crm_acquisti WHERE id = $1', [acquistoId]);
+
+        await client.query('COMMIT');
+        console.log(`[CRM] Acquisto eliminato: id ${acquistoId}, ${record.prodotto}, fattura ${record.numero_fattura}`);
+        res.json({ ok: true, eliminato: record });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('[CRM Delete Acquisto]', err);
         res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
@@ -1998,19 +2107,40 @@ app.put('/api/crm/note/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// Note CRM: elimina nota
+// Note CRM: elimina nota (con soft-delete + audit)
 app.delete('/api/crm/note/:id', requireAdmin, async (req, res) => {
     const noteId = parseInt(req.params.id);
+    const client = await pool.connect();
     try {
-        const result = await pool.query('DELETE FROM crm_note WHERE id = $1 RETURNING *', [noteId]);
+        await client.query('BEGIN');
+
+        const result = await client.query('SELECT * FROM crm_note WHERE id = $1', [noteId]);
         if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Nota non trovata' });
         }
+        const record = result.rows[0];
+
+        await logAndTrash(client, {
+            azione: 'delete_nota',
+            tabella: 'crm_note',
+            recordId: noteId,
+            contattoId: record.contatto_id,
+            dati: record,
+            ip: req.ip
+        });
+
+        await client.query('DELETE FROM crm_note WHERE id = $1', [noteId]);
+
+        await client.query('COMMIT');
         console.log(`[CRM] Nota eliminata: id ${noteId}`);
-        res.json({ ok: true, eliminata: result.rows[0] });
+        res.json({ ok: true, eliminata: record });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('[CRM Delete Nota]', err);
         res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
@@ -2128,19 +2258,40 @@ app.put('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// Elimina opportunita
+// Elimina opportunita (con soft-delete + audit)
 app.delete('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
     const oppId = parseInt(req.params.id);
+    const client = await pool.connect();
     try {
-        const result = await pool.query('DELETE FROM crm_opportunita WHERE id = $1 RETURNING *', [oppId]);
+        await client.query('BEGIN');
+
+        const result = await client.query('SELECT * FROM crm_opportunita WHERE id = $1', [oppId]);
         if (result.rows.length === 0) {
+            await client.query('ROLLBACK');
             return res.status(404).json({ error: 'Opportunita non trovata' });
         }
+        const record = result.rows[0];
+
+        await logAndTrash(client, {
+            azione: 'delete_opportunita',
+            tabella: 'crm_opportunita',
+            recordId: oppId,
+            contattoId: record.contatto_id,
+            dati: record,
+            ip: req.ip
+        });
+
+        await client.query('DELETE FROM crm_opportunita WHERE id = $1', [oppId]);
+
+        await client.query('COMMIT');
         console.log(`[CRM] Opportunita eliminata: id ${oppId}`);
-        res.json({ ok: true, eliminata: result.rows[0] });
+        res.json({ ok: true, eliminata: record });
     } catch (err) {
+        await client.query('ROLLBACK');
         console.error('[CRM Delete Opportunita]', err);
         res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
@@ -2155,6 +2306,136 @@ app.put('/api/crm/contatti/:id/opportunita/vista-bulk', requireAdmin, async (req
         res.json({ ok: true });
     } catch (err) {
         console.error('[CRM Bulk Vista Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== CESTINO CRM (consulta e ripristina) ====================
+
+// Lista elementi nel cestino (filtrabili per tabella e contatto)
+app.get('/api/crm/cestino', requireAdmin, async (req, res) => {
+    const { tabella, contatto_id, limit: lim } = req.query;
+    try {
+        let query = 'SELECT * FROM crm_cestino WHERE 1=1';
+        const params = [];
+
+        if (tabella) {
+            params.push(tabella);
+            query += ` AND tabella_origine = $${params.length}`;
+        }
+        if (contatto_id) {
+            params.push(parseInt(contatto_id));
+            query += ` AND contatto_id = $${params.length}`;
+        }
+        query += ' ORDER BY cancellato_il DESC';
+        if (lim) {
+            params.push(parseInt(lim));
+            query += ` LIMIT $${params.length}`;
+        } else {
+            query += ' LIMIT 100';
+        }
+
+        const result = await pool.query(query, params);
+        res.json({ ok: true, totale: result.rows.length, cestino: result.rows });
+    } catch (err) {
+        console.error('[CRM Cestino]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Ripristina un elemento dal cestino
+app.post('/api/crm/cestino/:id/ripristina', requireAdmin, async (req, res) => {
+    const cestinoId = parseInt(req.params.id);
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Leggi il record dal cestino
+        const cestinoResult = await client.query('SELECT * FROM crm_cestino WHERE id = $1', [cestinoId]);
+        if (cestinoResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Elemento non trovato nel cestino' });
+        }
+
+        const item = cestinoResult.rows[0];
+        const dati = item.dati;
+        const tabella = item.tabella_origine;
+
+        // Ri-inserisci nella tabella originale
+        if (tabella === 'crm_prodotti') {
+            await client.query(
+                'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                [dati.contatto_id, dati.prodotto, dati.data_inserimento, dati.fonte]
+            );
+        } else if (tabella === 'crm_acquisti') {
+            await client.query(
+                'INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, quantita, descrizione, fonte) VALUES ($1, $2, $3, $4, $5, $6, $7)',
+                [dati.contatto_id, dati.prodotto, dati.numero_fattura, dati.data_fattura, dati.quantita || 1, dati.descrizione, dati.fonte]
+            );
+        } else if (tabella === 'crm_note') {
+            await client.query(
+                'INSERT INTO crm_note (contatto_id, testo, created_at) VALUES ($1, $2, $3)',
+                [dati.contatto_id, dati.testo, dati.created_at]
+            );
+        } else if (tabella === 'crm_opportunita') {
+            await client.query(
+                'INSERT INTO crm_opportunita (contatto_id, testo, data_scadenza, vista, created_at) VALUES ($1, $2, $3, $4, $5)',
+                [dati.contatto_id, dati.testo, dati.data_scadenza, dati.vista || false, dati.created_at]
+            );
+        } else {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: `Tabella non supportata: ${tabella}` });
+        }
+
+        // Rimuovi dal cestino
+        await client.query('DELETE FROM crm_cestino WHERE id = $1', [cestinoId]);
+
+        // Log nell'audit
+        await client.query(
+            `INSERT INTO crm_audit_log (azione, tabella, record_id, contatto_id, dettagli, ip)
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            ['ripristino', tabella, dati.id || item.record_id, item.contatto_id, JSON.stringify(dati), req.ip]
+        );
+
+        await client.query('COMMIT');
+        console.log(`[CRM Cestino] Ripristinato: ${tabella}, record_id ${item.record_id}, contatto ${item.contatto_id}`);
+        res.json({ ok: true, tabella, contatto_id: item.contatto_id, messaggio: 'Record ripristinato con successo' });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Cestino Ripristina]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
+    }
+});
+
+// Audit log CRM (consultazione)
+app.get('/api/crm/audit', requireAdmin, async (req, res) => {
+    const { azione, contatto_id, limit: lim } = req.query;
+    try {
+        let query = 'SELECT * FROM crm_audit_log WHERE 1=1';
+        const params = [];
+
+        if (azione) {
+            params.push(azione);
+            query += ` AND azione = $${params.length}`;
+        }
+        if (contatto_id) {
+            params.push(parseInt(contatto_id));
+            query += ` AND contatto_id = $${params.length}`;
+        }
+        query += ' ORDER BY created_at DESC';
+        if (lim) {
+            params.push(parseInt(lim));
+            query += ` LIMIT $${params.length}`;
+        } else {
+            query += ' LIMIT 100';
+        }
+
+        const result = await pool.query(query, params);
+        res.json({ ok: true, totale: result.rows.length, audit: result.rows });
+    } catch (err) {
+        console.error('[CRM Audit]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
