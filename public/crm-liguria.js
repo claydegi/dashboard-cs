@@ -9,6 +9,8 @@ const PRODOTTI_RICORRENTI = ['BLEXO', 'CEP', 'SUTURE'];
 const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 
 let allContatti = [];
+let accountContatti = [];
+let leadContatti = [];
 let acquistiCache = {};
 let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
 let acquistiLastDateMap = {};  // mappa contatto_prodotto -> ultima data_fattura (YYYY-MM-DD)
@@ -21,6 +23,7 @@ let searchTerm = '';
 let currentNoteContattoId = null;
 let recognition = null;
 let currentDettTarget = null; // 'note' o 'opp' - quale textarea sta usando la dettatura
+let promuoviContattoId = null; // ID contatto per popup promuovi
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -42,12 +45,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('crm-search').addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
         renderTableBody();
+        renderLeadTable();
     });
 
     document.getElementById('crm-sort').addEventListener('change', (e) => {
         currentSort = e.target.value;
         sortContatti();
         renderTableBody();
+        renderLeadTable();
     });
 
     // Chiudi popup conferma cliccando fuori
@@ -74,9 +79,21 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && document.getElementById('modal-nuovo-contatto').classList.contains('show')) {
-            chiudiModalNuovo();
+        if (e.key === 'Escape') {
+            if (document.getElementById('modal-promuovi').classList.contains('show')) {
+                chiudiModalPromuovi();
+            } else if (document.getElementById('modal-nuovo-contatto').classList.contains('show')) {
+                chiudiModalNuovo();
+            }
         }
+    });
+
+    // Promuovi lead: event listener
+    document.getElementById('modal-promuovi-close').addEventListener('click', chiudiModalPromuovi);
+    document.getElementById('btn-annulla-promuovi').addEventListener('click', chiudiModalPromuovi);
+    document.getElementById('btn-conferma-promuovi').addEventListener('click', confermaPromuovi);
+    document.getElementById('modal-promuovi').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-promuovi') chiudiModalPromuovi();
     });
 });
 
@@ -88,6 +105,12 @@ function renderTableHeader() {
     }
     html += '<th class="prod" title="Note">&#9998;</th></tr>';
     thead.innerHTML = html;
+
+    // Header tabella lead
+    const leadThead = document.getElementById('crm-lead-thead');
+    if (leadThead) {
+        leadThead.innerHTML = '<tr><th>#</th><th>Cognome</th><th>Nome</th><th>Email</th><th>Telefono</th><th>Cellulare</th><th>Citta</th><th>Azioni</th></tr>';
+    }
 }
 
 async function caricaDati() {
@@ -115,6 +138,9 @@ async function caricaDati() {
         document.getElementById('stat-contatti').textContent = stats.tot_contatti;
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
+        if (document.getElementById('stat-lead')) {
+            document.getElementById('stat-lead').textContent = stats.tot_lead || 0;
+        }
 
         // Salva mappa acquisti (contiene contatto_prodotto -> count) e ultima data
         if (allContatti.length > 0 && allContatti[0].acquisti_count) {
@@ -152,8 +178,17 @@ async function caricaDati() {
             c._displayNome = c.cognome ? (c.nome || '') : '';
         });
 
+        // Separa account e lead
+        accountContatti = allContatti.filter(c => c.tipo === 'account' || !c.tipo);
+        leadContatti = allContatti.filter(c => c.tipo === 'lead');
+
+        // Aggiorna conteggio lead nella sezione
+        const leadCountEl = document.getElementById('crm-lead-count');
+        if (leadCountEl) leadCountEl.textContent = `(${leadContatti.length})`;
+
         sortContatti();
         renderTableBody();
+        renderLeadTable();
     } catch (err) {
         console.error('Errore:', err);
         document.getElementById('crm-tbody').innerHTML =
@@ -162,7 +197,7 @@ async function caricaDati() {
 }
 
 function sortContatti() {
-    allContatti.sort((a, b) => {
+    const sortFn = (a, b) => {
         switch (currentSort) {
             case 'cognome':
                 return (a._displayCognome || '').localeCompare(b._displayCognome || '', 'it', {sensitivity: 'base'})
@@ -176,13 +211,18 @@ function sortContatti() {
             default:
                 return 0;
         }
-    });
+    };
+    accountContatti.sort(sortFn);
+    leadContatti.sort((a, b) =>
+        (a._displayCognome || '').localeCompare(b._displayCognome || '', 'it', {sensitivity: 'base'})
+        || (a._displayNome || '').localeCompare(b._displayNome || '', 'it', {sensitivity: 'base'})
+    );
 }
 
 function renderTableBody() {
     const tbody = document.getElementById('crm-tbody');
     const filtered = searchTerm
-        ? allContatti.filter(c => {
+        ? accountContatti.filter(c => {
             const s = searchTerm;
             return (c._displayCognome || '').toLowerCase().includes(s)
                 || (c._displayNome || '').toLowerCase().includes(s)
@@ -190,7 +230,7 @@ function renderTableBody() {
                 || (c.email || '').toLowerCase().includes(s)
                 || (c.nome_azienda || '').toLowerCase().includes(s);
         })
-        : allContatti;
+        : accountContatti;
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="25"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
@@ -286,6 +326,117 @@ function renderTableBody() {
 
     // Aggiorna header alert riordini
     aggiornaHeaderAlert();
+}
+
+// ==================== TABELLA LEAD ====================
+
+function renderLeadTable() {
+    const tbody = document.getElementById('crm-lead-tbody');
+    if (!tbody) return;
+
+    const filtered = searchTerm
+        ? leadContatti.filter(c => {
+            const s = searchTerm;
+            return (c._displayCognome || '').toLowerCase().includes(s)
+                || (c._displayNome || '').toLowerCase().includes(s)
+                || (c.citta || '').toLowerCase().includes(s)
+                || (c.email || '').toLowerCase().includes(s)
+                || (c.nome_azienda || '').toLowerCase().includes(s);
+        })
+        : leadContatti;
+
+    if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>Nessuna lead trovata</p></div></td></tr>';
+        return;
+    }
+
+    let html = '';
+    filtered.forEach((c, idx) => {
+        html += `<tr class="crm-row crm-lead-row" data-id="${c.id}">`;
+        html += `<td>${idx + 1}</td>`;
+        html += `<td>${esc(c._displayCognome)}</td>`;
+        html += `<td>${esc(c._displayNome)}</td>`;
+        html += `<td>${esc(c.email || '')}</td>`;
+        html += `<td>${esc(c.telefono || '')}</td>`;
+        html += `<td>${esc(c.cellulare || '')}</td>`;
+        html += `<td>${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
+        html += `<td><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
+        html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+}
+
+// ==================== PROMOZIONE LEAD -> ACCOUNT ====================
+
+function apriPromuovi(contattoId) {
+    const contatto = leadContatti.find(c => c.id === contattoId);
+    if (!contatto) return;
+
+    promuoviContattoId = contattoId;
+
+    // Info contatto
+    const info = document.getElementById('promuovi-info');
+    info.textContent = `${contatto._displayCognome} ${contatto._displayNome} - ${contatto.citta || ''}`.trim();
+
+    // Griglia checkbox prodotti
+    const grid = document.getElementById('promuovi-prodotti-grid');
+    grid.innerHTML = PRODOTTI.map(p =>
+        `<label class="crm-prodotto-check">
+            <input type="checkbox" value="${p}" ${p === 'MM' ? 'id="promuovi-mm"' : ''}>
+            <span>${p}</span>
+        </label>`
+    ).join('');
+
+    // Mostra modal
+    document.getElementById('modal-promuovi').classList.add('show');
+}
+
+function chiudiModalPromuovi() {
+    document.getElementById('modal-promuovi').classList.remove('show');
+    promuoviContattoId = null;
+}
+
+async function confermaPromuovi() {
+    if (!promuoviContattoId) return;
+
+    const grid = document.getElementById('promuovi-prodotti-grid');
+    const checked = [...grid.querySelectorAll('input[type="checkbox"]:checked')].map(cb => cb.value);
+
+    if (checked.length === 0) {
+        mostraToast('Seleziona almeno un prodotto', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-conferma-promuovi');
+    btn.disabled = true;
+    btn.textContent = 'Promozione in corso...';
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${promuoviContattoId}/promuovi?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ prodotti: checked })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Errore promozione');
+        }
+
+        const data = await res.json();
+        mostraToast(data.messaggio || 'Lead promossa ad account!', 'success');
+        chiudiModalPromuovi();
+
+        // Ricarica dati (la lead sparisce dalla tabella lead e appare in account)
+        await caricaDati();
+    } catch (err) {
+        console.error('Errore promozione:', err);
+        mostraToast(err.message || 'Errore durante la promozione', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Promuovi a Account';
+    }
 }
 
 // ==================== INLINE EDIT CAMPI CONTATTO ====================

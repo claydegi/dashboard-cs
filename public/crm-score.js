@@ -22,8 +22,17 @@ async function caricaScore() {
         const data = await res.json();
         const { contatti, linee_prodotto } = data;
 
-        renderHeader(linee_prodotto);
-        renderBody(contatti, linee_prodotto);
+        // Separa account e lead
+        const accountContatti = contatti.filter(c => c.tipo === 'account' || !c.tipo);
+        const leadContatti = contatti.filter(c => c.tipo === 'lead');
+
+        // Renderizza sezione Account
+        renderHeader('score-thead', linee_prodotto);
+        renderBody('score-tbody', accountContatti, linee_prodotto);
+
+        // Renderizza sezione Lead
+        renderHeader('score-lead-thead', linee_prodotto);
+        renderBody('score-lead-tbody', leadContatti, linee_prodotto);
     } catch (err) {
         console.error('Errore:', err);
         document.getElementById('score-tbody').innerHTML =
@@ -31,8 +40,9 @@ async function caricaScore() {
     }
 }
 
-function renderHeader(lineeProdotto) {
-    const thead = document.getElementById('score-thead');
+function renderHeader(theadId, lineeProdotto) {
+    const thead = document.getElementById(theadId);
+    if (!thead) return;
     let html = '<tr><th>#</th><th>Nome</th>';
     for (const lp of lineeProdotto) {
         html += `<th class="score-prod-col">${lp}</th>`;
@@ -41,8 +51,9 @@ function renderHeader(lineeProdotto) {
     thead.innerHTML = html;
 }
 
-function renderBody(contatti, lineeProdotto) {
-    const tbody = document.getElementById('score-tbody');
+function renderBody(tbodyId, contatti, lineeProdotto) {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
 
     if (contatti.length === 0) {
         const cols = 2 + lineeProdotto.length;

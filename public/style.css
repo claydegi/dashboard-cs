@@ -2161,3 +2161,104 @@ nav {
         padding: 20px;
     }
 }
+
+/* ==================== SEZIONE LEAD ==================== */
+
+.stat-card.stat-lead {
+    border-left: 4px solid #8e44ad;
+}
+.stat-card.stat-lead .stat-number {
+    color: #8e44ad;
+}
+
+.crm-lead-section {
+    margin-top: 40px;
+}
+
+.crm-lead-section-title {
+    font-size: 1.3rem;
+    color: #8e44ad;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid #8e44ad;
+}
+
+.crm-lead-count {
+    font-weight: 400;
+    font-size: 0.9rem;
+    color: #999;
+}
+
+#crm-lead-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+#crm-lead-table th {
+    background: #f3e8f9;
+    color: #6c3483;
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 2px solid #8e44ad;
+    font-weight: 600;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+    z-index: 5;
+}
+#crm-lead-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #eee;
+}
+.crm-lead-row:hover {
+    background: #f9f0ff;
+}
+
+/* Bottone Promuovi nella riga lead */
+.crm-btn-promuovi {
+    background: #8e44ad;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.crm-btn-promuovi:hover {
+    background: #6c3483;
+}
+
+/* Modal Promuovi */
+.crm-modal-promuovi .crm-promuovi-info {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 16px 0;
+    padding: 10px 14px;
+    background: #f3e8f9;
+    border-radius: 8px;
+    border-left: 4px solid #8e44ad;
+}
+
+/* Score page: titoli sezione Account/Lead */
+.score-section-title {
+    font-size: 1.2rem;
+    color: #2c3e50;
+    margin: 24px 0 4px 0;
+    padding-bottom: 6px;
+    border-bottom: 2px solid #2c3e50;
+}
+.score-section-title-lead {
+    color: #8e44ad;
+    border-bottom-color: #8e44ad;
+    margin-top: 40px;
+}
+.score-table-lead thead th {
+    background: #6c3483 !important;
+}

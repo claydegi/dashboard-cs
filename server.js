@@ -161,6 +161,17 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_opportunita_contatto ON crm_opportunita(contatto_id)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_opportunita_scadenza ON crm_opportunita(data_scadenza)`);
 
+        // Tabella log promozioni lead -> account (per sync bidirezionale con SQLite)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_promozioni_log (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                prodotti TEXT NOT NULL,
+                sincronizzata BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
         // Tabella score per linea prodotto (aggregato, aggiornato dal sync)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_score_prodotti (
@@ -1404,8 +1415,11 @@ app.get('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
 app.get('/api/crm/stats', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
     try {
-        const totContatti = await pool.query(
-            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1', [regione]
+        const totAccount = await pool.query(
+            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND (tipo = 'account' OR tipo IS NULL)", [regione]
+        );
+        const totLead = await pool.query(
+            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND tipo = 'lead'", [regione]
         );
         const conScore = await pool.query(
             'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score >= 40', [regione]
@@ -1416,7 +1430,8 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
              WHERE c.regione = $1 AND p.fonte LIKE 'odoo:%'`, [regione]
         );
         res.json({
-            tot_contatti: parseInt(totContatti.rows[0].totale),
+            tot_contatti: parseInt(totAccount.rows[0].totale),
+            tot_lead: parseInt(totLead.rows[0].totale),
             con_score: parseInt(conScore.rows[0].totale),
             nuovi_odoo: parseInt(nuoviOdoo.rows[0].totale)
         });
@@ -2472,7 +2487,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
     try {
         const result = await pool.query(`
-            SELECT c.id, c.cognome, c.nome, c.nome_azienda,
+            SELECT c.id, c.cognome, c.nome, c.nome_azienda, c.tipo,
                    sp.linea_prodotto, sp.score
             FROM crm_contatti c
             INNER JOIN crm_score_prodotti sp ON sp.contatto_id = c.id
@@ -2489,6 +2504,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                     cognome: r.cognome || '',
                     nome: r.nome || '',
                     nome_azienda: r.nome_azienda || '',
+                    tipo: r.tipo || 'account',
                     score_prodotti: {}
                 };
             }
@@ -2507,6 +2523,123 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
         res.json({ contatti, linee_prodotto: lineeProdotto });
     } catch (err) {
         console.error('[CRM Score]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Promuovi lead a account (con selezione prodotti)
+app.put('/api/crm/contatti/:id/promuovi', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { prodotti } = req.body; // array di prodotti selezionati
+
+    if (!prodotti || !Array.isArray(prodotti) || prodotti.length === 0) {
+        return res.status(400).json({ error: 'Seleziona almeno un prodotto' });
+    }
+
+    const prodottiValidi = prodotti.filter(p => CRM_PRODOTTI.includes(p));
+    if (prodottiValidi.length === 0) {
+        return res.status(400).json({ error: 'Nessun prodotto valido selezionato' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verifica che il contatto esista e sia una lead
+        const contatto = await client.query('SELECT id, tipo, cognome, nome FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        if (contatto.rows[0].tipo === 'account') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Il contatto e\' gia\' un account' });
+        }
+
+        // 1. Aggiorna tipo a 'account'
+        await client.query('UPDATE crm_contatti SET tipo = $1 WHERE id = $2', ['account', contattoId]);
+
+        // 2. Inserisci prodotti (con regola R2 per MM)
+        const prodSet = new Set(prodottiValidi);
+        if (!prodSet.has('MM')) {
+            const richiedeMM = [...prodSet].some(p => !CRM_INDIPENDENTI_DA_MM.includes(p));
+            if (richiedeMM) prodSet.add('MM');
+        }
+
+        const oggi = new Date().toISOString().split('T')[0];
+        const prodottiInseriti = [];
+        for (const p of prodSet) {
+            // Evita duplicati
+            const existing = await client.query(
+                'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+                [contattoId, p]
+            );
+            if (existing.rows.length === 0) {
+                await client.query(
+                    'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                    [contattoId, p, oggi, 'dashboard_promozione']
+                );
+                prodottiInseriti.push(p);
+            }
+        }
+
+        // 3. Log promozione per sync bidirezionale
+        await client.query(
+            'INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)',
+            [contattoId, prodottiInseriti.join(',')]
+        );
+
+        await client.query('COMMIT');
+
+        const c = contatto.rows[0];
+        console.log(`[CRM Promozione] Lead ${c.cognome} ${c.nome} (ID ${contattoId}) promosso ad account con prodotti: ${prodottiInseriti.join(', ')}`);
+        res.json({
+            ok: true,
+            prodotti_inseriti: prodottiInseriti,
+            messaggio: `Lead promossa ad account con ${prodottiInseriti.length} prodotti`
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Promozione]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
+    }
+});
+
+// Promozioni pendenti (per push_crm_dashboard.py sync bidirezionale)
+app.get('/api/crm/promozioni/pendenti', requireReportsKey, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT pl.id, pl.contatto_id, pl.prodotti, pl.created_at,
+                   c.cognome, c.nome
+            FROM crm_promozioni_log pl
+            JOIN crm_contatti c ON c.id = pl.contatto_id
+            WHERE pl.sincronizzata = false
+            ORDER BY pl.created_at
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM Promozioni Pendenti]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Segna promozioni come sincronizzate
+app.put('/api/crm/promozioni/sincronizzate', requireReportsKey, async (req, res) => {
+    const { ids } = req.body; // array di ID promozioni
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Nessun ID fornito' });
+    }
+    try {
+        await pool.query(
+            'UPDATE crm_promozioni_log SET sincronizzata = true WHERE id = ANY($1)',
+            [ids]
+        );
+        console.log(`[CRM Sync] ${ids.length} promozioni segnate come sincronizzate`);
+        res.json({ ok: true, aggiornate: ids.length });
+    } catch (err) {
+        console.error('[CRM Sync Promozioni]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
