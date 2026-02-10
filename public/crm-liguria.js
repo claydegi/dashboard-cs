@@ -194,7 +194,8 @@ function renderTableBody() {
                     const alert = haStorico && needsReorderAlert(c.id, p);
                     const cellContent = 'X';
                     if (alert) cls += ' crm-reorder-alert-cell';
-                    const mesiSoglia = (c.mesi_riordino || 2);
+                    const defaultMesiTooltip = (p === 'BLEXO') ? 4 : 2;
+                    const mesiSoglia = (c.mesi_riordino || defaultMesiTooltip);
                     const titleText = alert
                         ? `Ultimo acquisto oltre ${mesiSoglia} mesi fa - riordinare!`
                         : (haStorico ? 'Clicca per storico acquisti' : 'Nessun acquisto registrato - clicca per dettagli');
@@ -239,7 +240,8 @@ function needsReorderAlert(contattoId, prodotto) {
     if (!ultimaData) return false;  // nessuna data = nessun alert (X rossa non ha storico)
 
     const contatto = allContatti.find(c => c.id === contattoId);
-    const mesiSoglia = (contatto && contatto.mesi_riordino) || 2;
+    const defaultMesi = (prodotto === 'BLEXO') ? 4 : 2;
+    const mesiSoglia = (contatto && contatto.mesi_riordino) || defaultMesi;
 
     const lastDate = new Date(ultimaData);
     const oggi = new Date();
@@ -425,7 +427,8 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
 
     // Soglia riordino personalizzabile
     const contatto = allContatti.find(c => c.id === contattoId);
-    const mesiAttuali = (contatto && contatto.mesi_riordino) || 2;
+    const defaultMesiSel = (prodotto === 'BLEXO') ? 4 : 2;
+    const mesiAttuali = (contatto && contatto.mesi_riordino) || defaultMesiSel;
     contentHtml += `
         <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #ccc;">
             <strong style="font-size:12px;">Soglia alert riordino per questo contatto:</strong>
