@@ -138,20 +138,50 @@
         </div>
     </div>
 
-    <!-- Pannello Note (slide-in da destra) -->
+    <!-- Pannello Note + Opportunita (slide-in da destra) -->
     <div id="crm-notes-panel" class="crm-notes-panel">
         <div class="crm-notes-header">
             <h3 id="notes-panel-title">Note</h3>
             <span class="crm-notes-close" onclick="chiudiNote()">&times;</span>
         </div>
-        <div id="notes-lista" class="crm-notes-lista"></div>
-        <div class="crm-notes-input">
-            <textarea id="notes-textarea" placeholder="Scrivi una nota..." rows="3"></textarea>
-            <div class="crm-notes-actions">
-                <button class="crm-mic-btn" id="btn-mic" onclick="toggleDettatura()" title="Dettatura vocale">&#127908;</button>
-                <span id="mic-status" class="crm-mic-status"></span>
-                <div style="flex:1"></div>
-                <button class="crm-btn-si" onclick="salvaNote()">Salva nota</button>
+
+        <div class="crm-panel-body">
+            <!-- SEZIONE 1: Note generiche -->
+            <div class="crm-panel-section">
+                <div class="crm-panel-section-header">
+                    <h4>&#128221; Note</h4>
+                </div>
+                <div id="notes-lista" class="crm-notes-lista"></div>
+                <div class="crm-notes-input">
+                    <textarea id="notes-textarea" placeholder="Scrivi una nota..." rows="3"></textarea>
+                    <div class="crm-notes-actions">
+                        <button class="crm-mic-btn" id="btn-mic" onclick="toggleDettatura()" title="Dettatura vocale">&#127908;</button>
+                        <span id="mic-status" class="crm-mic-status"></span>
+                        <div style="flex:1"></div>
+                        <button class="crm-btn-si" onclick="salvaNote()">Salva nota</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 2: Opportunita di vendita -->
+            <div class="crm-panel-section crm-panel-section-opp">
+                <div class="crm-panel-section-header crm-opp-section-header">
+                    <h4>&#128176; Opportunita di vendita</h4>
+                </div>
+                <div id="opp-lista" class="crm-notes-lista"></div>
+                <div class="crm-opp-input">
+                    <textarea id="opp-textarea" placeholder="Descrivi l'opportunita..." rows="3"></textarea>
+                    <div class="crm-opp-date-row">
+                        <label for="opp-data-scadenza">Follow-up entro:</label>
+                        <input type="date" id="opp-data-scadenza" class="crm-date-picker">
+                    </div>
+                    <div class="crm-notes-actions">
+                        <button class="crm-mic-btn" id="btn-mic-opp" onclick="toggleDettatura('opp')" title="Dettatura vocale">&#127908;</button>
+                        <span id="mic-status-opp" class="crm-mic-status"></span>
+                        <div style="flex:1"></div>
+                        <button class="crm-btn-si crm-btn-opp" onclick="salvaOpportunita()">Salva opportunita</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     caricaReports();
     caricaFatture();
+    caricaAlertOpportunita();
 });
 
 async function caricaReports() {
@@ -63,6 +64,24 @@ async function caricaReports() {
 
 function apriReport(tipo) {
     window.location.href = `${API_URL}/reports-antonia/${AGENTE}/${tipo}?key=${ADMIN_KEY}`;
+}
+
+async function caricaAlertOpportunita() {
+    const alertDiv = document.getElementById('crm-opp-alert');
+    if (!alertDiv) return;
+
+    try {
+        const res = await fetch(`${API_URL}/crm/opportunita/scadute?regione=LIGURIA&key=${ADMIN_KEY}`);
+        if (!res.ok) return;
+        const data = await res.json();
+
+        const totale = data.reduce((sum, r) => sum + parseInt(r.totale), 0);
+        if (totale > 0) {
+            alertDiv.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale} opportunita di vendita scadute - LIGURIA</span>`;
+        }
+    } catch (e) {
+        // Silenzioso - e' solo una notifica
+    }
 }
 
 async function caricaFatture() {

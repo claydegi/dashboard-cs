@@ -13,11 +13,14 @@ let acquistiCache = {};
 let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
 let acquistiLastDateMap = {};  // mappa contatto_prodotto -> ultima data_fattura (YYYY-MM-DD)
 let noteCountMap = {};      // mappa contatto_id -> num note
+let oppCountMap = {};       // mappa contatto_id -> num opportunita
+let oppScaduteMap = {};     // mappa contatto_id -> num opportunita scadute non viste
 let scoreHotMap = {};       // mappa contatto_id -> {linea_prodotto: score} per score >= 40
 let currentSort = 'cognome';
 let searchTerm = '';
 let currentNoteContattoId = null;
 let recognition = null;
+let currentDettTarget = null; // 'note' o 'opp' - quale textarea sta usando la dettatura
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -100,9 +103,12 @@ async function caricaDati() {
         allContatti = await contattiRes.json();
         const stats = await statsRes.json();
 
-        // Note count
+        // Note + Opportunita count
         if (noteRes.ok) {
-            noteCountMap = await noteRes.json();
+            const bulkData = await noteRes.json();
+            noteCountMap = bulkData.note || {};
+            oppCountMap = bulkData.opportunita || {};
+            oppScaduteMap = bulkData.opportunita_scadute || {};
         }
 
         // Stats
@@ -252,10 +258,25 @@ function renderTableBody() {
             }
         }
 
-        // Note
+        // Note + Opportunita icon
         const numNote = noteCountMap[c.id] || 0;
-        const noteClass = numNote > 0 ? 'crm-note-icon crm-note-has' : 'crm-note-icon';
-        const noteTitle = numNote > 0 ? `${numNote} nota/e - clicca per vedere` : 'Aggiungi nota';
+        const numOpp = oppCountMap[c.id] || 0;
+        const numOppScadute = oppScaduteMap[c.id] || 0;
+
+        let noteClass = 'crm-note-icon';
+        let noteTitle = 'Aggiungi nota o opportunita';
+
+        if (numOppScadute > 0) {
+            noteClass = 'crm-note-icon crm-note-opp-scaduta';
+            noteTitle = `${numOppScadute} opportunita scaduta/e! Clicca per vedere`;
+        } else if (numNote > 0 || numOpp > 0) {
+            noteClass = 'crm-note-icon crm-note-has';
+            const parts = [];
+            if (numNote > 0) parts.push(`${numNote} nota/e`);
+            if (numOpp > 0) parts.push(`${numOpp} opportunita`);
+            noteTitle = parts.join(', ') + ' - clicca per vedere';
+        }
+
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
         html += '</tr>';
@@ -739,28 +760,51 @@ async function apriNote(contattoId, cognome, nome) {
     currentNoteContattoId = contattoId;
     const panel = document.getElementById('crm-notes-panel');
     const title = document.getElementById('notes-panel-title');
-    const lista = document.getElementById('notes-lista');
-    const textarea = document.getElementById('notes-textarea');
+    const noteLista = document.getElementById('notes-lista');
+    const oppLista = document.getElementById('opp-lista');
+    const notesTextarea = document.getElementById('notes-textarea');
+    const oppTextarea = document.getElementById('opp-textarea');
+    const oppDate = document.getElementById('opp-data-scadenza');
 
-    title.textContent = `Note: ${cognome}${nome ? ' ' + nome : ''}`;
-    textarea.value = '';
-    lista.innerHTML = '<p style="color:#999;font-size:12px;">Caricamento...</p>';
+    title.textContent = `${cognome}${nome ? ' ' + nome : ''}`;
+    notesTextarea.value = '';
+    oppTextarea.value = '';
+    oppDate.value = '';
+    noteLista.innerHTML = '<p class="crm-notes-empty">Caricamento...</p>';
+    oppLista.innerHTML = '<p class="crm-notes-empty">Caricamento...</p>';
 
     panel.classList.add('open');
 
-    // Carica note
+    // Carica note e opportunita in parallelo
     try {
-        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/note?key=${ADMIN_KEY}`);
-        if (!res.ok) throw new Error('Errore');
-        const note = await res.json();
+        const [noteRes, oppRes] = await Promise.all([
+            fetch(`${API_URL}/crm/contatti/${contattoId}/note?key=${ADMIN_KEY}`),
+            fetch(`${API_URL}/crm/contatti/${contattoId}/opportunita?key=${ADMIN_KEY}`)
+        ]);
 
-        if (note.length === 0) {
-            lista.innerHTML = '<p style="color:#999;font-size:12px;">Nessuna nota ancora.</p>';
-        } else {
-            lista.innerHTML = renderNoteList(note);
+        if (noteRes.ok) {
+            const note = await noteRes.json();
+            noteLista.innerHTML = note.length > 0 ? renderNoteList(note) : '<p class="crm-notes-empty">Nessuna nota ancora.</p>';
+        }
+
+        if (oppRes.ok) {
+            const opps = await oppRes.json();
+            oppLista.innerHTML = opps.length > 0 ? renderOppList(opps) : '<p class="crm-notes-empty">Nessuna opportunita ancora.</p>';
         }
     } catch (err) {
-        lista.innerHTML = '<p style="color:#e74c3c;font-size:12px;">Errore caricamento note.</p>';
+        noteLista.innerHTML = '<p style="color:#e74c3c;font-size:12px;">Errore caricamento.</p>';
+        oppLista.innerHTML = '<p style="color:#e74c3c;font-size:12px;">Errore caricamento.</p>';
+    }
+
+    // Segna come viste le opportunita scadute (ferma il lampeggio)
+    if (oppScaduteMap[contattoId] && oppScaduteMap[contattoId] > 0) {
+        try {
+            await fetch(`${API_URL}/crm/contatti/${contattoId}/opportunita/vista-bulk?key=${ADMIN_KEY}`, {
+                method: 'PUT'
+            });
+            delete oppScaduteMap[contattoId];
+            renderTableBody();
+        } catch (e) { /* ignora */ }
     }
 }
 
@@ -779,6 +823,39 @@ function renderNoteList(note) {
                 </span>
             </div>
             <p class="crm-nota-testo" id="nota-testo-${n.id}">${esc(n.testo)}</p>
+        </div>`;
+    }
+    return html;
+}
+
+function renderOppList(opps) {
+    let html = '';
+    const oggi = new Date();
+    oggi.setHours(0, 0, 0, 0);
+    for (const o of opps) {
+        const dataFmt = o.created_at ? new Date(o.created_at).toLocaleString('it-IT', {
+            day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+        }) : '';
+        const scadenza = o.data_scadenza ? new Date(o.data_scadenza + 'T00:00:00') : null;
+        const scadenzaFmt = scadenza ? scadenza.toLocaleDateString('it-IT', {
+            day: '2-digit', month: '2-digit', year: 'numeric'
+        }) : '';
+        const isScaduta = scadenza && scadenza <= oggi;
+        const scadClass = isScaduta ? 'crm-opp-scaduta' : 'crm-opp-futura';
+
+        html += `<div class="crm-opp-entry ${scadClass}" id="opp-${o.id}">
+            <div class="crm-nota-header">
+                <span class="crm-nota-data">${dataFmt}</span>
+                <span class="crm-nota-actions">
+                    <span class="crm-nota-btn" title="Modifica" onclick="modificaOpp(${o.id})">&#9998;</span>
+                    <span class="crm-nota-btn crm-nota-btn-del" title="Elimina" onclick="eliminaOpp(${o.id})">&times;</span>
+                </span>
+            </div>
+            <div class="crm-opp-scadenza ${scadClass}">
+                <span class="crm-opp-scadenza-label">${isScaduta ? '&#9888; Scaduta' : '&#128197; Follow-up'}:</span>
+                <span class="crm-opp-scadenza-date">${scadenzaFmt}</span>
+            </div>
+            <p class="crm-nota-testo" id="opp-testo-${o.id}">${esc(o.testo)}</p>
         </div>`;
     }
     return html;
@@ -873,6 +950,135 @@ function chiudiNote() {
     stopDettatura();
 }
 
+// ==================== OPPORTUNITA DI VENDITA ====================
+
+async function salvaOpportunita() {
+    if (!currentNoteContattoId) return;
+    const textarea = document.getElementById('opp-textarea');
+    const dateInput = document.getElementById('opp-data-scadenza');
+    const testo = textarea.value.trim();
+    const data_scadenza = dateInput.value;
+
+    if (!testo) {
+        mostraToast('Scrivi qualcosa prima di salvare', 'error');
+        return;
+    }
+    if (!data_scadenza) {
+        mostraToast('Seleziona una data di follow-up', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${currentNoteContattoId}/opportunita?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ testo, data_scadenza })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+
+        // Aggiorna conteggio locale
+        oppCountMap[currentNoteContattoId] = (oppCountMap[currentNoteContattoId] || 0) + 1;
+        renderTableBody();
+
+        // Ricarica lista opportunita
+        const oppLista = document.getElementById('opp-lista');
+        try {
+            const res2 = await fetch(`${API_URL}/crm/contatti/${currentNoteContattoId}/opportunita?key=${ADMIN_KEY}`);
+            const oppAggiornate = await res2.json();
+            oppLista.innerHTML = oppAggiornate.length > 0 ? renderOppList(oppAggiornate) : '<p class="crm-notes-empty">Nessuna opportunita ancora.</p>';
+        } catch (e) { }
+
+        textarea.value = '';
+        dateInput.value = '';
+        mostraToast('Opportunita salvata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+async function eliminaOpp(oppId) {
+    if (!confirm('Eliminare questa opportunita?')) return;
+    try {
+        const res = await fetch(`${API_URL}/crm/opportunita/${oppId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        const entry = document.getElementById(`opp-${oppId}`);
+        if (entry) entry.remove();
+        if (currentNoteContattoId && oppCountMap[currentNoteContattoId]) {
+            oppCountMap[currentNoteContattoId]--;
+            renderTableBody();
+        }
+        const lista = document.getElementById('opp-lista');
+        if (!lista.querySelector('.crm-opp-entry')) {
+            lista.innerHTML = '<p class="crm-notes-empty">Nessuna opportunita ancora.</p>';
+        }
+        mostraToast('Opportunita eliminata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
+function modificaOpp(oppId) {
+    const testoEl = document.getElementById(`opp-testo-${oppId}`);
+    if (!testoEl) return;
+    const testoAttuale = testoEl.textContent;
+    const entry = document.getElementById(`opp-${oppId}`);
+    testoEl.style.display = 'none';
+    const editDiv = document.createElement('div');
+    editDiv.className = 'crm-nota-edit';
+    editDiv.innerHTML = `
+        <textarea class="crm-nota-edit-textarea" id="opp-edit-${oppId}" rows="3">${esc(testoAttuale)}</textarea>
+        <div class="crm-nota-edit-actions">
+            <button class="crm-btn-si crm-btn-opp" onclick="salvaModificaOpp(${oppId})">Salva</button>
+            <button class="crm-btn-no" onclick="annullaModificaOpp(${oppId})">Annulla</button>
+        </div>`;
+    entry.appendChild(editDiv);
+    document.getElementById(`opp-edit-${oppId}`).focus();
+}
+
+function annullaModificaOpp(oppId) {
+    const entry = document.getElementById(`opp-${oppId}`);
+    const editDiv = entry.querySelector('.crm-nota-edit');
+    if (editDiv) editDiv.remove();
+    const testoEl = document.getElementById(`opp-testo-${oppId}`);
+    if (testoEl) testoEl.style.display = '';
+}
+
+async function salvaModificaOpp(oppId) {
+    const textarea = document.getElementById(`opp-edit-${oppId}`);
+    if (!textarea) return;
+    const nuovoTesto = textarea.value.trim();
+    if (!nuovoTesto) {
+        mostraToast('Il testo non puo essere vuoto', 'error');
+        return;
+    }
+    try {
+        const res = await fetch(`${API_URL}/crm/opportunita/${oppId}?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ testo: nuovoTesto })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        const testoEl = document.getElementById(`opp-testo-${oppId}`);
+        testoEl.textContent = nuovoTesto;
+        annullaModificaOpp(oppId);
+        mostraToast('Opportunita modificata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
+}
+
 async function salvaNote() {
     if (!currentNoteContattoId) return;
     const textarea = document.getElementById('notes-textarea');
@@ -915,7 +1121,8 @@ async function salvaNote() {
 
 // ==================== TRASCRIZIONE AUDIO ====================
 
-function toggleDettatura() {
+function toggleDettatura(target) {
+    // target: undefined/'note' = textarea note, 'opp' = textarea opportunita
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         mostraToast('Browser non supportato. Usa Chrome o Edge.', 'error');
@@ -927,14 +1134,17 @@ function toggleDettatura() {
         return;
     }
 
+    const isOpp = target === 'opp';
+    currentDettTarget = isOpp ? 'opp' : 'note';
+
     recognition = new SpeechRecognition();
     recognition.lang = 'it-IT';
     recognition.continuous = true;
     recognition.interimResults = true;
 
-    const micBtn = document.getElementById('btn-mic');
-    const micStatus = document.getElementById('mic-status');
-    const textarea = document.getElementById('notes-textarea');
+    const micBtn = document.getElementById(isOpp ? 'btn-mic-opp' : 'btn-mic');
+    const micStatus = document.getElementById(isOpp ? 'mic-status-opp' : 'mic-status');
+    const textarea = document.getElementById(isOpp ? 'opp-textarea' : 'notes-textarea');
 
     let finalTranscript = textarea.value;
 
@@ -985,10 +1195,16 @@ function stopDettatura() {
         recognition = null; // Imposta a null PRIMA di stop per evitare auto-restart
         try { r.stop(); } catch (e) {}
     }
+    // Resetta entrambi i microfoni
     const micBtn = document.getElementById('btn-mic');
     const micStatus = document.getElementById('mic-status');
+    const micBtnOpp = document.getElementById('btn-mic-opp');
+    const micStatusOpp = document.getElementById('mic-status-opp');
     if (micBtn) micBtn.classList.remove('recording');
     if (micStatus) micStatus.textContent = '';
+    if (micBtnOpp) micBtnOpp.classList.remove('recording');
+    if (micStatusOpp) micStatusOpp.textContent = '';
+    currentDettTarget = null;
 }
 
 // ==================== NUOVO CONTATTO ====================

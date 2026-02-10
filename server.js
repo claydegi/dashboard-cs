@@ -147,6 +147,20 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_note_contatto ON crm_note(contatto_id)`);
 
+        // Tabella opportunita di vendita (follow-up con data scadenza)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_opportunita (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                testo TEXT NOT NULL,
+                data_scadenza DATE NOT NULL,
+                vista BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_opportunita_contatto ON crm_opportunita(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_opportunita_scadenza ON crm_opportunita(data_scadenza)`);
+
         // Tabella score per linea prodotto (aggregato, aggiornato dal sync)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_score_prodotti (
@@ -1630,6 +1644,7 @@ app.post('/api/crm/contatti/reassign-ids', requireReportsKey, async (req, res) =
             await client.query('UPDATE crm_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_acquisti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_note SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+            await client.query('UPDATE crm_opportunita SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_score_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
 
             // Sostituisci il contatto (DELETE vecchio + INSERT con nuovo ID)
@@ -1999,11 +2014,12 @@ app.delete('/api/crm/note/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// Note CRM: conteggio bulk per regione (per caricamento iniziale)
+// Note + Opportunita CRM: conteggio bulk per regione (per caricamento iniziale)
 app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
     try {
-        const result = await pool.query(`
+        // Note count
+        const noteResult = await pool.query(`
             SELECT n.contatto_id, COUNT(*) as num_note
             FROM crm_note n
             JOIN crm_contatti c ON n.contatto_id = c.id
@@ -2011,12 +2027,159 @@ app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
             GROUP BY n.contatto_id
         `, [regione]);
         const noteMap = {};
-        for (const r of result.rows) {
+        for (const r of noteResult.rows) {
             noteMap[r.contatto_id] = parseInt(r.num_note);
         }
-        res.json(noteMap);
+
+        // Opportunity counts + due status
+        const oppResult = await pool.query(`
+            SELECT o.contatto_id,
+                   COUNT(*) as num_opp,
+                   COUNT(*) FILTER (WHERE o.data_scadenza <= CURRENT_DATE AND o.vista = false) as num_scadute_non_viste
+            FROM crm_opportunita o
+            JOIN crm_contatti c ON o.contatto_id = c.id
+            WHERE c.regione = $1
+            GROUP BY o.contatto_id
+        `, [regione]);
+        const oppMap = {};
+        const oppScaduteMap = {};
+        for (const r of oppResult.rows) {
+            oppMap[r.contatto_id] = parseInt(r.num_opp);
+            if (parseInt(r.num_scadute_non_viste) > 0) {
+                oppScaduteMap[r.contatto_id] = parseInt(r.num_scadute_non_viste);
+            }
+        }
+
+        res.json({ note: noteMap, opportunita: oppMap, opportunita_scadute: oppScaduteMap });
     } catch (err) {
-        console.error('[CRM Note Bulk]', err);
+        console.error('[CRM Note/Opp Bulk]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== API CRM OPPORTUNITA ====================
+
+// Lista opportunita per contatto
+app.get('/api/crm/contatti/:id/opportunita', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            'SELECT * FROM crm_opportunita WHERE contatto_id = $1 ORDER BY data_scadenza ASC, created_at DESC',
+            [contattoId]
+        );
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Crea opportunita
+app.post('/api/crm/contatti/:id/opportunita', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { testo, data_scadenza } = req.body;
+
+    if (!testo || !testo.trim()) {
+        return res.status(400).json({ error: 'Testo obbligatorio' });
+    }
+    if (!data_scadenza) {
+        return res.status(400).json({ error: 'Data scadenza obbligatoria' });
+    }
+
+    try {
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        const result = await pool.query(
+            'INSERT INTO crm_opportunita (contatto_id, testo, data_scadenza) VALUES ($1, $2, $3) RETURNING *',
+            [contattoId, testo.trim(), data_scadenza]
+        );
+
+        console.log(`[CRM] Opportunita aggiunta per contatto ${contattoId}, scadenza ${data_scadenza}`);
+        res.json({ ok: true, opportunita: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Add Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Modifica opportunita
+app.put('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
+    const oppId = parseInt(req.params.id);
+    const { testo, data_scadenza } = req.body;
+    if (!testo || !testo.trim()) {
+        return res.status(400).json({ error: 'Testo obbligatorio' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE crm_opportunita SET testo = $1, data_scadenza = COALESCE($2, data_scadenza) WHERE id = $3 RETURNING *',
+            [testo.trim(), data_scadenza || null, oppId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Opportunita non trovata' });
+        }
+        console.log(`[CRM] Opportunita modificata: id ${oppId}`);
+        res.json({ ok: true, opportunita: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Edit Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Elimina opportunita
+app.delete('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
+    const oppId = parseInt(req.params.id);
+    try {
+        const result = await pool.query('DELETE FROM crm_opportunita WHERE id = $1 RETURNING *', [oppId]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Opportunita non trovata' });
+        }
+        console.log(`[CRM] Opportunita eliminata: id ${oppId}`);
+        res.json({ ok: true, eliminata: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Delete Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Segna come viste le opportunita scadute di un contatto (quando si apre il pannello)
+app.put('/api/crm/contatti/:id/opportunita/vista-bulk', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    try {
+        await pool.query(
+            'UPDATE crm_opportunita SET vista = true WHERE contatto_id = $1 AND data_scadenza <= CURRENT_DATE AND vista = false',
+            [contattoId]
+        );
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('[CRM Bulk Vista Opportunita]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Conteggio opportunita scadute per dashboard (notifica esterna)
+app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
+    const regione = (req.query.regione || '').toUpperCase();
+    try {
+        let query = `
+            SELECT COUNT(*) as totale, c.regione
+            FROM crm_opportunita o
+            JOIN crm_contatti c ON o.contatto_id = c.id
+            WHERE o.data_scadenza <= CURRENT_DATE AND o.vista = false
+        `;
+        const params = [];
+        if (regione) {
+            query += ' AND c.regione = $1';
+            params.push(regione);
+        }
+        query += ' GROUP BY c.regione';
+
+        const result = await pool.query(query, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM Opp Scadute]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

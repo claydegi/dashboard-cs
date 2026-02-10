@@ -1615,6 +1615,163 @@ nav {
     font-weight: 600;
 }
 
+/* ==================== OPPORTUNITA DI VENDITA ==================== */
+
+/* Icona lampeggiante rossa per opportunita scadute */
+.crm-note-opp-scaduta {
+    opacity: 1 !important;
+    color: #e74c3c !important;
+    animation: blink-opp 1s ease-in-out infinite;
+}
+@keyframes blink-opp {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.15; }
+}
+
+/* Pannello body scrollabile con 2 sezioni */
+.crm-panel-body {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.crm-panel-section {
+    display: flex;
+    flex-direction: column;
+}
+
+.crm-panel-section-header {
+    padding: 10px 16px 6px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #ecf0f1;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+}
+.crm-panel-section-header h4 {
+    margin: 0;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7f8c8d;
+}
+
+/* Sezione opportunita: header arancione + separatore */
+.crm-panel-section-opp {
+    border-top: 3px solid #e67e22;
+}
+.crm-opp-section-header {
+    background: #fff8f0;
+    border-bottom: 2px solid #e67e22;
+}
+.crm-opp-section-header h4 {
+    color: #e67e22 !important;
+}
+
+/* Card opportunita */
+.crm-opp-entry {
+    padding: 10px 12px;
+    border-radius: 8px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.5;
+    border-left: 3px solid #e67e22;
+    background: #fffdf8;
+}
+.crm-opp-entry.crm-opp-scaduta {
+    border-left-color: #e74c3c;
+    background: #fff5f5;
+}
+.crm-opp-entry.crm-opp-futura {
+    border-left-color: #27ae60;
+    background: #f5fff8;
+}
+
+.crm-opp-scadenza {
+    font-size: 11px;
+    font-weight: 600;
+    margin-bottom: 4px;
+}
+.crm-opp-scadenza.crm-opp-scaduta {
+    color: #e74c3c;
+}
+.crm-opp-scadenza.crm-opp-futura {
+    color: #27ae60;
+}
+.crm-opp-scadenza-label {
+    margin-right: 4px;
+}
+
+/* Input opportunita */
+.crm-opp-input {
+    border-top: 1px solid #ecf0f1;
+    padding: 12px 16px;
+}
+.crm-opp-input textarea {
+    width: 100%;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 13px;
+    resize: vertical;
+    font-family: inherit;
+    box-sizing: border-box;
+}
+.crm-opp-input textarea:focus {
+    border-color: #e67e22;
+    outline: none;
+}
+.crm-opp-date-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 8px 0;
+}
+.crm-opp-date-row label {
+    font-size: 12px;
+    color: #7f8c8d;
+    white-space: nowrap;
+}
+.crm-date-picker {
+    padding: 6px 10px;
+    border: 1px solid #bdc3c7;
+    border-radius: 6px;
+    font-size: 13px;
+    font-family: inherit;
+}
+.crm-date-picker:focus {
+    border-color: #e67e22;
+    outline: none;
+}
+.crm-btn-opp {
+    background: #e67e22 !important;
+}
+.crm-btn-opp:hover {
+    background: #d35400 !important;
+}
+
+/* Testo empty state nelle sezioni */
+.crm-notes-empty {
+    color: #999;
+    font-size: 12px;
+    margin: 0;
+    padding: 4px 0;
+}
+
+/* Alert opportunita sulla dashboard */
+.crm-opp-alert-badge {
+    display: inline-block;
+    background: #e74c3c;
+    color: white;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 10px;
+    border-radius: 12px;
+    margin-top: 8px;
+    animation: blink-opp 1.2s ease-in-out infinite;
+}
+
 /* Toast */
 #toast-container {
     position: fixed;
