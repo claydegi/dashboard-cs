@@ -44,28 +44,14 @@
             </table>
         </section>
 
-        <section class="crm-legenda">
-            <h3>Legenda</h3>
-            <p><span style="display:inline-block;background:#27ae60;color:white;padding:1px 6px;border-radius:3px;font-weight:bold;">X</span> = Prodotto aggiunto da Odoo sync</p>
-            <p><span style="color:#27ae60;font-weight:bold;">X</span> = Prodotto presente (da migrazione Excel/Fatture)</p>
-            <p><span style="color:#2980b9;font-weight:bold;">X</span> = Prodotto aggiunto manualmente dalla dashboard</p>
-            <p><span style="display:inline-block;background:#eaf7ef;border-bottom:3px solid #27ae60;padding:1px 6px;color:#27ae60;font-weight:bold;cursor:pointer;">X</span> = Prodotto ricorrente con storico acquisti (clicca per dettagli)</p>
-            <p><span style="color:#e74c3c;font-weight:bold;cursor:pointer;">X</span> = Prodotto ricorrente <strong>senza storico fatture</strong> (da verificare)</p>
-            <p><span style="display:inline-block;background:#fff0e0;border-left:4px solid #e74c3c;border-bottom:3px solid #e67e22;padding:1px 6px;color:#e67e22;font-weight:bold;">X</span> = Ultimo acquisto oltre soglia riordino (default 2 mesi, personalizzabile per contatto)</p>
-            <p><span style="color:#ccc;">&mdash;</span> = Dato mancante</p>
-            <p style="margin-top:10px;"><strong>Interazioni:</strong></p>
-            <ul>
-                <li><strong>Click</strong> su cella vuota &rarr; aggiunge prodotto (con conferma)</li>
-                <li><strong>Doppio click</strong> su X &rarr; rimuove prodotto (con conferma)</li>
-                <li><strong>Click</strong> su X ricorrente (BLEXO/CEP/SUTURE) &rarr; storico acquisti + form inserimento</li>
-                <li><strong>&#9998;</strong> &rarr; apre pannello note (testo o dettatura vocale)</li>
-            </ul>
-            <p style="margin-top:10px;"><strong>Regole applicate:</strong></p>
-            <ul>
-                <li><strong>R1</strong> &mdash; Telefoni separati: fisso (0...) in Telefono, cellulare (3...) in Cellulare</li>
-                <li><strong>R2</strong> &mdash; Se possiede accessori MM, MM obbligatorio (automatico)</li>
-                <li><strong>R3</strong> &mdash; Citta sempre in MAIUSCOLO</li>
-            </ul>
+        <section class="crm-legenda crm-legenda-compact">
+            <span class="crm-leg-item"><span style="display:inline-block;background:#27ae60;color:white;padding:0 4px;border-radius:2px;font-weight:bold;font-size:11px;">X</span> Odoo</span>
+            <span class="crm-leg-item"><span style="color:#27ae60;font-weight:bold;">X</span> Excel/Fatture</span>
+            <span class="crm-leg-item"><span style="color:#2980b9;font-weight:bold;">X</span> Manuale</span>
+            <span class="crm-leg-item"><span style="display:inline-block;background:#eaf7ef;border-bottom:2px solid #27ae60;padding:0 4px;color:#27ae60;font-weight:bold;">X</span> Ricorrente</span>
+            <span class="crm-leg-item"><span style="color:#e74c3c;font-weight:bold;">X</span> No storico</span>
+            <span class="crm-leg-item"><span style="display:inline-block;background:#fff0e0;border-left:3px solid #e74c3c;padding:0 4px;color:#e67e22;font-weight:bold;">X</span> Alert riordino</span>
+            <span class="crm-leg-item"><span style="color:#ccc;">&mdash;</span> Mancante</span>
         </section>
 
         <!-- Sezione Lead -->

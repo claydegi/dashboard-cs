@@ -1310,6 +1310,24 @@ nav {
     margin-bottom: 4px;
 }
 
+/* Legenda compatta inline */
+.crm-legenda-compact {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px 20px;
+    padding: 8px 16px;
+    margin-bottom: 16px;
+    align-items: center;
+}
+.crm-leg-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #555;
+    white-space: nowrap;
+}
+
 /* Card CRM in dashboard */
 .report-card-crm { border-left-color: #3498db; }
 .report-card-crm .report-card-tipo { color: #3498db; }
