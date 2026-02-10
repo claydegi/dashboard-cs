@@ -162,15 +162,10 @@ function renderTableBody() {
         html += `<td>${rowNum}</td>`;
         html += `<td>${esc(c._displayCognome)}</td>`;
         html += `<td>${esc(c._displayNome)}</td>`;
-        html += `<td>${esc(c.email || '')}</td>`;
-        html += `<td>${esc(c.telefono || '')}</td>`;
-        html += `<td>${esc(c.cellulare || '')}</td>`;
-
-        if (c.citta) {
-            html += `<td>${esc(c.citta)}</td>`;
-        } else {
-            html += '<td class="crm-empty">&mdash;</td>';
-        }
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
+        html += `<td class="crm-editable${c.citta ? '' : ' crm-empty'}" onclick="inlineEdit(${c.id}, 'citta', this)" title="Clicca per modificare">${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
 
         // Prodotti
         for (const p of PRODOTTI) {
@@ -233,6 +228,85 @@ function renderTableBody() {
 
     // Aggiorna header alert riordini
     aggiornaHeaderAlert();
+}
+
+// ==================== INLINE EDIT CAMPI CONTATTO ====================
+
+function inlineEdit(contattoId, campo, tdEl) {
+    // Evita doppio click se già in editing
+    if (tdEl.querySelector('input')) return;
+
+    const contatto = allContatti.find(c => c.id === contattoId);
+    if (!contatto) return;
+
+    const valoreAttuale = contatto[campo] || '';
+    const larghezza = Math.max(tdEl.offsetWidth - 12, 60);
+
+    tdEl.classList.add('crm-editing');
+    tdEl.innerHTML = `<input type="text" class="crm-inline-input" value="${esc(valoreAttuale)}" style="width:${larghezza}px;" />`;
+
+    const input = tdEl.querySelector('input');
+    input.focus();
+    input.select();
+
+    // Salva su Enter, annulla su Escape
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); salvaInlineEdit(contattoId, campo, input.value, tdEl, valoreAttuale); }
+        if (e.key === 'Escape') { ripristinaCell(tdEl, campo, valoreAttuale); }
+    });
+
+    // Salva su blur (click fuori)
+    input.addEventListener('blur', () => {
+        // Piccolo delay per evitare conflitto con Enter
+        setTimeout(() => {
+            if (tdEl.querySelector('input')) {
+                salvaInlineEdit(contattoId, campo, input.value, tdEl, valoreAttuale);
+            }
+        }, 100);
+    });
+}
+
+async function salvaInlineEdit(contattoId, campo, nuovoValore, tdEl, vecchioValore) {
+    nuovoValore = nuovoValore.trim();
+    // R3: citta maiuscolo lato client per feedback immediato
+    if (campo === 'citta') nuovoValore = nuovoValore.toUpperCase();
+
+    // Se non è cambiato, ripristina senza chiamata API
+    if (nuovoValore === (vecchioValore || '')) {
+        ripristinaCell(tdEl, campo, vecchioValore);
+        return;
+    }
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ campo, valore: nuovoValore })
+        });
+        const data = await res.json();
+        if (!res.ok) { mostraToast(data.error || 'Errore', 'error'); ripristinaCell(tdEl, campo, vecchioValore); return; }
+
+        // Aggiorna dato locale
+        const contatto = allContatti.find(c => c.id === contattoId);
+        if (contatto) contatto[campo] = data.valore || '';
+
+        ripristinaCell(tdEl, campo, data.valore || '');
+        mostraToast(`${campo} aggiornato`, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+        ripristinaCell(tdEl, campo, vecchioValore);
+    }
+}
+
+function ripristinaCell(tdEl, campo, valore) {
+    tdEl.classList.remove('crm-editing');
+    if (!valore && campo === 'citta') {
+        tdEl.classList.add('crm-empty');
+        tdEl.innerHTML = '&mdash;';
+    } else {
+        tdEl.classList.remove('crm-empty');
+        tdEl.textContent = valore || '';
+    }
 }
 
 // ==================== HEADER ALERT RIORDINI ====================

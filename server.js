@@ -1622,6 +1622,35 @@ app.put('/api/crm/contatti/:id/mesi-riordino', requireAdmin, async (req, res) =>
     }
 });
 
+// Aggiorna campi contatto (email, telefono, cellulare, citta)
+app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const CAMPI_EDITABILI = ['email', 'telefono', 'cellulare', 'citta'];
+    const { campo, valore } = req.body;
+
+    if (!campo || !CAMPI_EDITABILI.includes(campo)) {
+        return res.status(400).json({ error: `Campo non valido. Ammessi: ${CAMPI_EDITABILI.join(', ')}` });
+    }
+
+    try {
+        // R3: citta sempre in maiuscolo
+        const valoreFinale = campo === 'citta' ? (valore || '').toUpperCase().trim() : (valore || '').trim();
+
+        const result = await pool.query(
+            `UPDATE crm_contatti SET ${campo} = $1 WHERE id = $2 RETURNING id, ${campo}`,
+            [valoreFinale || null, contattoId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        console.log(`[CRM] Campo ${campo} aggiornato per contatto ${contattoId}: "${valoreFinale}"`);
+        res.json({ ok: true, campo, valore: result.rows[0][campo] });
+    } catch (err) {
+        console.error('[CRM Aggiorna Contatto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Elimina acquisto ricorrente
 app.delete('/api/crm/acquisti/:id', requireAdmin, async (req, res) => {
     const acquistoId = parseInt(req.params.id);
