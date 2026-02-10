@@ -31,6 +31,7 @@
                 <option value="citta">Ordina per Citta</option>
                 <option value="prodotti">Ordina per N. Prodotti</option>
             </select>
+            <button class="crm-btn-nuovo-contatto" id="btn-nuovo-contatto">+ Nuovo Contatto</button>
         </section>
 
         <section class="crm-table-wrapper">
@@ -65,6 +66,76 @@
                 <li><strong>R3</strong> &mdash; Citta sempre in MAIUSCOLO</li>
             </ul>
         </section>
+    </div>
+
+    <!-- Modal Nuovo Contatto -->
+    <div id="modal-nuovo-contatto" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo">
+            <div class="crm-modal-header">
+                <h2>Nuovo Contatto</h2>
+                <span class="crm-modal-close" id="modal-nuovo-close">&times;</span>
+            </div>
+
+            <div class="crm-form-tipo">
+                <label class="crm-tipo-toggle">
+                    <input type="radio" name="nuovo-tipo" value="lead" checked>
+                    <span class="crm-tipo-label">Lead</span>
+                </label>
+                <label class="crm-tipo-toggle">
+                    <input type="radio" name="nuovo-tipo" value="account">
+                    <span class="crm-tipo-label">Account</span>
+                </label>
+            </div>
+
+            <div class="crm-form-fields">
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Cognome / Ragione Sociale *</label>
+                        <input type="text" id="nuovo-cognome" placeholder="Cognome o ragione sociale">
+                    </div>
+                    <div class="crm-form-group">
+                        <label>Nome</label>
+                        <input type="text" id="nuovo-nome" placeholder="Nome">
+                    </div>
+                </div>
+                <div class="crm-form-group">
+                    <label>Email * <span class="crm-form-hint">(unica nel sistema)</span></label>
+                    <input type="email" id="nuovo-email" placeholder="email@esempio.com">
+                    <span id="nuovo-email-error" class="crm-form-error"></span>
+                </div>
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Telefono</label>
+                        <input type="tel" id="nuovo-telefono" placeholder="0XX XXXXXXX">
+                    </div>
+                    <div class="crm-form-group">
+                        <label>Cellulare</label>
+                        <input type="tel" id="nuovo-cellulare" placeholder="3XX XXXXXXX">
+                    </div>
+                </div>
+                <span id="nuovo-phone-error" class="crm-form-error"></span>
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Citta *</label>
+                        <input type="text" id="nuovo-citta" placeholder="Citta" style="text-transform:uppercase;">
+                    </div>
+                    <div class="crm-form-group crm-form-regione">
+                        <label>Regione</label>
+                        <input type="text" id="nuovo-regione" value="LIGURIA" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nuovo-prodotti-section" class="crm-form-prodotti" style="display:none;">
+                <label>Prodotti posseduti:</label>
+                <div class="crm-prodotti-grid" id="nuovo-prodotti-grid"></div>
+            </div>
+
+            <div class="crm-form-actions">
+                <button class="crm-btn-si" id="btn-salva-nuovo">Salva Contatto</button>
+                <button class="crm-btn-no" id="btn-annulla-nuovo">Annulla</button>
+            </div>
+        </div>
     </div>
 
     <!-- Pannello Note (slide-in da destra) -->

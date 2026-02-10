@@ -164,6 +164,10 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_prodotti_contatto_prodotto ON crm_prodotti(contatto_id, prodotto)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto_prodotto ON crm_acquisti(contatto_id, prodotto)`);
 
+        // Migrazione: colonne tipo e mercato per contatti creati da dashboard
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS tipo TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mercato TEXT`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -1278,6 +1282,32 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
     }
 });
 
+// Contatti creati manualmente dalla dashboard (per pull verso SQLite)
+// IMPORTANTE: deve stare PRIMA di /api/crm/contatti/:id/* per evitare che Express interpreti "dashboard-manual" come :id
+app.get('/api/crm/contatti/dashboard-manual', requireAdmin, async (req, res) => {
+    try {
+        const contatti = await pool.query(
+            "SELECT * FROM crm_contatti WHERE fonte_sync = 'dashboard_manual' AND id < 0"
+        );
+        if (contatti.rows.length === 0) return res.json([]);
+
+        const ids = contatti.rows.map(c => c.id);
+        const prodotti = await pool.query(
+            'SELECT * FROM crm_prodotti WHERE contatto_id = ANY($1::int[])', [ids]
+        );
+        const prodMap = {};
+        for (const p of prodotti.rows) {
+            if (!prodMap[p.contatto_id]) prodMap[p.contatto_id] = [];
+            prodMap[p.contatto_id].push(p);
+        }
+
+        res.json(contatti.rows.map(c => ({ ...c, prodotti: prodMap[c.id] || [] })));
+    } catch (err) {
+        console.error('[CRM Dashboard Manual]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Storico acquisti ricorrenti per contatto
 app.get('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
@@ -1319,6 +1349,127 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
     }
 });
 
+// Crea nuovo contatto (da dashboard)
+app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
+    const { cognome, nome, email, telefono, cellulare, citta, regione, tipo, prodotti } = req.body;
+
+    // Validazione email
+    if (!email || !email.trim()) {
+        return res.status(400).json({ error: 'Email obbligatoria' });
+    }
+    const emailClean = email.trim().toLowerCase();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailClean)) {
+        return res.status(400).json({ error: 'Formato email non valido' });
+    }
+
+    // Almeno cognome o nome
+    if (!cognome?.trim() && !nome?.trim()) {
+        return res.status(400).json({ error: 'Inserire almeno Nome o Cognome' });
+    }
+
+    // Citta obbligatoria (R3: uppercase)
+    if (!citta?.trim()) {
+        return res.status(400).json({ error: 'Citta obbligatoria' });
+    }
+    const cittaClean = citta.trim().toUpperCase();
+
+    // R1: normalizza telefoni (rimuovi +39, classifica per prima cifra)
+    let telClean = (telefono || '').trim().replace(/^\+39\s*/, '').replace(/[\s\-\.]/g, '');
+    let celClean = (cellulare || '').trim().replace(/^\+39\s*/, '').replace(/[\s\-\.]/g, '');
+
+    if (telClean && telClean.startsWith('3') && !celClean) {
+        celClean = telClean; telClean = '';
+    }
+    if (celClean && celClean.startsWith('0') && !telClean) {
+        telClean = celClean; celClean = '';
+    }
+
+    if (!telClean && !celClean) {
+        return res.status(400).json({ error: 'Inserire almeno un numero di telefono o cellulare' });
+    }
+
+    // Tipo validazione
+    const tipoClean = (tipo || 'lead').toLowerCase();
+    if (!['lead', 'account'].includes(tipoClean)) {
+        return res.status(400).json({ error: 'Tipo deve essere lead o account' });
+    }
+
+    const regioneClean = (regione || 'LIGURIA').toUpperCase();
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verifica unicita email
+        const existing = await client.query(
+            'SELECT id, cognome, nome FROM crm_contatti WHERE LOWER(email) = $1',
+            [emailClean]
+        );
+        if (existing.rows.length > 0) {
+            const ex = existing.rows[0];
+            await client.query('ROLLBACK');
+            return res.status(409).json({
+                error: `Email gia presente: ${ex.cognome || ''} ${ex.nome || ''} (ID: ${ex.id})`
+            });
+        }
+
+        // Genera prossimo ID negativo (evita collisione con SQLite AUTOINCREMENT positivi)
+        const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+        const newId = Math.min(minId.rows[0].min_id, 0) - 1;
+
+        const oggi = new Date().toISOString().split('T')[0];
+
+        // Inserisci contatto
+        await client.query(`
+            INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 0, $12, $13)
+        `, [newId, (cognome || '').trim(), (nome || '').trim(), emailClean,
+            telClean || null, celClean || null, cittaClean, regioneClean, null, 'dashboard_manual', oggi,
+            tipoClean, 'ITALY']);
+
+        // Inserisci prodotti se account con prodotti selezionati
+        const prodottiAggiunti = [];
+        if (prodotti && Array.isArray(prodotti) && prodotti.length > 0) {
+            const prodottiValidi = prodotti.filter(p => CRM_PRODOTTI.includes(p));
+            const prodSet = new Set(prodottiValidi);
+
+            // R2: se un prodotto richiede MM e MM non presente, aggiungi MM
+            if (!prodSet.has('MM')) {
+                const richiedeMM = [...prodSet].some(p => !CRM_INDIPENDENTI_DA_MM.includes(p));
+                if (richiedeMM) prodSet.add('MM');
+            }
+
+            for (const p of prodSet) {
+                await client.query(
+                    'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                    [newId, p, oggi, 'dashboard_manual']
+                );
+                prodottiAggiunti.push(p);
+            }
+        }
+
+        await client.query('COMMIT');
+
+        console.log(`[CRM] Nuovo contatto creato: ${cognome || nome} <${emailClean}> ID=${newId} tipo=${tipoClean} regione=${regioneClean}`);
+
+        res.status(201).json({
+            ok: true,
+            id: newId,
+            email: emailClean,
+            tipo: tipoClean,
+            prodotti_aggiunti: prodottiAggiunti,
+            messaggio: `Contatto creato con successo`
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Nuovo Contatto]', err);
+        res.status(500).json({ error: 'Errore server: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // Sync CRM: bulk replace per regione
 app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
     const { contatti, prodotti, acquisti, regione } = req.body;
@@ -1351,16 +1502,17 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
-                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
                 ON CONFLICT (id) DO UPDATE SET
                     cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
                     telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
                     regione = EXCLUDED.regione, nome_azienda = EXCLUDED.nome_azienda,
                     fonte_sync = EXCLUDED.fonte_sync, data_inserimento = EXCLUDED.data_inserimento,
-                    score = EXCLUDED.score
+                    score = EXCLUDED.score, tipo = EXCLUDED.tipo, mercato = EXCLUDED.mercato
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
-                c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0]);
+                c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
+                c.tipo || null, c.mercato || null]);
         }
 
         // R2: Se un contatto ha prodotti che richiedono MM ma non ha MM, aggiungi MM
@@ -1447,6 +1599,55 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         await client.query('ROLLBACK');
         console.error('[CRM Sync]', err);
         res.status(500).json({ error: 'Errore sync: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// Riassegna ID contatti dopo import in SQLite (da ID negativi temporanei a ID reali positivi)
+app.post('/api/crm/contatti/reassign-ids', requireReportsKey, async (req, res) => {
+    const { mapping } = req.body;
+    if (!mapping || typeof mapping !== 'object') {
+        return res.status(400).json({ error: 'mapping obbligatorio (oggetto {oldId: newId})' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        let updated = 0;
+
+        for (const [oldIdStr, newId] of Object.entries(mapping)) {
+            const oldId = parseInt(oldIdStr);
+            const nw = parseInt(newId);
+            if (isNaN(oldId) || isNaN(nw)) continue;
+
+            // Verifica che il contatto con oldId esista
+            const contact = await client.query('SELECT * FROM crm_contatti WHERE id = $1', [oldId]);
+            if (contact.rows.length === 0) continue;
+            const c = contact.rows[0];
+
+            // Aggiorna FK in tutte le tabelle correlate
+            await client.query('UPDATE crm_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+            await client.query('UPDATE crm_acquisti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+            await client.query('UPDATE crm_note SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+            await client.query('UPDATE crm_score_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+
+            // Sostituisci il contatto (DELETE vecchio + INSERT con nuovo ID)
+            await client.query('DELETE FROM crm_contatti WHERE id = $1', [oldId]);
+            await client.query(`
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, mesi_riordino, tipo, mercato)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+            `, [nw, c.cognome, c.nome, c.email, c.telefono, c.cellulare, c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score, c.mesi_riordino, c.tipo, c.mercato]);
+            updated++;
+        }
+
+        await client.query('COMMIT');
+        console.log(`[CRM Reassign] ${updated} contatti aggiornati con ID reali`);
+        res.json({ ok: true, updated });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Reassign]', err);
+        res.status(500).json({ error: 'Errore: ' + err.message });
     } finally {
         client.release();
     }

@@ -1747,3 +1747,210 @@ nav {
         font-size: 13px !important;
     }
 }
+
+/* ==========================================
+   NUOVO CONTATTO - Modal & Form
+   ========================================== */
+
+.crm-btn-nuovo-contatto {
+    padding: 8px 16px;
+    background: #27ae60;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.2s;
+}
+.crm-btn-nuovo-contatto:hover {
+    background: #219a52;
+}
+
+.crm-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+}
+.crm-modal-overlay.show {
+    display: flex;
+}
+
+.crm-modal-nuovo {
+    background: white;
+    padding: 28px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 580px;
+    max-height: 90vh;
+    overflow-y: auto;
+    position: relative;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+}
+
+.crm-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+.crm-modal-header h2 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #2c3e50;
+}
+.crm-modal-close {
+    font-size: 28px;
+    cursor: pointer;
+    color: #95a5a6;
+    line-height: 1;
+    transition: color 0.2s;
+}
+.crm-modal-close:hover {
+    color: #e74c3c;
+}
+
+.crm-form-tipo {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+.crm-tipo-toggle {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    padding: 8px 18px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    transition: border-color 0.2s, background 0.2s;
+}
+.crm-tipo-toggle:has(input:checked) {
+    border-color: #3498db;
+    background: rgba(52, 152, 219, 0.06);
+}
+.crm-tipo-toggle input[type="radio"] {
+    accent-color: #3498db;
+}
+
+.crm-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+.crm-form-row {
+    display: flex;
+    gap: 12px;
+}
+.crm-form-row .crm-form-group {
+    flex: 1;
+}
+.crm-form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.crm-form-group label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+}
+.crm-form-group input[type="text"],
+.crm-form-group input[type="email"],
+.crm-form-group input[type="tel"] {
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 14px;
+    font-family: inherit;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+.crm-form-group input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.12);
+}
+.crm-form-group input[readonly] {
+    background: #f5f5f5;
+    color: #999;
+}
+
+.crm-form-hint {
+    font-weight: 400;
+    color: #999;
+    font-size: 11px;
+}
+
+.crm-form-error {
+    font-size: 12px;
+    color: #e74c3c;
+    min-height: 1.2em;
+}
+
+.crm-form-prodotti {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid #e0e0e0;
+}
+.crm-form-prodotti > label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #555;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.crm-prodotti-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px 12px;
+}
+.crm-prodotto-check {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    padding: 4px 0;
+}
+.crm-prodotto-check input[type="checkbox"] {
+    accent-color: #27ae60;
+}
+
+.crm-form-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 22px;
+    justify-content: flex-end;
+}
+.crm-form-actions .crm-btn-si {
+    padding: 10px 24px;
+    font-size: 14px;
+}
+.crm-form-actions .crm-btn-no {
+    padding: 10px 20px;
+    font-size: 14px;
+}
+
+@media (max-width: 768px) {
+    .crm-form-row {
+        flex-direction: column;
+    }
+    .crm-prodotti-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+    .crm-modal-nuovo {
+        max-width: 95%;
+        padding: 20px;
+    }
+}

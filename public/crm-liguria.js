@@ -53,6 +53,28 @@ document.addEventListener('DOMContentLoaded', () => {
             chiudiPopup();
         }
     });
+
+    // Nuovo contatto: event listener
+    document.getElementById('btn-nuovo-contatto').addEventListener('click', apriModalNuovoContatto);
+    document.getElementById('modal-nuovo-close').addEventListener('click', chiudiModalNuovo);
+    document.getElementById('btn-annulla-nuovo').addEventListener('click', chiudiModalNuovo);
+    document.getElementById('btn-salva-nuovo').addEventListener('click', salvaNuovoContatto);
+
+    document.querySelectorAll('input[name="nuovo-tipo"]').forEach(radio => {
+        radio.addEventListener('change', (e) => {
+            document.getElementById('nuovo-prodotti-section').style.display = e.target.value === 'account' ? 'block' : 'none';
+        });
+    });
+
+    document.getElementById('modal-nuovo-contatto').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-nuovo-contatto') chiudiModalNuovo();
+    });
+
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && document.getElementById('modal-nuovo-contatto').classList.contains('show')) {
+            chiudiModalNuovo();
+        }
+    });
 });
 
 function renderTableHeader() {
@@ -967,6 +989,127 @@ function stopDettatura() {
     const micStatus = document.getElementById('mic-status');
     if (micBtn) micBtn.classList.remove('recording');
     if (micStatus) micStatus.textContent = '';
+}
+
+// ==================== NUOVO CONTATTO ====================
+
+function apriModalNuovoContatto() {
+    const modal = document.getElementById('modal-nuovo-contatto');
+
+    // Reset form
+    document.getElementById('nuovo-cognome').value = '';
+    document.getElementById('nuovo-nome').value = '';
+    document.getElementById('nuovo-email').value = '';
+    document.getElementById('nuovo-telefono').value = '';
+    document.getElementById('nuovo-cellulare').value = '';
+    document.getElementById('nuovo-citta').value = '';
+    document.getElementById('nuovo-email-error').textContent = '';
+    document.getElementById('nuovo-phone-error').textContent = '';
+
+    // Reset tipo a Lead
+    document.querySelector('input[name="nuovo-tipo"][value="lead"]').checked = true;
+    document.getElementById('nuovo-prodotti-section').style.display = 'none';
+
+    // Costruisci checkbox prodotti
+    const grid = document.getElementById('nuovo-prodotti-grid');
+    grid.innerHTML = PRODOTTI.map(p =>
+        `<label class="crm-prodotto-check"><input type="checkbox" value="${p}"> ${p}</label>`
+    ).join('');
+
+    modal.classList.add('show');
+    document.getElementById('nuovo-cognome').focus();
+}
+
+function chiudiModalNuovo() {
+    document.getElementById('modal-nuovo-contatto').classList.remove('show');
+}
+
+async function salvaNuovoContatto() {
+    const cognome = document.getElementById('nuovo-cognome').value.trim();
+    const nome = document.getElementById('nuovo-nome').value.trim();
+    const email = document.getElementById('nuovo-email').value.trim();
+    const telefono = document.getElementById('nuovo-telefono').value.trim();
+    const cellulare = document.getElementById('nuovo-cellulare').value.trim();
+    const citta = document.getElementById('nuovo-citta').value.trim();
+    const tipo = document.querySelector('input[name="nuovo-tipo"]:checked').value;
+
+    // Prodotti selezionati (solo per account)
+    const prodotti = [];
+    if (tipo === 'account') {
+        document.querySelectorAll('#nuovo-prodotti-grid input:checked').forEach(cb => {
+            prodotti.push(cb.value);
+        });
+    }
+
+    // Validazione client-side
+    const emailError = document.getElementById('nuovo-email-error');
+    const phoneError = document.getElementById('nuovo-phone-error');
+    emailError.textContent = '';
+    phoneError.textContent = '';
+
+    if (!cognome && !nome) {
+        mostraToast('Inserire almeno Cognome o Nome', 'error');
+        document.getElementById('nuovo-cognome').focus();
+        return;
+    }
+    if (!email) {
+        emailError.textContent = 'Email obbligatoria';
+        document.getElementById('nuovo-email').focus();
+        return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        emailError.textContent = 'Formato email non valido';
+        document.getElementById('nuovo-email').focus();
+        return;
+    }
+    if (!telefono && !cellulare) {
+        phoneError.textContent = 'Inserire almeno un numero di telefono o cellulare';
+        document.getElementById('nuovo-telefono').focus();
+        return;
+    }
+    if (!citta) {
+        mostraToast('Citta obbligatoria', 'error');
+        document.getElementById('nuovo-citta').focus();
+        return;
+    }
+
+    // Disabilita bottone per evitare doppio submit
+    const btnSalva = document.getElementById('btn-salva-nuovo');
+    btnSalva.disabled = true;
+    btnSalva.textContent = 'Salvando...';
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                cognome, nome, email, telefono, cellulare,
+                citta, regione: 'LIGURIA', tipo, prodotti
+            })
+        });
+        const data = await res.json();
+
+        if (!res.ok) {
+            if (res.status === 409) {
+                emailError.textContent = data.error;
+            } else {
+                mostraToast(data.error || 'Errore', 'error');
+            }
+            return;
+        }
+
+        chiudiModalNuovo();
+        mostraToast(data.messaggio || 'Contatto creato!', 'success');
+
+        // Ricarica dati per mostrare il nuovo contatto
+        await caricaDati();
+
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    } finally {
+        btnSalva.disabled = false;
+        btnSalva.textContent = 'Salva Contatto';
+    }
 }
 
 // ==================== UTILITY ====================
