@@ -33,11 +33,11 @@ async function caricaScore() {
 
 function renderHeader(lineeProdotto) {
     const thead = document.getElementById('score-thead');
-    let html = '<tr><th>#</th><th>Cognome</th><th>Nome</th>';
+    let html = '<tr><th>#</th><th>Nome</th>';
     for (const lp of lineeProdotto) {
         html += `<th class="score-prod-col">${lp}</th>`;
     }
-    html += '<th class="score-tot-col">TOTALE</th></tr>';
+    html += '</tr>';
     thead.innerHTML = html;
 }
 
@@ -45,23 +45,27 @@ function renderBody(contatti, lineeProdotto) {
     const tbody = document.getElementById('score-tbody');
 
     if (contatti.length === 0) {
-        const cols = 3 + lineeProdotto.length + 1;
+        const cols = 2 + lineeProdotto.length;
         tbody.innerHTML = `<tr><td colspan="${cols}"><div class="empty-state"><p>Nessun contatto con score</p></div></td></tr>`;
         return;
     }
 
-    // Ordina per score totale decrescente
-    contatti.sort((a, b) => b.score_totale - a.score_totale);
+    // Ordina per score max tra le linee prodotto (decrescente)
+    contatti.sort((a, b) => {
+        const maxA = Math.max(...Object.values(a.score_prodotti));
+        const maxB = Math.max(...Object.values(b.score_prodotti));
+        return maxB - maxA;
+    });
 
     let html = '';
     contatti.forEach((c, idx) => {
         const displayCognome = c.cognome || c.nome_azienda || '';
         const displayNome = c.cognome ? (c.nome || '') : '';
+        const fullName = displayNome ? `${displayCognome} ${displayNome}` : displayCognome;
 
         html += `<tr class="score-row">`;
         html += `<td>${idx + 1}</td>`;
-        html += `<td>${esc(displayCognome)}</td>`;
-        html += `<td>${esc(displayNome)}</td>`;
+        html += `<td>${esc(fullName)}</td>`;
 
         for (const lp of lineeProdotto) {
             const val = c.score_prodotti[lp] || 0;
@@ -73,11 +77,6 @@ function renderBody(contatti, lineeProdotto) {
                 html += '<td class="score-cell score-empty"></td>';
             }
         }
-
-        // Totale
-        const totHot = c.score_totale >= SOGLIA_HOT;
-        const totCls = totHot ? 'score-cell score-tot score-hot' : 'score-cell score-tot';
-        html += `<td class="${totCls}">${c.score_totale}</td>`;
 
         html += '</tr>';
     });

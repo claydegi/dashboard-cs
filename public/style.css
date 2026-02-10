@@ -1275,6 +1275,21 @@ nav {
     background: #ebf5fb !important;
 }
 
+/* Hot Opportunity: fiamma su cella vuota con score >= 40 */
+.crm-hot-opportunity {
+    text-align: center;
+    font-size: 14px;
+    background: #fff5f5 !important;
+    animation: pulse-fire 2s infinite;
+}
+.crm-hot-opportunity:hover {
+    background: #ffe0e0 !important;
+}
+@keyframes pulse-fire {
+    0%, 100% { background-color: #fff5f5; }
+    50% { background-color: #ffe8e0; }
+}
+
 /* X manuale (aggiunta da dashboard) */
 .crm-x-manual {
     color: #2980b9;
@@ -1667,8 +1682,7 @@ nav {
 }
 
 .score-table thead th:nth-child(1) { width: 40px; }
-.score-table thead th:nth-child(2),
-.score-table thead th:nth-child(3) { text-align: left; min-width: 120px; }
+.score-table thead th:nth-child(2) { text-align: left; min-width: 200px; }
 
 .score-table tbody tr {
     border-bottom: 1px solid #ecf0f1;
@@ -1686,8 +1700,7 @@ nav {
     padding: 8px 12px;
 }
 
-.score-table td:nth-child(2),
-.score-table td:nth-child(3) {
+.score-table td:nth-child(2) {
     text-align: left;
     font-weight: 500;
 }
@@ -1710,24 +1723,8 @@ nav {
     font-weight: 700;
 }
 
-.score-cell.score-tot {
-    border-left: 2px solid #2c3e50;
-    font-weight: 700;
-    font-size: 15px;
-}
-
-.score-cell.score-tot.score-hot {
-    background: #c0392b;
-    color: white;
-}
-
 .score-prod-col {
     min-width: 70px;
-}
-
-.score-tot-col {
-    min-width: 80px;
-    border-left: 2px solid #95a5a6;
 }
 
 /* Score page mobile */

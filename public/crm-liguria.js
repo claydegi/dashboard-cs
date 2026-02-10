@@ -13,6 +13,7 @@ let acquistiCache = {};
 let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
 let acquistiLastDateMap = {};  // mappa contatto_prodotto -> ultima data_fattura (YYYY-MM-DD)
 let noteCountMap = {};      // mappa contatto_id -> num note
+let scoreHotMap = {};       // mappa contatto_id -> {linea_prodotto: score} per score >= 40
 let currentSort = 'cognome';
 let searchTerm = '';
 let currentNoteContattoId = null;
@@ -93,6 +94,16 @@ async function caricaDati() {
         }
         if (allContatti.length > 0 && allContatti[0].acquisti_last_date) {
             acquistiLastDateMap = allContatti[0].acquisti_last_date;
+        }
+
+        // Score hot per contatto (linee prodotto con score >= 40)
+        if (allContatti.length > 0 && allContatti[0].score_hot) {
+            // score_hot e' incluso in ogni contatto
+            for (const c of allContatti) {
+                if (c.score_hot && Object.keys(c.score_hot).length > 0) {
+                    scoreHotMap[c.id] = c.score_hot;
+                }
+            }
         }
 
         // Build product set per contatto for sorting + applica R2 (MM obbligatorio)
@@ -208,8 +219,14 @@ function renderTableBody() {
                     html += `<td class="crm-x" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="Doppio click per rimuovere">X</td>`;
                 }
             } else {
-                // Cella vuota cliccabile per aggiungere prodotto
-                html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Aggiungi ${p}"></td>`;
+                // Controlla se c'è un hot score per questa linea prodotto
+                const hotScore = scoreHotMap[c.id] && scoreHotMap[c.id][p];
+                if (hotScore) {
+                    html += `<td class="crm-cell-empty crm-hot-opportunity" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="&#128293; Hot Opportunity! Score ${hotScore} - Aggiungi ${p}">&#128293;</td>`;
+                } else {
+                    // Cella vuota cliccabile per aggiungere prodotto
+                    html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Aggiungi ${p}"></td>`;
+                }
             }
         }
 

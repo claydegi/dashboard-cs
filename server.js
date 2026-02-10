@@ -1251,11 +1251,25 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
             }
         }
 
+        // Carica score per linea prodotto (per mostrare fiamma hot nel CRM)
+        let scoreMap = {};
+        if (ids.length > 0) {
+            const scores = await pool.query(
+                'SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti WHERE contatto_id = ANY($1::int[]) AND score >= 40',
+                [ids]
+            );
+            for (const s of scores.rows) {
+                if (!scoreMap[s.contatto_id]) scoreMap[s.contatto_id] = {};
+                scoreMap[s.contatto_id][s.linea_prodotto] = s.score;
+            }
+        }
+
         const result = contatti.rows.map(c => ({
             ...c,
             prodotti: prodMap[c.id] || [],
             acquisti_count: acqMap,
-            acquisti_last_date: acqLastDateMap
+            acquisti_last_date: acqLastDateMap,
+            score_hot: scoreMap[c.id] || {}
         }));
         res.json(result);
     } catch (err) {
