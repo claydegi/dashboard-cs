@@ -230,6 +230,45 @@ function renderTableBody() {
     });
 
     tbody.innerHTML = html;
+
+    // Aggiorna header alert riordini
+    aggiornaHeaderAlert();
+}
+
+// ==================== HEADER ALERT RIORDINI ====================
+
+function aggiornaHeaderAlert() {
+    const msgEl = document.getElementById('header-alert-msg');
+    const boxEl = document.getElementById('header-alert-riordini');
+    if (!msgEl || !boxEl) return;
+
+    // Conta contatti UNICI che hanno almeno un prodotto ricorrente in alert
+    const contattiConAlert = new Set();
+    for (const c of allContatti) {
+        for (const p of PRODOTTI_RICORRENTI) {
+            if (c._prodSet.has(p)) {
+                const acqKey = `${c.id}_${p}`;
+                const haStorico = (acquistiCountMap[acqKey] || 0) > 0;
+                if (haStorico && needsReorderAlert(c.id, p)) {
+                    contattiConAlert.add(c.id);
+                }
+            }
+        }
+    }
+
+    const n = contattiConAlert.size;
+    boxEl.classList.remove('header-alert-red', 'header-alert-yellow', 'header-alert-green');
+
+    if (n > 5) {
+        msgEl.innerHTML = `Varda che a-i &eacute; pi che sinch clienti pront p&euml;r &euml;l r&euml;&ograve;rdin, neh. <strong>(${n})</strong>`;
+        boxEl.classList.add('header-alert-red');
+    } else if (n > 0) {
+        msgEl.textContent = `Alcuni riordini da valutare (${n})`;
+        boxEl.classList.add('header-alert-yellow');
+    } else {
+        msgEl.textContent = 'Nessun riordino da sollecitare al momento';
+        boxEl.classList.add('header-alert-green');
+    }
 }
 
 // ==================== ALERT RIORDINO PRODOTTI RICORRENTI ====================
