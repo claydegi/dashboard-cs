@@ -1054,6 +1054,16 @@ nav {
     background: #c8f0d8 !important;
 }
 
+/* Ricorrente Odoo (badge verde pieno prevale, barra inferiore piu' scura per distinguere) */
+#crm-table td.crm-x-new.crm-x-ricorrente {
+    background: #27ae60 !important;
+    color: white !important;
+    border-bottom: 3px solid #1e8449;
+}
+#crm-table td.crm-x-new.crm-x-ricorrente:hover {
+    background: #229954 !important;
+}
+
 /* Ricorrente SENZA storico: reset (X rossa, nessun indicatore speciale) */
 #crm-table td.crm-x-no-storico.crm-x-ricorrente {
     border-bottom: 1px solid #ecf0f1;
@@ -1061,6 +1071,14 @@ nav {
 }
 #crm-table td.crm-x-no-storico.crm-x-ricorrente:hover {
     background: #fdd !important;
+}
+
+/* Alert riordino su prodotto Odoo: alert prevale sul badge verde */
+#crm-table td.crm-x-new.crm-reorder-alert-cell {
+    background: #fff0e0 !important;
+    color: #e67e22 !important;
+    border-left: 4px solid #e74c3c;
+    border-bottom: 3px solid #e67e22;
 }
 
 /* Alert riordino: X arancione + sfondo caldo + barra laterale rossa */
