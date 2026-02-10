@@ -132,6 +132,8 @@ async function initDB() {
         `);
         // Migrazione: aggiungi colonna descrizione se non esiste (tabella creata prima del 9 feb 2026)
         await client.query(`ALTER TABLE crm_acquisti ADD COLUMN IF NOT EXISTS descrizione TEXT`);
+        // Migrazione: soglia riordino personalizzabile per contatto (default 2 mesi)
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mesi_riordino INTEGER DEFAULT 2`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto ON crm_acquisti(contatto_id)`);
 
         // Tabella note CRM (storico, una entry per ogni nota)
@@ -1221,23 +1223,26 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
             });
         }
 
-        // Carica acquisti ricorrenti per sapere chi ha storico fatture
+        // Carica acquisti ricorrenti per sapere chi ha storico fatture + data ultimo acquisto
         let acqMap = {};
+        let acqLastDateMap = {};
         if (ids.length > 0) {
             const acquisti = await pool.query(
-                'SELECT contatto_id, prodotto, COUNT(*) as cnt FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) GROUP BY contatto_id, prodotto',
+                'SELECT contatto_id, prodotto, COUNT(*) as cnt, MAX(data_fattura) as ultima_data FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) GROUP BY contatto_id, prodotto',
                 [ids]
             );
             for (const a of acquisti.rows) {
                 const key = `${a.contatto_id}_${a.prodotto}`;
                 acqMap[key] = parseInt(a.cnt);
+                if (a.ultima_data) acqLastDateMap[key] = a.ultima_data;
             }
         }
 
         const result = contatti.rows.map(c => ({
             ...c,
             prodotti: prodMap[c.id] || [],
-            acquisti_count: acqMap
+            acquisti_count: acqMap,
+            acquisti_last_date: acqLastDateMap
         }));
         res.json(result);
     } catch (err) {
@@ -1590,6 +1595,29 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[CRM Add Acquisto]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Aggiorna soglia riordino per contatto (in mesi)
+app.put('/api/crm/contatti/:id/mesi-riordino', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { mesi } = req.body;
+    if (!mesi || mesi < 1 || mesi > 12) {
+        return res.status(400).json({ error: 'Mesi deve essere tra 1 e 12' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE crm_contatti SET mesi_riordino = $1 WHERE id = $2 RETURNING id, mesi_riordino',
+            [parseInt(mesi), contattoId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        console.log(`[CRM] Soglia riordino aggiornata per contatto ${contattoId}: ${mesi} mesi`);
+        res.json({ ok: true, mesi_riordino: result.rows[0].mesi_riordino });
+    } catch (err) {
+        console.error('[CRM Mesi Riordino]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

@@ -11,6 +11,7 @@ const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 let allContatti = [];
 let acquistiCache = {};
 let acquistiCountMap = {};  // mappa contatto_prodotto -> count acquisti
+let acquistiLastDateMap = {};  // mappa contatto_prodotto -> ultima data_fattura (YYYY-MM-DD)
 let noteCountMap = {};      // mappa contatto_id -> num note
 let currentSort = 'cognome';
 let searchTerm = '';
@@ -81,9 +82,12 @@ async function caricaDati() {
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
 
-        // Salva mappa acquisti (contiene contatto_prodotto -> count)
+        // Salva mappa acquisti (contiene contatto_prodotto -> count) e ultima data
         if (allContatti.length > 0 && allContatti[0].acquisti_count) {
             acquistiCountMap = allContatti[0].acquisti_count;
+        }
+        if (allContatti.length > 0 && allContatti[0].acquisti_last_date) {
+            acquistiLastDateMap = allContatti[0].acquisti_last_date;
         }
 
         // Build product set per contatto for sorting + applica R2 (MM obbligatorio)
@@ -187,8 +191,14 @@ function renderTableBody() {
                     } else {
                         cls = 'crm-x crm-x-ricorrente';
                     }
-                    const titleText = haStorico ? 'Clicca per storico acquisti' : 'Nessun acquisto registrato - clicca per dettagli';
-                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="${titleText}">X</td>`;
+                    const alert = haStorico && needsReorderAlert(c.id, p);
+                    const cellContent = alert ? 'X <span class="crm-reorder-alert">!</span>' : 'X';
+                    if (alert) cls += ' crm-reorder-alert-cell';
+                    const mesiSoglia = (c.mesi_riordino || 2);
+                    const titleText = alert
+                        ? `Ultimo acquisto oltre ${mesiSoglia} mesi fa - riordinare!`
+                        : (haStorico ? 'Clicca per storico acquisti' : 'Nessun acquisto registrato - clicca per dettagli');
+                    html += `<td class="${cls}" onclick="toggleAcquisti(${c.id}, '${p}', this)" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="${titleText}">${cellContent}</td>`;
                 } else if (isOdoo) {
                     html += `<td class="crm-x-new" ondblclick="rimuoviProdotto(${c.id}, '${p}', this, event)" title="Doppio click per rimuovere">X</td>`;
                 } else if (isManual) {
@@ -219,6 +229,25 @@ function renderTableBody() {
     });
 
     tbody.innerHTML = html;
+}
+
+// ==================== ALERT RIORDINO PRODOTTI RICORRENTI ====================
+
+function needsReorderAlert(contattoId, prodotto) {
+    const acqKey = `${contattoId}_${prodotto}`;
+    const ultimaData = acquistiLastDateMap[acqKey];
+    if (!ultimaData) return false;  // nessuna data = nessun alert (X rossa non ha storico)
+
+    const contatto = allContatti.find(c => c.id === contattoId);
+    const mesiSoglia = (contatto && contatto.mesi_riordino) || 2;
+
+    const lastDate = new Date(ultimaData);
+    const oggi = new Date();
+    const diffMs = oggi - lastDate;
+    const diffDays = diffMs / (1000 * 60 * 60 * 24);
+    const sogliaGiorni = mesiSoglia * 30;
+
+    return diffDays > sogliaGiorni;
 }
 
 // ==================== FEATURE 1: ADD/REMOVE PRODOTTI ====================
@@ -394,6 +423,23 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
             </div>
         </div>`;
 
+    // Soglia riordino personalizzabile
+    const contatto = allContatti.find(c => c.id === contattoId);
+    const mesiAttuali = (contatto && contatto.mesi_riordino) || 2;
+    contentHtml += `
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #ccc;">
+            <strong style="font-size:12px;">Soglia alert riordino per questo contatto:</strong>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:4px;">
+                <select id="mesi-riordino-${contattoId}" class="crm-input-small" style="width:80px;">
+                    ${[1,2,3,4,5,6].map(m =>
+                        `<option value="${m}" ${m === mesiAttuali ? 'selected' : ''}>${m} ${m === 1 ? 'mese' : 'mesi'}</option>`
+                    ).join('')}
+                </select>
+                <button class="crm-btn-si" onclick="salvaMesiRiordino(${contattoId})">Salva</button>
+                <span style="font-size:11px;color:#7f8c8d;">Avviso se l'ultimo acquisto supera questa soglia</span>
+            </div>
+        </div>`;
+
     contentHtml += '</div></td>';
     detailRow.innerHTML = contentHtml;
     row.after(detailRow);
@@ -441,10 +487,14 @@ async function salvaAcquisto(contattoId, prodotto) {
             return;
         }
 
-        // Invalida cache e aggiorna count
+        // Invalida cache e aggiorna count + ultima data
         delete acquistiCache[`${contattoId}`];
         const acqKey = `${contattoId}_${prodotto}`;
         acquistiCountMap[acqKey] = (acquistiCountMap[acqKey] || 0) + 1;
+        // Aggiorna ultima data se questa e' piu' recente
+        if (!acquistiLastDateMap[acqKey] || dataFattura > acquistiLastDateMap[acqKey]) {
+            acquistiLastDateMap[acqKey] = dataFattura;
+        }
 
         // Se il prodotto e' stato aggiunto automaticamente, aggiorna dati locali
         if (data.prodotto_aggiunto) {
@@ -497,6 +547,37 @@ function convertiDataItToIso(dataIt) {
     const aaaa = match[3];
     if (parseInt(mm) < 1 || parseInt(mm) > 12 || parseInt(gg) < 1 || parseInt(gg) > 31) return null;
     return `${aaaa}-${mm}-${gg}`;
+}
+
+// ==================== SOGLIA RIORDINO ====================
+
+async function salvaMesiRiordino(contattoId) {
+    const select = document.getElementById(`mesi-riordino-${contattoId}`);
+    if (!select) return;
+    const mesi = parseInt(select.value);
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/mesi-riordino?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ mesi })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+            mostraToast(data.error || 'Errore', 'error');
+            return;
+        }
+        // Aggiorna dati locali
+        const contatto = allContatti.find(c => c.id === contattoId);
+        if (contatto) contatto.mesi_riordino = mesi;
+
+        // Chiudi detail e ri-renderizza (gli alert si aggiornano)
+        document.querySelectorAll('.crm-detail-row').forEach(el => el.remove());
+        renderTableBody();
+        mostraToast(`Soglia impostata a ${mesi} ${mesi === 1 ? 'mese' : 'mesi'}`, 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+    }
 }
 
 // ==================== FEATURE 3: NOTE CON AUDIO ====================
