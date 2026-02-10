@@ -1044,37 +1044,39 @@ nav {
     color: #e74c3c;
 }
 
+/* Ricorrente con storico acquisti: sfondo verde chiaro + barra inferiore verde */
 #crm-table td.crm-x-ricorrente {
     cursor: pointer;
-    text-decoration: underline;
+    border-bottom: 3px solid #27ae60;
+    background: #eaf7ef !important;
 }
-
 #crm-table td.crm-x-ricorrente:hover {
     background: #c8f0d8 !important;
 }
 
+/* Ricorrente SENZA storico: reset (X rossa, nessun indicatore speciale) */
+#crm-table td.crm-x-no-storico.crm-x-ricorrente {
+    border-bottom: 1px solid #ecf0f1;
+    background: transparent !important;
+}
 #crm-table td.crm-x-no-storico.crm-x-ricorrente:hover {
     background: #fdd !important;
 }
 
-/* Alert riordino: ! giallo accanto alla X verde */
-.crm-reorder-alert {
-    color: #e67e22;
-    font-weight: bold;
-    font-size: 10px;
-    vertical-align: super;
-    margin-left: 1px;
-    animation: pulse-alert 2s infinite;
-}
-@keyframes pulse-alert {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.4; }
-}
+/* Alert riordino: X arancione + sfondo caldo + barra laterale rossa */
 #crm-table td.crm-reorder-alert-cell {
-    background: #fff8e1 !important;
+    background: #fff0e0 !important;
+    border-left: 4px solid #e74c3c;
+    border-bottom: 3px solid #e67e22;
+    color: #e67e22 !important;
+    animation: pulse-cell 2s infinite;
 }
 #crm-table tr.crm-row:hover td.crm-reorder-alert-cell {
-    background: #fff3cd !important;
+    background: #ffe0c0 !important;
+}
+@keyframes pulse-cell {
+    0%, 100% { background-color: #fff0e0; }
+    50% { background-color: #ffe8d0; }
 }
 
 #crm-table td.crm-score {

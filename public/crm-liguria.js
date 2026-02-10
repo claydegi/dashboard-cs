@@ -192,7 +192,7 @@ function renderTableBody() {
                         cls = 'crm-x crm-x-ricorrente';
                     }
                     const alert = haStorico && needsReorderAlert(c.id, p);
-                    const cellContent = alert ? 'X <span class="crm-reorder-alert">!</span>' : 'X';
+                    const cellContent = 'X';
                     if (alert) cls += ' crm-reorder-alert-cell';
                     const mesiSoglia = (c.mesi_riordino || 2);
                     const titleText = alert
