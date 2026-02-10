@@ -356,10 +356,10 @@ function renderLeadTable() {
         html += `<td>${idx + 1}</td>`;
         html += `<td>${esc(c._displayCognome)}</td>`;
         html += `<td>${esc(c._displayNome)}</td>`;
-        html += `<td>${esc(c.email || '')}</td>`;
-        html += `<td>${esc(c.telefono || '')}</td>`;
-        html += `<td>${esc(c.cellulare || '')}</td>`;
-        html += `<td>${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
+        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
+        html += `<td class="crm-editable${c.citta ? '' : ' crm-empty'}" onclick="inlineEdit(${c.id}, 'citta', this)" title="Clicca per modificare">${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
         html += `<td><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
         html += '</tr>';
     });
