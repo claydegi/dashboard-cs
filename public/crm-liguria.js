@@ -30,6 +30,11 @@ document.addEventListener('DOMContentLoaded', () => {
     renderTableHeader();
     caricaDati();
 
+    // Stat card score -> naviga a pagina score
+    document.getElementById('stat-card-score').addEventListener('click', () => {
+        window.location.href = `/crm-score?key=${ADMIN_KEY}`;
+    });
+
     document.getElementById('crm-search').addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
         renderTableBody();
@@ -55,7 +60,7 @@ function renderTableHeader() {
     for (const p of PRODOTTI) {
         html += `<th class="prod">${p}</th>`;
     }
-    html += '<th>Score</th><th class="prod" title="Note">&#9998;</th></tr>';
+    html += '<th class="prod" title="Note">&#9998;</th></tr>';
     thead.innerHTML = html;
 }
 
@@ -206,13 +211,6 @@ function renderTableBody() {
                 // Cella vuota cliccabile per aggiungere prodotto
                 html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Aggiungi ${p}"></td>`;
             }
-        }
-
-        // Score
-        if (c.score) {
-            html += `<td class="crm-score">${c.score}</td>`;
-        } else {
-            html += '<td></td>';
         }
 
         // Note
@@ -504,7 +502,7 @@ async function toggleAcquisti(contattoId, prodotto, cellEl) {
     // Crea riga dettaglio
     const detailRow = document.createElement('tr');
     detailRow.classList.add('crm-detail-row');
-    const totalCols = 7 + PRODOTTI.length + 2; // # + 6 campi + prodotti + score + note
+    const totalCols = 7 + PRODOTTI.length + 1; // # + 6 campi + prodotti + note
 
     let contentHtml = `<td colspan="${totalCols}" class="crm-detail-cell"><div class="crm-detail-content">`;
 

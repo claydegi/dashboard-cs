@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Score Engagement - OSSEOTOUCH</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container crm-container">
+        <header>
+            <div class="score-header-box">
+                <h2 class="score-header-title">ENGAGEMENT SCORE</h2>
+                <p class="score-header-sub">Score per linea prodotto — evidenziati i valori &ge; 40</p>
+            </div>
+            <nav>
+                <a href="#" class="nav-link nav-back score-back-btn" id="btn-back">&#9664; CRM</a>
+            </nav>
+        </header>
+
+        <section class="score-table-wrapper">
+            <table id="score-table" class="score-table">
+                <thead id="score-thead"></thead>
+                <tbody id="score-tbody">
+                    <tr><td colspan="10" class="loading">Caricamento...</td></tr>
+                </tbody>
+            </table>
+        </section>
+    </div>
+
+    <script src="crm-score.js"></script>
+</body>
+</html>

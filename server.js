@@ -147,6 +147,19 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_note_contatto ON crm_note(contatto_id)`);
 
+        // Tabella score per linea prodotto (aggregato, aggiornato dal sync)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_score_prodotti (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                linea_prodotto TEXT NOT NULL,
+                score INTEGER DEFAULT 0,
+                UNIQUE(contatto_id, linea_prodotto)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_contatto ON crm_score_prodotti(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_prodotto ON crm_score_prodotti(linea_prodotto)`);
+
         // Indici composti per performance CRM
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_prodotti_contatto_prodotto ON crm_prodotti(contatto_id, prodotto)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto_prodotto ON crm_acquisti(contatto_id, prodotto)`);
@@ -1386,6 +1399,28 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
+        // Score per linea prodotto (da score_eventi aggregati)
+        // Elimina score esistenti per questa regione, poi inserisci
+        if (existingIds.length > 0) {
+            await client.query(
+                'DELETE FROM crm_score_prodotti WHERE contatto_id = ANY($1::int[])',
+                [existingIds]
+            );
+        }
+        for (const c of contatti) {
+            if (c.score_prodotti && typeof c.score_prodotti === 'object') {
+                for (const [linea, punteggio] of Object.entries(c.score_prodotti)) {
+                    if (punteggio > 0) {
+                        await client.query(`
+                            INSERT INTO crm_score_prodotti (contatto_id, linea_prodotto, score)
+                            VALUES ($1, $2, $3)
+                            ON CONFLICT (contatto_id, linea_prodotto) DO UPDATE SET score = EXCLUDED.score
+                        `, [c.id, linea, punteggio]);
+                    }
+                }
+            }
+        }
+
         await client.query('COMMIT');
         console.log(`[CRM Sync] ${regione}: ${contatti.length} contatti, ${(prodotti || []).length} prodotti, ${(acquisti || []).length} acquisti`);
         res.json({
@@ -1771,6 +1806,52 @@ app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== API CRM SCORE ====================
+
+// Score per linea prodotto per tutti i contatti di una regione
+app.get('/api/crm/score', requireAdmin, async (req, res) => {
+    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    try {
+        const result = await pool.query(`
+            SELECT c.id, c.cognome, c.nome, c.nome_azienda,
+                   sp.linea_prodotto, sp.score
+            FROM crm_contatti c
+            INNER JOIN crm_score_prodotti sp ON sp.contatto_id = c.id
+            WHERE c.regione = $1 AND sp.score > 0
+            ORDER BY COALESCE(NULLIF(c.cognome,''), c.nome_azienda) COLLATE "C"
+        `, [regione]);
+
+        // Raggruppa per contatto
+        const contattiMap = {};
+        for (const r of result.rows) {
+            if (!contattiMap[r.id]) {
+                contattiMap[r.id] = {
+                    id: r.id,
+                    cognome: r.cognome || '',
+                    nome: r.nome || '',
+                    nome_azienda: r.nome_azienda || '',
+                    score_prodotti: {}
+                };
+            }
+            contattiMap[r.id].score_prodotti[r.linea_prodotto] = r.score;
+        }
+
+        // Calcola score totale e converti in array
+        const contatti = Object.values(contattiMap).map(c => {
+            c.score_totale = Object.values(c.score_prodotti).reduce((a, b) => a + b, 0);
+            return c;
+        });
+
+        // Estrai tutte le linee prodotto presenti
+        const lineeProdotto = [...new Set(result.rows.map(r => r.linea_prodotto))].sort();
+
+        res.json({ contatti, linee_prodotto: lineeProdotto });
+    } catch (err) {
+        console.error('[CRM Score]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== ROUTES PAGINE ====================
 
 app.get('/admin', (req, res) => {
@@ -1803,6 +1884,10 @@ app.get('/report-finanza', (req, res) => {
 
 app.get('/crm-liguria', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'crm-liguria.html'));
+});
+
+app.get('/crm-score', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'crm-score.html'));
 });
 
 app.get('/', (req, res) => {
