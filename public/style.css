@@ -1029,9 +1029,59 @@ nav {
     white-space: nowrap;
 }
 
-#crm-table tr.crm-row:nth-child(even) { background: #fafafa; }
-#crm-table tr.crm-row:hover { background: #f0f7ff !important; }
-#crm-table tr.crm-row-nuovo { background: #e8f8f0 !important; }
+/* Bordi verticali sulle colonne prodotto (colonne 8-22) */
+#crm-table th:nth-child(n+8):nth-child(-n+22),
+#crm-table td:nth-child(n+8):nth-child(-n+22) {
+    border-left: 1px solid #d5dadf;
+}
+/* Bordo destro sull'ultima colonna prodotto per chiudere la griglia */
+#crm-table th:nth-child(22),
+#crm-table td:nth-child(22) {
+    border-right: 1px solid #d5dadf;
+}
+
+/* Colonne prodotto pari (9,11,13,15,17,19,21) con sfondo alternato */
+#crm-table td:nth-child(9),
+#crm-table td:nth-child(11),
+#crm-table td:nth-child(13),
+#crm-table td:nth-child(15),
+#crm-table td:nth-child(17),
+#crm-table td:nth-child(19),
+#crm-table td:nth-child(21) {
+    background: #f4f6f8;
+}
+/* Header prodotto pari: leggermente diverso per distinguere */
+#crm-table th:nth-child(9),
+#crm-table th:nth-child(11),
+#crm-table th:nth-child(13),
+#crm-table th:nth-child(15),
+#crm-table th:nth-child(17),
+#crm-table th:nth-child(19),
+#crm-table th:nth-child(21) {
+    background: #34495e;
+}
+
+#crm-table tr.crm-row:nth-child(even) td:not(:nth-child(n+8):nth-child(-n+22)) { background: #fafafa; }
+#crm-table tr.crm-row:nth-child(even) td:nth-child(9),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(11),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(13),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(15),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(17),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(19),
+#crm-table tr.crm-row:nth-child(even) td:nth-child(21) {
+    background: #ebeff3;
+}
+#crm-table tr.crm-row:hover td { background: #f0f7ff !important; }
+#crm-table tr.crm-row-nuovo td { background: #e8f8f0 !important; }
+#crm-table tr.crm-row-nuovo td:nth-child(9),
+#crm-table tr.crm-row-nuovo td:nth-child(11),
+#crm-table tr.crm-row-nuovo td:nth-child(13),
+#crm-table tr.crm-row-nuovo td:nth-child(15),
+#crm-table tr.crm-row-nuovo td:nth-child(17),
+#crm-table tr.crm-row-nuovo td:nth-child(19),
+#crm-table tr.crm-row-nuovo td:nth-child(21) {
+    background: #dcf2e6 !important;
+}
 
 #crm-table td.crm-x {
     text-align: center;
