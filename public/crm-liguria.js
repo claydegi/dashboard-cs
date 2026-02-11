@@ -26,6 +26,7 @@ let oppCountMap = {};       // mappa contatto_id -> num opportunita
 let oppScaduteMap = {};     // mappa contatto_id -> num opportunita scadute non viste
 let scoreHotMap = {};       // mappa contatto_id -> {linea_prodotto: score} per score >= 40
 let currentSort = 'cognome';
+let currentLeadSort = 'cognome';
 let searchTerm = '';
 let currentNoteContattoId = null;
 let recognition = null;
@@ -59,6 +60,12 @@ document.addEventListener('DOMContentLoaded', () => {
         currentSort = e.target.value;
         sortContatti();
         renderTableBody();
+        renderLeadTable();
+    });
+
+    document.getElementById('crm-lead-sort').addEventListener('change', (e) => {
+        currentLeadSort = e.target.value;
+        sortContatti();
         renderLeadTable();
     });
 
@@ -220,10 +227,16 @@ function sortContatti() {
         }
     };
     accountContatti.sort(sortFn);
-    leadContatti.sort((a, b) =>
-        (a._displayCognome || '').localeCompare(b._displayCognome || '', 'it', {sensitivity: 'base'})
-        || (a._displayNome || '').localeCompare(b._displayNome || '', 'it', {sensitivity: 'base'})
-    );
+    const leadSortFn = (a, b) => {
+        switch (currentLeadSort) {
+            case 'citta':
+                return (a.citta || '').localeCompare(b.citta || '', 'it', {sensitivity: 'base'});
+            default:
+                return (a._displayCognome || '').localeCompare(b._displayCognome || '', 'it', {sensitivity: 'base'})
+                    || (a._displayNome || '').localeCompare(b._displayNome || '', 'it', {sensitivity: 'base'});
+        }
+    };
+    leadContatti.sort(leadSortFn);
 }
 
 function renderTableBody() {

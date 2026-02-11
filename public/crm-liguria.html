@@ -56,7 +56,12 @@
 
         <!-- Sezione Lead -->
         <section class="crm-lead-section">
-            <h2 class="crm-lead-section-title">&#128101; Lead <span id="crm-lead-count" class="crm-lead-count"></span></h2>
+            <h2 class="crm-lead-section-title">&#128101; Lead <span id="crm-lead-count" class="crm-lead-count"></span>
+                <select id="crm-lead-sort" style="margin-left:16px;font-size:13px;padding:4px 8px;border-radius:4px;border:1px solid #ccc;">
+                    <option value="cognome">Ordina per Cognome</option>
+                    <option value="citta">Ordina per Citta</option>
+                </select>
+            </h2>
             <div class="crm-table-wrapper">
                 <table id="crm-lead-table">
                     <thead id="crm-lead-thead"></thead>
