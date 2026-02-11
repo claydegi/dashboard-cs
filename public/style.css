@@ -1479,7 +1479,7 @@ nav {
 /* Colonna Note */
 .crm-note-icon {
     cursor: pointer;
-    font-size: 20px;
+    font-size: 28px;
     text-align: center;
     opacity: 0.5;
     transition: opacity 0.15s;
@@ -2287,25 +2287,22 @@ nav {
     border-left: 4px solid #8e44ad;
 }
 
-/* Bottone Retrocedi nella riga account (piccolo e discreto, azione rara) */
+/* Bottone Retrocedi nella riga account (piccolo come le X, arancione) */
 .crm-btn-retrocedi {
-    background: none;
-    color: #bbb;
-    border: 1px solid #ddd;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.7em;
-    font-weight: 400;
-    cursor: pointer;
-    transition: all 0.15s;
-    white-space: nowrap;
-    opacity: 0.5;
-}
-.crm-btn-retrocedi:hover {
     background: #e67e22;
     color: white;
-    border-color: #e67e22;
-    opacity: 1;
+    border: none;
+    padding: 1px 4px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+    line-height: 1.2;
+}
+.crm-btn-retrocedi:hover {
+    background: #d35400;
 }
 
 /* Modal Retrocedi */
