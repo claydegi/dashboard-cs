@@ -1554,6 +1554,24 @@ app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
             }
         }
 
+        // Logga in crm_modifiche_log per sync bidirezionale (new_contatto)
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('new_contatto', $1, $2)`,
+            [newId, JSON.stringify({
+                cognome: (cognome || '').trim(),
+                nome: (nome || '').trim(),
+                email: emailClean,
+                telefono: telClean || null,
+                cellulare: celClean || null,
+                citta: cittaClean,
+                regione: regioneClean,
+                tipo: tipoClean,
+                mercato: 'ITALY',
+                prodotti: prodottiAggiunti
+            })]
+        );
+
         await client.query('COMMIT');
 
         console.log(`[CRM] Nuovo contatto creato: ${cognome || nome} <${emailClean}> ID=${newId} tipo=${tipoClean} regione=${regioneClean}`);
@@ -1592,13 +1610,13 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         );
         const existingIds = existing.rows.map(r => r.id);
         if (existingIds.length > 0) {
-            // Elimina solo acquisti e prodotti NON manuali
+            // Elimina solo acquisti e prodotti NON manuali (protegge dashboard_manual, dashboard_promozione, regola_R2_dashboard)
             await client.query(
-                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != 'dashboard_manual')",
+                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard'))",
                 [existingIds]
             );
             await client.query(
-                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != 'dashboard_manual')",
+                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard'))",
                 [existingIds]
             );
             // crm_note: mai toccata dal sync
@@ -1648,13 +1666,14 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
-        // Deduplicazione: se il sync ha portato lo stesso prodotto gia' presente come dashboard_manual, rimuovi il duplicato manuale
+        // Deduplicazione: se il sync ha portato lo stesso prodotto gia' presente come manuale, rimuovi il duplicato manuale
         if (existingIds.length > 0) {
             await client.query(`
                 DELETE FROM crm_prodotti WHERE id IN (
                     SELECT dm.id FROM crm_prodotti dm
                     INNER JOIN crm_prodotti sync ON dm.contatto_id = sync.contatto_id AND dm.prodotto = sync.prodotto
-                    WHERE dm.fonte = 'dashboard_manual' AND sync.fonte != 'dashboard_manual'
+                    WHERE dm.fonte IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard')
+                    AND sync.fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard')
                     AND dm.contatto_id = ANY($1::int[])
                 )
             `, [existingIds]);
@@ -1814,6 +1833,16 @@ app.post('/api/crm/contatti/:id/prodotti', requireAdmin, async (req, res) => {
                 prodottiAggiunti.push('MM');
             }
         }
+
+        // Logga in crm_modifiche_log per sync bidirezionale con SQLite
+        const dettagliProdotti = prodottiAggiunti.map(p => ({
+            prodotto: p,
+            fonte: p === prodotto ? 'dashboard_manual' : 'regola_R2_dashboard'
+        }));
+        await pool.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_prodotto', $1, $2)`,
+            [contattoId, JSON.stringify({ prodotti_aggiunti: dettagliProdotti })]
+        );
 
         console.log(`[CRM] Prodotti aggiunti a contatto ${contattoId}: ${prodottiAggiunti.join(', ')}`);
         res.json({
@@ -1975,6 +2004,26 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
             prodottoAggiunto = true;
         }
 
+        // Logga in crm_modifiche_log per sync bidirezionale con SQLite
+        await pool.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_acquisto', $1, $2)`,
+            [contattoId, JSON.stringify({
+                prodotto,
+                numero_fattura: numero_fattura.trim(),
+                data_fattura,
+                descrizione: (descrizione || '').trim() || null
+            })]
+        );
+        // Se il prodotto e' stato anche aggiunto, logga separatamente
+        if (prodottoAggiunto) {
+            await pool.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_prodotto', $1, $2)`,
+                [contattoId, JSON.stringify({
+                    prodotti_aggiunti: [{ prodotto, fonte: 'dashboard_manual' }]
+                })]
+            );
+        }
+
         console.log(`[CRM] Acquisto aggiunto: contatto ${contattoId}, ${prodotto}, fattura ${numero_fattura}`);
         res.json({
             ok: true,
@@ -2007,6 +2056,84 @@ app.put('/api/crm/contatti/:id/mesi-riordino', requireAdmin, async (req, res) =>
     } catch (err) {
         console.error('[CRM Mesi Riordino]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Rimappa ID negativo (dashboard) con ID positivo (SQLite) — DEVE essere PRIMA di PUT /api/crm/contatti/:id
+app.put('/api/crm/contatti/remap-id', requireApiKey, async (req, res) => {
+    const { old_id, new_id } = req.body;
+    if (!old_id || !new_id || old_id >= 0 || new_id <= 0) {
+        return res.status(400).json({ error: 'old_id deve essere negativo, new_id deve essere positivo' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verifica che old_id esista
+        const oldExists = await client.query('SELECT id FROM crm_contatti WHERE id = $1', [old_id]);
+        if (oldExists.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: `Contatto con ID ${old_id} non trovato` });
+        }
+
+        // Verifica se new_id esiste gia' (caso push avvenuto prima del remap)
+        const newExists = await client.query('SELECT id FROM crm_contatti WHERE id = $1', [new_id]);
+
+        if (newExists.rows.length === 0) {
+            // Caso semplice: new_id non esiste, rinomina tutto
+            const fkTables = [
+                'crm_prodotti', 'crm_acquisti', 'crm_note', 'crm_opportunita',
+                'crm_score_prodotti', 'crm_audit_log', 'crm_cestino',
+                'crm_modifiche_log', 'crm_promozioni_log'
+            ];
+            for (const table of fkTables) {
+                await client.query(`UPDATE ${table} SET contatto_id = $1 WHERE contatto_id = $2`, [new_id, old_id]);
+            }
+            await client.query('UPDATE crm_contatti SET id = $1 WHERE id = $2', [new_id, old_id]);
+            console.log(`[CRM Remap] ID ${old_id} -> ${new_id} (rinominato)`);
+        } else {
+            // Caso complesso: new_id esiste gia', migra dati orfani e cancella old_id
+            // Prodotti: rimuovi duplicati prima di migrare
+            await client.query(`
+                DELETE FROM crm_prodotti WHERE contatto_id = $1
+                AND prodotto IN (SELECT prodotto FROM crm_prodotti WHERE contatto_id = $2)
+            `, [old_id, new_id]);
+            await client.query('UPDATE crm_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Acquisti: migra tutti (possono avere duplicati legittimi)
+            await client.query('UPDATE crm_acquisti SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Note, opportunita': migra
+            await client.query('UPDATE crm_note SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_opportunita SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Score: rimuovi duplicati per UNIQUE(contatto_id, linea_prodotto)
+            await client.query(`
+                DELETE FROM crm_score_prodotti WHERE contatto_id = $1
+                AND linea_prodotto IN (SELECT linea_prodotto FROM crm_score_prodotti WHERE contatto_id = $2)
+            `, [old_id, new_id]);
+            await client.query('UPDATE crm_score_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Log tables: migra
+            await client.query('UPDATE crm_audit_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_cestino SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_modifiche_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_promozioni_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Cancella il vecchio contatto orfano
+            await client.query('DELETE FROM crm_contatti WHERE id = $1', [old_id]);
+            console.log(`[CRM Remap] ID ${old_id} -> ${new_id} (migrato e cancellato orfano)`);
+        }
+
+        await client.query('COMMIT');
+        res.json({ ok: true, old_id, new_id });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Remap] Errore:', err);
+        res.status(500).json({ error: 'Errore remap ID' });
+    } finally {
+        client.release();
     }
 });
 
