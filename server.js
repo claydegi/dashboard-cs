@@ -2060,7 +2060,7 @@ app.put('/api/crm/contatti/:id/mesi-riordino', requireAdmin, async (req, res) =>
 });
 
 // Rimappa ID negativo (dashboard) con ID positivo (SQLite) — DEVE essere PRIMA di PUT /api/crm/contatti/:id
-app.put('/api/crm/contatti/remap-id', requireApiKey, async (req, res) => {
+app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
     const { old_id, new_id } = req.body;
     if (!old_id || !new_id || old_id >= 0 || new_id <= 0) {
         return res.status(400).json({ error: 'old_id deve essere negativo, new_id deve essere positivo' });
