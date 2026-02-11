@@ -2010,19 +2010,47 @@ app.put('/api/crm/contatti/:id/mesi-riordino', requireAdmin, async (req, res) =>
     }
 });
 
-// Aggiorna campi contatto (email, telefono, cellulare, citta)
+// Aggiorna campi contatto (email, telefono, cellulare, citta, regione)
 app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
-    const CAMPI_EDITABILI = ['email', 'telefono', 'cellulare', 'citta'];
+    const CAMPI_EDITABILI = ['email', 'telefono', 'cellulare', 'citta', 'regione'];
     const { campo, valore } = req.body;
 
     if (!campo || !CAMPI_EDITABILI.includes(campo)) {
         return res.status(400).json({ error: `Campo non valido. Ammessi: ${CAMPI_EDITABILI.join(', ')}` });
     }
 
+    // Validazione regione
+    if (campo === 'regione') {
+        const REGIONI_VALIDE = [
+            'PIEMONTE', 'LIGURIA', "VALLE D'AOSTA", 'LOMBARDIA', 'VENETO',
+            'TRENTINO-ALTO ADIGE', 'FRIULI VENEZIA GIULIA', 'EMILIA-ROMAGNA',
+            'TOSCANA', 'UMBRIA', 'MARCHE', 'LAZIO', 'ABRUZZO', 'MOLISE',
+            'CAMPANIA', 'PUGLIA', 'BASILICATA', 'CALABRIA', 'SICILIA', 'SARDEGNA'
+        ];
+        const valoreUpper = (valore || '').toUpperCase().trim();
+        if (!REGIONI_VALIDE.includes(valoreUpper)) {
+            return res.status(400).json({ error: 'Regione non valida' });
+        }
+    }
+
     try {
-        // R3: citta sempre in maiuscolo
-        const valoreFinale = campo === 'citta' ? (valore || '').toUpperCase().trim() : (valore || '').trim();
+        // R3: citta e regione sempre in maiuscolo
+        let valoreFinale;
+        if (campo === 'citta' || campo === 'regione') {
+            valoreFinale = (valore || '').toUpperCase().trim();
+        } else {
+            valoreFinale = (valore || '').trim();
+        }
+
+        // Per cambio regione: cattura valore vecchio prima dell'UPDATE (serve per sync Excel)
+        let vecchioValore = null;
+        if (campo === 'regione') {
+            const oldResult = await pool.query('SELECT regione FROM crm_contatti WHERE id = $1', [contattoId]);
+            if (oldResult.rows.length > 0) {
+                vecchioValore = oldResult.rows[0].regione;
+            }
+        }
 
         const result = await pool.query(
             `UPDATE crm_contatti SET ${campo} = $1 WHERE id = $2 RETURNING id, ${campo}`,
@@ -2031,11 +2059,16 @@ app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Contatto non trovato' });
         }
+
         // Log per sync bidirezionale con SQLite
+        const logDettagli = { campo, valore_nuovo: valoreFinale || null };
+        if (campo === 'regione' && vecchioValore) {
+            logDettagli.valore_vecchio = vecchioValore;
+        }
         await pool.query(
             `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
              VALUES ('edit_contatto', $1, $2)`,
-            [contattoId, JSON.stringify({ campo, valore_nuovo: valoreFinale || null })]
+            [contattoId, JSON.stringify(logDettagli)]
         );
 
         console.log(`[CRM] Campo ${campo} aggiornato per contatto ${contattoId}: "${valoreFinale}"`);

@@ -8,6 +8,13 @@ const PRODOTTI_RICORRENTI = ['BLEXO', 'CEP', 'SUTURE'];
 // R2: prodotti indipendenti da MM (non richiedono Magnetic Mallet)
 const PRODOTTI_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
 
+const REGIONI_ITALIA = [
+    'PIEMONTE', 'LIGURIA', "VALLE D'AOSTA", 'LOMBARDIA', 'VENETO',
+    'TRENTINO-ALTO ADIGE', 'FRIULI VENEZIA GIULIA', 'EMILIA-ROMAGNA',
+    'TOSCANA', 'UMBRIA', 'MARCHE', 'LAZIO', 'ABRUZZO', 'MOLISE',
+    'CAMPANIA', 'PUGLIA', 'BASILICATA', 'CALABRIA', 'SICILIA', 'SARDEGNA'
+];
+
 let allContatti = [];
 let accountContatti = [];
 let leadContatti = [];
@@ -449,8 +456,51 @@ function inlineEdit(contattoId, campo, tdEl) {
     if (!contatto) return;
 
     const valoreAttuale = contatto[campo] || '';
-    const larghezza = Math.max(tdEl.offsetWidth - 12, 60);
 
+    // Campo citta: mini-form con input citta + dropdown regione
+    if (campo === 'citta') {
+        const regioneAttuale = contatto.regione || 'LIGURIA';
+        tdEl.classList.add('crm-editing');
+        let optsHtml = REGIONI_ITALIA.map(r =>
+            `<option value="${r}"${r === regioneAttuale ? ' selected' : ''}>${r}</option>`
+        ).join('');
+        tdEl.innerHTML = `<div class="crm-citta-regione-form">
+            <input type="text" class="crm-inline-input" value="${esc(valoreAttuale)}" placeholder="Città" />
+            <select class="crm-inline-select">${optsHtml}</select>
+        </div>`;
+
+        const input = tdEl.querySelector('input');
+        const select = tdEl.querySelector('select');
+        input.focus();
+        input.select();
+
+        // Gestione tastiera su entrambi gli elementi
+        const onKeydown = (e) => {
+            if (e.key === 'Enter') { e.preventDefault(); salvaCittaRegione(contattoId, input.value, select.value, tdEl, valoreAttuale, regioneAttuale); }
+            if (e.key === 'Escape') { ripristinaCell(tdEl, campo, valoreAttuale); }
+        };
+        input.addEventListener('keydown', onKeydown);
+        select.addEventListener('keydown', onKeydown);
+
+        // Blur: salva solo se il focus esce DAL FORM (non spostamento input<->select)
+        let blurTimeout = null;
+        const onBlur = () => {
+            blurTimeout = setTimeout(() => {
+                if (tdEl.querySelector('input') && !tdEl.contains(document.activeElement)) {
+                    salvaCittaRegione(contattoId, input.value, select.value, tdEl, valoreAttuale, regioneAttuale);
+                }
+            }, 150);
+        };
+        const onFocus = () => { if (blurTimeout) clearTimeout(blurTimeout); };
+        input.addEventListener('blur', onBlur);
+        select.addEventListener('blur', onBlur);
+        input.addEventListener('focus', onFocus);
+        select.addEventListener('focus', onFocus);
+        return;
+    }
+
+    // Tutti gli altri campi: input semplice (come prima)
+    const larghezza = Math.max(tdEl.offsetWidth - 12, 60);
     tdEl.classList.add('crm-editing');
     tdEl.innerHTML = `<input type="text" class="crm-inline-input" value="${esc(valoreAttuale)}" style="width:${larghezza}px;" />`;
 
@@ -504,6 +554,70 @@ async function salvaInlineEdit(contattoId, campo, nuovoValore, tdEl, vecchioValo
     } catch (err) {
         mostraToast('Errore di connessione', 'error');
         ripristinaCell(tdEl, campo, vecchioValore);
+    }
+}
+
+async function salvaCittaRegione(contattoId, nuovaCitta, nuovaRegione, tdEl, vecchiaCitta, vecchiaRegione) {
+    nuovaCitta = (nuovaCitta || '').trim().toUpperCase();  // R3
+    nuovaRegione = (nuovaRegione || '').trim().toUpperCase();
+
+    const cittaCambiata = nuovaCitta !== (vecchiaCitta || '');
+    const regioneCambiata = nuovaRegione !== vecchiaRegione;
+
+    // Se nulla è cambiato, ripristina
+    if (!cittaCambiata && !regioneCambiata) {
+        ripristinaCell(tdEl, 'citta', vecchiaCitta);
+        return;
+    }
+
+    try {
+        // 1. Salva citta (se cambiata)
+        if (cittaCambiata) {
+            const res = await fetch(`${API_URL}/crm/contatti/${contattoId}?key=${ADMIN_KEY}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campo: 'citta', valore: nuovaCitta })
+            });
+            const data = await res.json();
+            if (!res.ok) { mostraToast(data.error || 'Errore salvataggio città', 'error'); ripristinaCell(tdEl, 'citta', vecchiaCitta); return; }
+            const contatto = allContatti.find(c => c.id === contattoId);
+            if (contatto) contatto.citta = data.valore || '';
+        }
+
+        // 2. Salva regione (se cambiata)
+        if (regioneCambiata) {
+            const res = await fetch(`${API_URL}/crm/contatti/${contattoId}?key=${ADMIN_KEY}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ campo: 'regione', valore: nuovaRegione })
+            });
+            const data = await res.json();
+            if (!res.ok) { mostraToast(data.error || 'Errore salvataggio regione', 'error'); ripristinaCell(tdEl, 'citta', vecchiaCitta); return; }
+
+            // Contatto si è spostato in un'altra regione: rimuovilo dagli array locali
+            allContatti = allContatti.filter(c => c.id !== contattoId);
+            accountContatti = accountContatti.filter(c => c.id !== contattoId);
+            leadContatti = leadContatti.filter(c => c.id !== contattoId);
+
+            // Aggiorna stat card
+            document.getElementById('stat-contatti').textContent = accountContatti.length;
+            if (document.getElementById('stat-lead')) {
+                document.getElementById('stat-lead').textContent = leadContatti.length;
+            }
+
+            // Re-render tabelle
+            renderTableBody();
+            renderLeadTable();
+            mostraToast(`Contatto spostato in ${nuovaRegione}`, 'success');
+            return;
+        }
+
+        // Solo citta cambiata (regione uguale)
+        ripristinaCell(tdEl, 'citta', nuovaCitta);
+        mostraToast('Città aggiornata', 'success');
+    } catch (err) {
+        mostraToast('Errore di connessione', 'error');
+        ripristinaCell(tdEl, 'citta', vecchiaCitta);
     }
 }
 

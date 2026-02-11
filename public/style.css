@@ -1219,6 +1219,29 @@ nav {
     border-color: #2980b9;
     box-shadow: 0 0 4px rgba(52,152,219,0.3);
 }
+.crm-citta-regione-form {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+.crm-citta-regione-form .crm-inline-input {
+    width: 100% !important;
+}
+.crm-inline-select {
+    border: 2px solid #3498db;
+    border-radius: 3px;
+    padding: 2px 3px;
+    font-size: 11px;
+    font-family: inherit;
+    outline: none;
+    box-sizing: border-box;
+    background: white;
+    cursor: pointer;
+}
+.crm-inline-select:focus {
+    border-color: #2980b9;
+    box-shadow: 0 0 4px rgba(52,152,219,0.3);
+}
 
 #crm-table td.crm-score {
     text-align: center;
