@@ -132,7 +132,7 @@ function renderTableHeader() {
     // Header tabella lead
     const leadThead = document.getElementById('crm-lead-thead');
     if (leadThead) {
-        leadThead.innerHTML = '<tr><th>#</th><th>Cognome</th><th>Nome</th><th>Email</th><th>Telefono</th><th>Cellulare</th><th>Citta</th><th>Azioni</th></tr>';
+        leadThead.innerHTML = '<tr><th>#</th><th>Cognome</th><th>Nome</th><th>Email</th><th>Telefono</th><th>Cellulare</th><th>Citta</th><th class="prod" title="Note">&#9998;</th><th>Azioni</th></tr>';
     }
 }
 
@@ -378,7 +378,7 @@ function renderLeadTable() {
         : leadContatti;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><p>Nessuna lead trovata</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>Nessuna lead trovata</p></div></td></tr>';
         return;
     }
 
@@ -392,6 +392,28 @@ function renderLeadTable() {
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
         html += `<td class="crm-editable${c.citta ? '' : ' crm-empty'}" onclick="inlineEdit(${c.id}, 'citta', this)" title="Clicca per modificare">${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
+
+        // Note + Opportunita icon
+        const numNote = noteCountMap[c.id] || 0;
+        const numOpp = oppCountMap[c.id] || 0;
+        const numOppScadute = oppScaduteMap[c.id] || 0;
+
+        let noteClass = 'crm-note-icon';
+        let noteTitle = 'Aggiungi nota o opportunita';
+
+        if (numOppScadute > 0) {
+            noteClass = 'crm-note-icon crm-note-opp-scaduta';
+            noteTitle = `${numOppScadute} opportunita scaduta/e! Clicca per vedere`;
+        } else if (numNote > 0 || numOpp > 0) {
+            noteClass = 'crm-note-icon crm-note-has';
+            const parts = [];
+            if (numNote > 0) parts.push(`${numNote} nota/e`);
+            if (numOpp > 0) parts.push(`${numOpp} opportunita`);
+            noteTitle = parts.join(', ') + ' - clicca per vedere';
+        }
+
+        html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
+
         html += `<td><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
         html += '</tr>';
     });
