@@ -349,7 +349,7 @@ function renderTableBody() {
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
         // Bottone Retrocedi
-        html += `<td><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07; Retrocedi</button></td>`;
+        html += `<td><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07;R</button></td>`;
 
         html += '</tr>';
     });
