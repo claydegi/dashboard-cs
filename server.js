@@ -1538,6 +1538,7 @@ app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
         if (prodotti && Array.isArray(prodotti) && prodotti.length > 0) {
             const prodottiValidi = prodotti.filter(p => CRM_PRODOTTI.includes(p));
             const prodSet = new Set(prodottiValidi);
+            const prodottiScelti = new Set(prodottiValidi); // per distinguere fonte
 
             // R2: se un prodotto richiede MM e MM non presente, aggiungi MM
             if (!prodSet.has('MM')) {
@@ -1546,9 +1547,10 @@ app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
             }
 
             for (const p of prodSet) {
+                const fonte = prodottiScelti.has(p) ? 'dashboard_manual' : 'regola_R2_dashboard';
                 await client.query(
                     'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
-                    [newId, p, oggi, 'dashboard_manual']
+                    [newId, p, oggi, fonte]
                 );
                 prodottiAggiunti.push(p);
             }
@@ -1991,6 +1993,7 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
 
         // Se il contatto non ha il prodotto in crm_prodotti, aggiungilo
         let prodottoAggiunto = false;
+        let mmAggiuntoDaR2 = false;
         const hasProd = await pool.query(
             'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
             [contattoId, prodotto]
@@ -2002,6 +2005,21 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
                 [contattoId, prodotto, oggi, 'dashboard_manual']
             );
             prodottoAggiunto = true;
+
+            // R2: se il prodotto richiede MM e il contatto non ha MM, aggiungilo
+            if (!CRM_INDIPENDENTI_DA_MM.includes(prodotto) && prodotto !== 'MM') {
+                const hasMM = await pool.query(
+                    'SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = $2',
+                    [contattoId, 'MM']
+                );
+                if (hasMM.rows.length === 0) {
+                    await pool.query(
+                        'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                        [contattoId, 'MM', oggi, 'regola_R2_dashboard']
+                    );
+                    mmAggiuntoDaR2 = true;
+                }
+            }
         }
 
         // Logga in crm_modifiche_log per sync bidirezionale con SQLite
@@ -2016,19 +2034,24 @@ app.post('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
         );
         // Se il prodotto e' stato anche aggiunto, logga separatamente
         if (prodottoAggiunto) {
+            const prodottiLog = [{ prodotto, fonte: 'dashboard_manual' }];
+            if (mmAggiuntoDaR2) {
+                prodottiLog.push({ prodotto: 'MM', fonte: 'regola_R2_dashboard' });
+            }
             await pool.query(
                 `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_prodotto', $1, $2)`,
                 [contattoId, JSON.stringify({
-                    prodotti_aggiunti: [{ prodotto, fonte: 'dashboard_manual' }]
+                    prodotti_aggiunti: prodottiLog
                 })]
             );
         }
 
-        console.log(`[CRM] Acquisto aggiunto: contatto ${contattoId}, ${prodotto}, fattura ${numero_fattura}`);
+        console.log(`[CRM] Acquisto aggiunto: contatto ${contattoId}, ${prodotto}, fattura ${numero_fattura}${mmAggiuntoDaR2 ? ' (+MM R2)' : ''}`);
         res.json({
             ok: true,
             acquisto: result.rows[0],
-            prodotto_aggiunto: prodottoAggiunto
+            prodotto_aggiunto: prodottoAggiunto,
+            mm_aggiunto_r2: mmAggiuntoDaR2
         });
     } catch (err) {
         console.error('[CRM Add Acquisto]', err);
