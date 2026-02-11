@@ -32,9 +32,26 @@ const pool = new Pool({
         : false
 });
 
+// Connessione DB con retry (max 5 tentativi)
+async function connectWithRetry(maxRetries = 5) {
+    for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+            const client = await pool.connect();
+            if (attempt > 1) console.log(`DB connesso al tentativo ${attempt}`);
+            return client;
+        } catch (err) {
+            console.error(`Tentativo ${attempt}/${maxRetries} - Connessione DB fallita: ${err.code || err.message}`);
+            if (attempt === maxRetries) throw err;
+            const delay = attempt * 3000; // 3s, 6s, 9s, 12s
+            console.log(`Riprovo tra ${delay / 1000} secondi...`);
+            await new Promise(r => setTimeout(r, delay));
+        }
+    }
+}
+
 // Inizializza tabelle
 async function initDB() {
-    const client = await pool.connect();
+    const client = await connectWithRetry();
     try {
         await client.query(`
             CREATE TABLE IF NOT EXISTS tasks (
