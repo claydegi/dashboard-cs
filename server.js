@@ -172,6 +172,19 @@ async function initDB() {
             )
         `);
 
+        // Tabella log modifiche manuali (per sync bidirezionale con SQLite)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_modifiche_log (
+                id SERIAL PRIMARY KEY,
+                tipo_modifica TEXT NOT NULL,
+                contatto_id INTEGER NOT NULL,
+                dettagli JSONB NOT NULL,
+                sincronizzata BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_modifiche_sync ON crm_modifiche_log(sincronizzata) WHERE sincronizzata = false`);
+
         // Tabella score per linea prodotto (aggregato, aggiornato dal sync)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_score_prodotti (
@@ -1893,6 +1906,13 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
             }
         }
 
+        // Log per sync bidirezionale con SQLite
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('delete_prodotto', $1, $2)`,
+            [contattoId, JSON.stringify({ prodotti_rimossi: prodottiRimossi })]
+        );
+
         await client.query('COMMIT');
         console.log(`[CRM] Prodotti rimossi da contatto ${contattoId}: ${prodottiRimossi.join(', ')}`);
         res.json({
@@ -2011,6 +2031,13 @@ app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Contatto non trovato' });
         }
+        // Log per sync bidirezionale con SQLite
+        await pool.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('edit_contatto', $1, $2)`,
+            [contattoId, JSON.stringify({ campo, valore_nuovo: valoreFinale || null })]
+        );
+
         console.log(`[CRM] Campo ${campo} aggiornato per contatto ${contattoId}: "${valoreFinale}"`);
         res.json({ ok: true, campo, valore: result.rows[0][campo] });
     } catch (err) {
@@ -2043,6 +2070,17 @@ app.delete('/api/crm/acquisti/:id', requireAdmin, async (req, res) => {
         });
 
         await client.query('DELETE FROM crm_acquisti WHERE id = $1', [acquistoId]);
+
+        // Log per sync bidirezionale con SQLite
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('delete_acquisto', $1, $2)`,
+            [record.contatto_id, JSON.stringify({
+                prodotto: record.prodotto,
+                numero_fattura: record.numero_fattura,
+                data_fattura: record.data_fattura
+            })]
+        );
 
         await client.query('COMMIT');
         console.log(`[CRM] Acquisto eliminato: id ${acquistoId}, ${record.prodotto}, fattura ${record.numero_fattura}`);
@@ -2640,6 +2678,43 @@ app.put('/api/crm/promozioni/sincronizzate', requireReportsKey, async (req, res)
         res.json({ ok: true, aggiornate: ids.length });
     } catch (err) {
         console.error('[CRM Sync Promozioni]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Modifiche manuali pendenti (per push_crm_dashboard.py sync bidirezionale)
+app.get('/api/crm/modifiche/pendenti', requireReportsKey, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT ml.id, ml.tipo_modifica, ml.contatto_id, ml.dettagli, ml.created_at,
+                   c.cognome, c.nome, c.email
+            FROM crm_modifiche_log ml
+            LEFT JOIN crm_contatti c ON c.id = ml.contatto_id
+            WHERE ml.sincronizzata = false
+            ORDER BY ml.created_at
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[CRM Modifiche Pendenti]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Segna modifiche come sincronizzate
+app.put('/api/crm/modifiche/sincronizzate', requireReportsKey, async (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Nessun ID fornito' });
+    }
+    try {
+        await pool.query(
+            'UPDATE crm_modifiche_log SET sincronizzata = true WHERE id = ANY($1)',
+            [ids]
+        );
+        console.log(`[CRM Sync] ${ids.length} modifiche segnate come sincronizzate`);
+        res.json({ ok: true, aggiornate: ids.length });
+    } catch (err) {
+        console.error('[CRM Sync Modifiche]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
