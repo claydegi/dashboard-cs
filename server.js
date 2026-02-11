@@ -1944,11 +1944,18 @@ app.delete('/api/crm/contatti/:id/prodotti/:prodotto', requireAdmin, async (req,
             [contattoId, JSON.stringify({ prodotti_rimossi: prodottiRimossi })]
         );
 
+        // Conta prodotti rimanenti (per trigger retrocessione automatica nel frontend)
+        const countRes = await client.query(
+            'SELECT COUNT(*) FROM crm_prodotti WHERE contatto_id = $1', [contattoId]
+        );
+        const prodottiRimanenti = parseInt(countRes.rows[0].count);
+
         await client.query('COMMIT');
-        console.log(`[CRM] Prodotti rimossi da contatto ${contattoId}: ${prodottiRimossi.join(', ')}`);
+        console.log(`[CRM] Prodotti rimossi da contatto ${contattoId}: ${prodottiRimossi.join(', ')} (rimanenti: ${prodottiRimanenti})`);
         res.json({
             ok: true,
             prodotti_rimossi: prodottiRimossi,
+            prodotti_rimanenti: prodottiRimanenti,
             messaggio: prodottiRimossi.length > 1
                 ? `${prodotto} rimosso. MM rimosso automaticamente (non piu\' necessario).`
                 : `${prodotto} rimosso.`
@@ -2822,6 +2829,63 @@ app.put('/api/crm/contatti/:id/promuovi', requireAdmin, async (req, res) => {
     } catch (err) {
         await client.query('ROLLBACK');
         console.error('[CRM Promozione]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
+    }
+});
+
+// Retrocedi account a lead (rimuove tutti i prodotti)
+app.put('/api/crm/contatti/:id/retrocedi', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Verifica che il contatto esista e sia un account
+        const contatto = await client.query('SELECT id, tipo, cognome, nome FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        if (contatto.rows[0].tipo === 'lead') {
+            await client.query('ROLLBACK');
+            return res.status(400).json({ error: 'Il contatto e\' gia\' una lead' });
+        }
+
+        // 1. Recupera prodotti correnti (per il log)
+        const prodottiRes = await client.query(
+            'SELECT prodotto FROM crm_prodotti WHERE contatto_id = $1',
+            [contattoId]
+        );
+        const prodottiRimossi = prodottiRes.rows.map(r => r.prodotto);
+
+        // 2. Cancella tutti i prodotti
+        await client.query('DELETE FROM crm_prodotti WHERE contatto_id = $1', [contattoId]);
+
+        // 3. Aggiorna tipo a 'lead'
+        await client.query('UPDATE crm_contatti SET tipo = $1 WHERE id = $2', ['lead', contattoId]);
+
+        // 4. Log per sync bidirezionale con SQLite
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('retrocedi', $1, $2)`,
+            [contattoId, JSON.stringify({ prodotti_rimossi: prodottiRimossi })]
+        );
+
+        await client.query('COMMIT');
+
+        const c = contatto.rows[0];
+        console.log(`[CRM Retrocessione] Account ${c.cognome} ${c.nome} (ID ${contattoId}) retrocesso a lead. Prodotti rimossi: ${prodottiRimossi.join(', ')}`);
+        res.json({
+            ok: true,
+            prodotti_rimossi: prodottiRimossi,
+            messaggio: `Account retrocesso a lead (${prodottiRimossi.length} prodotti rimossi)`
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Retrocessione]', err);
         res.status(500).json({ error: 'Errore server' });
     } finally {
         client.release();

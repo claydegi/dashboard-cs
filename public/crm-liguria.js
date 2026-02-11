@@ -32,6 +32,7 @@ let currentNoteContattoId = null;
 let recognition = null;
 let currentDettTarget = null; // 'note' o 'opp' - quale textarea sta usando la dettatura
 let promuoviContattoId = null; // ID contatto per popup promuovi
+let retrocediContattoId = null; // ID contatto per popup retrocedi
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -109,6 +110,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-promuovi').addEventListener('click', (e) => {
         if (e.target.id === 'modal-promuovi') chiudiModalPromuovi();
     });
+
+    // Retrocedi modal
+    document.getElementById('modal-retrocedi-close').addEventListener('click', chiudiModalRetrocedi);
+    document.getElementById('btn-annulla-retrocedi').addEventListener('click', chiudiModalRetrocedi);
+    document.getElementById('btn-conferma-retrocedi').addEventListener('click', confermaRetrocedi);
+    document.getElementById('modal-retrocedi').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-retrocedi') chiudiModalRetrocedi();
+    });
 });
 
 function renderTableHeader() {
@@ -117,7 +126,7 @@ function renderTableHeader() {
     for (const p of PRODOTTI) {
         html += `<th class="prod">${p}</th>`;
     }
-    html += '<th class="prod" title="Note">&#9998;</th></tr>';
+    html += '<th class="prod" title="Note">&#9998;</th><th>Azioni</th></tr>';
     thead.innerHTML = html;
 
     // Header tabella lead
@@ -253,7 +262,7 @@ function renderTableBody() {
         : accountContatti;
 
     if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="25"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="26"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
         return;
     }
 
@@ -338,6 +347,9 @@ function renderTableBody() {
         }
 
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
+
+        // Bottone Retrocedi
+        html += `<td><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07; Retrocedi</button></td>`;
 
         html += '</tr>';
     });
@@ -456,6 +468,48 @@ async function confermaPromuovi() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Promuovi a Account';
+    }
+}
+
+// ==================== RETROCESSIONE ACCOUNT -> LEAD ====================
+
+function apriRetrocedi(contattoId) {
+    const contatto = accountContatti.find(c => c.id === contattoId);
+    if (!contatto) return;
+    retrocediContattoId = contattoId;
+    const info = document.getElementById('retrocedi-info');
+    info.textContent = `${contatto._displayCognome} ${contatto._displayNome} - ${contatto.citta || ''}`.trim();
+    document.getElementById('modal-retrocedi').classList.add('show');
+}
+
+function chiudiModalRetrocedi() {
+    document.getElementById('modal-retrocedi').classList.remove('show');
+    retrocediContattoId = null;
+}
+
+async function confermaRetrocedi() {
+    if (!retrocediContattoId) return;
+    const btn = document.getElementById('btn-conferma-retrocedi');
+    btn.disabled = true;
+    btn.textContent = 'Retrocessione in corso...';
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${retrocediContattoId}/retrocedi?key=${ADMIN_KEY}`, {
+            method: 'PUT'
+        });
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Errore retrocessione');
+        }
+        const data = await res.json();
+        mostraToast(data.messaggio || 'Account retrocesso a lead!', 'success');
+        chiudiModalRetrocedi();
+        await caricaDati();
+    } catch (err) {
+        console.error('Errore retrocessione:', err);
+        mostraToast(err.message || 'Errore durante la retrocessione', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Retrocedi a Lead';
     }
 }
 
@@ -746,6 +800,11 @@ async function confermaAggiungiProdotto(contattoId, prodotto) {
         }
         renderTableBody();
         mostraToast(data.messaggio, 'success');
+
+        // Se 0 prodotti rimanenti, proponi retrocessione a lead
+        if (data.prodotti_rimanenti === 0) {
+            apriRetrocedi(contattoId);
+        }
     } catch (err) {
         mostraToast('Errore di connessione', 'error');
     }

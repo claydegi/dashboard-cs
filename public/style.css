@@ -2287,6 +2287,40 @@ nav {
     border-left: 4px solid #8e44ad;
 }
 
+/* Bottone Retrocedi nella riga account */
+.crm-btn-retrocedi {
+    background: #e67e22;
+    color: white;
+    border: none;
+    padding: 5px 12px;
+    border-radius: 6px;
+    font-size: 0.85em;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+}
+.crm-btn-retrocedi:hover {
+    background: #d35400;
+}
+
+/* Modal Retrocedi */
+.crm-modal-retrocedi .crm-retrocedi-info {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 10px 0;
+    padding: 10px 14px;
+    background: #fef3e6;
+    border-radius: 8px;
+    border-left: 4px solid #e67e22;
+}
+.crm-retrocedi-warn {
+    color: #e74c3c;
+    font-weight: 600;
+    margin: 10px 0;
+}
+
 /* Score page: titoli sezione Account/Lead */
 .score-section-title {
     font-size: 1.2rem;
