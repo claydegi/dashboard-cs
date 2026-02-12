@@ -222,6 +222,7 @@ async function initDB() {
         // Migrazione: colonne tipo e mercato per contatti creati da dashboard
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS tipo TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mercato TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS gruppo_whatsapp BOOLEAN DEFAULT false`);
 
         // Tabella audit log CRM (traccia ogni azione di cancellazione)
         await client.query(`
@@ -1629,13 +1630,13 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         );
         const existingIds = existing.rows.map(r => r.id);
         if (existingIds.length > 0) {
-            // Elimina solo acquisti e prodotti NON manuali (protegge dashboard_manual, dashboard_promozione, regola_R2_dashboard)
+            // Elimina solo acquisti e prodotti NON manuali (protegge dashboard_manual, dashboard_promozione, regola_R2_dashboard, finder_email_whatsapp)
             await client.query(
-                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard'))",
+                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'))",
                 [existingIds]
             );
             await client.query(
-                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard'))",
+                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'))",
                 [existingIds]
             );
             // crm_note: mai toccata dal sync
@@ -1644,17 +1645,18 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
-                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
                 ON CONFLICT (id) DO UPDATE SET
                     cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
                     telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
                     regione = EXCLUDED.regione, nome_azienda = EXCLUDED.nome_azienda,
                     fonte_sync = EXCLUDED.fonte_sync, data_inserimento = EXCLUDED.data_inserimento,
-                    score = EXCLUDED.score, tipo = EXCLUDED.tipo, mercato = EXCLUDED.mercato
+                    score = EXCLUDED.score, tipo = EXCLUDED.tipo, mercato = EXCLUDED.mercato,
+                    gruppo_whatsapp = CASE WHEN EXCLUDED.gruppo_whatsapp = true THEN true ELSE crm_contatti.gruppo_whatsapp END
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
-                c.tipo || null, c.mercato || null]);
+                c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false]);
         }
 
         // R2: Se un contatto ha prodotti che richiedono MM ma non ha MM, aggiungi MM
@@ -1691,8 +1693,8 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                 DELETE FROM crm_prodotti WHERE id IN (
                     SELECT dm.id FROM crm_prodotti dm
                     INNER JOIN crm_prodotti sync ON dm.contatto_id = sync.contatto_id AND dm.prodotto = sync.prodotto
-                    WHERE dm.fonte IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard')
-                    AND sync.fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard')
+                    WHERE dm.fonte IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp')
+                    AND sync.fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp')
                     AND dm.contatto_id = ANY($1::int[])
                 )
             `, [existingIds]);

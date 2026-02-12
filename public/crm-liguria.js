@@ -28,6 +28,7 @@ let scoreHotMap = {};       // mappa contatto_id -> {linea_prodotto: score} per 
 let currentSort = 'cognome';
 let currentLeadSort = 'cognome';
 let searchTerm = '';
+let filterWhatsApp = false;
 let currentNoteContattoId = null;
 let recognition = null;
 let currentDettTarget = null; // 'note' o 'opp' - quale textarea sta usando la dettatura
@@ -53,6 +54,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('crm-search').addEventListener('input', (e) => {
         searchTerm = e.target.value.toLowerCase();
+        renderTableBody();
+        renderLeadTable();
+    });
+
+    document.getElementById('btn-filter-whatsapp').addEventListener('click', () => {
+        filterWhatsApp = !filterWhatsApp;
+        document.getElementById('btn-filter-whatsapp').classList.toggle('active', filterWhatsApp);
         renderTableBody();
         renderLeadTable();
     });
@@ -250,16 +258,20 @@ function sortContatti() {
 
 function renderTableBody() {
     const tbody = document.getElementById('crm-tbody');
-    const filtered = searchTerm
-        ? accountContatti.filter(c => {
+    let filtered = accountContatti;
+    if (filterWhatsApp) {
+        filtered = filtered.filter(c => c.gruppo_whatsapp);
+    }
+    if (searchTerm) {
+        filtered = filtered.filter(c => {
             const s = searchTerm;
             return (c._displayCognome || '').toLowerCase().includes(s)
                 || (c._displayNome || '').toLowerCase().includes(s)
                 || (c.citta || '').toLowerCase().includes(s)
                 || (c.email || '').toLowerCase().includes(s)
                 || (c.nome_azienda || '').toLowerCase().includes(s);
-        })
-        : accountContatti;
+        });
+    }
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="26"><div class="empty-state"><p>Nessun contatto trovato</p></div></td></tr>';
@@ -273,7 +285,8 @@ function renderTableBody() {
 
         html += `<tr class="crm-row${isNuovo}" data-id="${c.id}">`;
         html += `<td>${rowNum}</td>`;
-        html += `<td>${esc(c._displayCognome)}</td>`;
+        const waIcon = c.gruppo_whatsapp ? '<span class="crm-wa-icon" title="Gruppo WhatsApp">&#128172;</span>' : '';
+        html += `<td>${waIcon}${esc(c._displayCognome)}</td>`;
         html += `<td>${esc(c._displayNome)}</td>`;
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
@@ -366,16 +379,20 @@ function renderLeadTable() {
     const tbody = document.getElementById('crm-lead-tbody');
     if (!tbody) return;
 
-    const filtered = searchTerm
-        ? leadContatti.filter(c => {
+    let filtered = leadContatti;
+    if (filterWhatsApp) {
+        filtered = filtered.filter(c => c.gruppo_whatsapp);
+    }
+    if (searchTerm) {
+        filtered = filtered.filter(c => {
             const s = searchTerm;
             return (c._displayCognome || '').toLowerCase().includes(s)
                 || (c._displayNome || '').toLowerCase().includes(s)
                 || (c.citta || '').toLowerCase().includes(s)
                 || (c.email || '').toLowerCase().includes(s)
                 || (c.nome_azienda || '').toLowerCase().includes(s);
-        })
-        : leadContatti;
+        });
+    }
 
     if (filtered.length === 0) {
         tbody.innerHTML = '<tr><td colspan="9"><div class="empty-state"><p>Nessuna lead trovata</p></div></td></tr>';
@@ -386,7 +403,8 @@ function renderLeadTable() {
     filtered.forEach((c, idx) => {
         html += `<tr class="crm-row crm-lead-row" data-id="${c.id}">`;
         html += `<td>${idx + 1}</td>`;
-        html += `<td>${esc(c._displayCognome)}</td>`;
+        const waIconLead = c.gruppo_whatsapp ? '<span class="crm-wa-icon" title="Gruppo WhatsApp">&#128172;</span>' : '';
+        html += `<td>${waIconLead}${esc(c._displayCognome)}</td>`;
         html += `<td>${esc(c._displayNome)}</td>`;
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
         html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;

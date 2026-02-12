@@ -2000,6 +2000,34 @@ nav {
    NUOVO CONTATTO - Modal & Form
    ========================================== */
 
+/* WhatsApp icon + filter */
+.crm-wa-icon {
+    display: inline-block;
+    font-size: 11px;
+    margin-right: 3px;
+    vertical-align: middle;
+    opacity: 0.85;
+}
+.crm-btn-filter-whatsapp {
+    padding: 6px 12px;
+    border: 1px solid #25D366;
+    background: white;
+    color: #25D366;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.crm-btn-filter-whatsapp:hover {
+    background: #e8fdf0;
+}
+.crm-btn-filter-whatsapp.active {
+    background: #25D366;
+    color: white;
+}
+
 .crm-btn-nuovo-contatto {
     padding: 8px 16px;
     background: #27ae60;
