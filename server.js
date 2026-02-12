@@ -215,6 +215,22 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_contatto ON crm_score_prodotti(contatto_id)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_prodotto ON crm_score_prodotti(linea_prodotto)`);
 
+        // Tabella score manuali (bridge: display immediato prima del sync)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_score_manuali (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                linea_prodotto TEXT NOT NULL,
+                tipo_attivita TEXT NOT NULL,
+                punti INTEGER NOT NULL,
+                data_evento TEXT NOT NULL,
+                sincronizzata BOOLEAN DEFAULT false,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_manuali_contatto ON crm_score_manuali(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_score_manuali_sync ON crm_score_manuali(sincronizzata) WHERE sincronizzata = false`);
+
         // Indici composti per performance CRM
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_prodotti_contatto_prodotto ON crm_prodotti(contatto_id, prodotto)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto_prodotto ON crm_acquisti(contatto_id, prodotto)`);
@@ -1375,15 +1391,23 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
         }
 
         // Carica score per linea prodotto (per mostrare fiamma hot nel CRM)
+        // Combina crm_score_prodotti + crm_score_manuali non ancora sincronizzati
         let scoreMap = {};
         if (ids.length > 0) {
-            const scores = await pool.query(
-                'SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti WHERE contatto_id = ANY($1::int[]) AND score >= 40',
-                [ids]
-            );
+            const scores = await pool.query(`
+                SELECT contatto_id, linea_prodotto, SUM(score) as score FROM (
+                    SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti
+                    WHERE contatto_id = ANY($1::int[])
+                    UNION ALL
+                    SELECT contatto_id, linea_prodotto, punti as score FROM crm_score_manuali
+                    WHERE sincronizzata = false AND contatto_id = ANY($1::int[])
+                ) combined
+                GROUP BY contatto_id, linea_prodotto
+                HAVING SUM(score) >= 40
+            `, [ids]);
             for (const s of scores.rows) {
                 if (!scoreMap[s.contatto_id]) scoreMap[s.contatto_id] = {};
-                scoreMap[s.contatto_id][s.linea_prodotto] = s.score;
+                scoreMap[s.contatto_id][s.linea_prodotto] = parseInt(s.score);
             }
         }
 
@@ -1452,9 +1476,18 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
         const totLead = await pool.query(
             "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND tipo = 'lead'", [regione]
         );
-        const conScore = await pool.query(
-            'SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND score >= 40', [regione]
-        );
+        const conScore = await pool.query(`
+            SELECT COUNT(DISTINCT contatto_id) as totale FROM (
+                SELECT contatto_id, linea_prodotto, SUM(score) as total FROM (
+                    SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti
+                    UNION ALL
+                    SELECT contatto_id, linea_prodotto, punti FROM crm_score_manuali WHERE sincronizzata = false
+                ) combined
+                WHERE contatto_id IN (SELECT id FROM crm_contatti WHERE regione = $1)
+                GROUP BY contatto_id, linea_prodotto
+                HAVING SUM(score) >= 40
+            ) hot
+        `, [regione]);
         const nuoviOdoo = await pool.query(
             `SELECT COUNT(DISTINCT p.contatto_id) as totale FROM crm_prodotti p
              JOIN crm_contatti c ON p.contatto_id = c.id
@@ -1805,6 +1838,14 @@ const CRM_PRODOTTI = ['MM','ELEVATE','BLACK RUBY','LC','FIRST','EASY IN','EASY P
                       'CEP','GENOA','EASYROOT','IMPIANTI','SUTURE','BLEXO','GUIDATA','PT1'];
 const CRM_PRODOTTI_RICORRENTI = ['BLEXO', 'CEP', 'SUTURE'];
 const CRM_INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
+
+// Attivita' offline con punteggio fisso (score manuale)
+const ATTIVITA_OFFLINE = {
+    'richiesta_prodotto_stand': { label: 'Richiesta prodotto allo stand', punti: 30 },
+    'richiesta_trial_surgery':  { label: 'Richiesta trial surgery', punti: 50 },
+    'richiesta_info_corsi':     { label: 'Richieste informazioni: corsi', punti: 25 },
+    'partecipazione_corso':     { label: 'Partecipazione a corso', punti: 100 }
+};
 
 // Aggiungi prodotto a un contatto
 app.post('/api/crm/contatti/:id/prodotti', requireAdmin, async (req, res) => {
@@ -2730,21 +2771,33 @@ app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
 // ==================== API CRM SCORE ====================
 
 // Score per linea prodotto per tutti i contatti di una regione
+// Combina crm_score_prodotti + crm_score_manuali non sincronizzati
 app.get('/api/crm/score', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
     try {
-        const result = await pool.query(`
+        // Score da sync (aggregati da score_eventi)
+        const syncScores = await pool.query(`
             SELECT c.id, c.cognome, c.nome, c.nome_azienda, c.tipo,
                    sp.linea_prodotto, sp.score
             FROM crm_contatti c
             INNER JOIN crm_score_prodotti sp ON sp.contatto_id = c.id
             WHERE c.regione = $1 AND sp.score > 0
-            ORDER BY COALESCE(NULLIF(c.cognome,''), c.nome_azienda) COLLATE "C"
         `, [regione]);
 
-        // Raggruppa per contatto
+        // Score manuali non ancora sincronizzati
+        const manualScores = await pool.query(`
+            SELECT c.id, c.cognome, c.nome, c.nome_azienda, c.tipo,
+                   sm.linea_prodotto, sm.punti as score
+            FROM crm_contatti c
+            INNER JOIN crm_score_manuali sm ON sm.contatto_id = c.id
+            WHERE c.regione = $1 AND sm.sincronizzata = false
+        `, [regione]);
+
+        // Combina e aggrega
+        const allRows = [...syncScores.rows, ...manualScores.rows];
         const contattiMap = {};
-        for (const r of result.rows) {
+        const allLinee = new Set();
+        for (const r of allRows) {
             if (!contattiMap[r.id]) {
                 contattiMap[r.id] = {
                     id: r.id,
@@ -2755,7 +2808,9 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                     score_prodotti: {}
                 };
             }
-            contattiMap[r.id].score_prodotti[r.linea_prodotto] = r.score;
+            const current = contattiMap[r.id].score_prodotti[r.linea_prodotto] || 0;
+            contattiMap[r.id].score_prodotti[r.linea_prodotto] = current + parseInt(r.score);
+            allLinee.add(r.linea_prodotto);
         }
 
         // Calcola score totale e converti in array
@@ -2765,7 +2820,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
         });
 
         // Estrai tutte le linee prodotto presenti
-        const lineeProdotto = [...new Set(result.rows.map(r => r.linea_prodotto))].sort();
+        const lineeProdotto = [...allLinee].sort();
 
         res.json({ contatti, linee_prodotto: lineeProdotto });
     } catch (err) {
@@ -2836,10 +2891,28 @@ app.put('/api/crm/contatti/:id/promuovi', requireAdmin, async (req, res) => {
             [contattoId, prodottiInseriti.join(',')]
         );
 
+        // 4. Cancella score GENERICO (non piu' rilevante dopo promozione)
+        const delManuali = await client.query(
+            "DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'",
+            [contattoId]
+        );
+        const delProdotti = await client.query(
+            "DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'",
+            [contattoId]
+        );
+        const genericoEliminati = (delManuali.rowCount || 0) + (delProdotti.rowCount || 0);
+        if (genericoEliminati > 0) {
+            // Logga per sync: cancellare GENERICO anche da score_eventi nel SQLite
+            await client.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('delete_score_generico', $1, $2)`,
+                [contattoId, JSON.stringify({ motivo: 'promozione_lead_account' })]
+            );
+        }
+
         await client.query('COMMIT');
 
         const c = contatto.rows[0];
-        console.log(`[CRM Promozione] Lead ${c.cognome} ${c.nome} (ID ${contattoId}) promosso ad account con prodotti: ${prodottiInseriti.join(', ')}`);
+        console.log(`[CRM Promozione] Lead ${c.cognome} ${c.nome} (ID ${contattoId}) promosso ad account con prodotti: ${prodottiInseriti.join(', ')}${genericoEliminati > 0 ? ' (GENERICO rimosso)' : ''}`);
         res.json({
             ok: true,
             prodotti_inseriti: prodottiInseriti,
@@ -2981,6 +3054,94 @@ app.put('/api/crm/modifiche/sincronizzate', requireReportsKey, async (req, res) 
         res.json({ ok: true, aggiornate: ids.length });
     } catch (err) {
         console.error('[CRM Sync Modifiche]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== SCORE MANUALE ====================
+
+// Assegna score manuale a un contatto (attivita' offline)
+app.post('/api/crm/contatti/:id/score', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const { tipo_attivita, linea_prodotto } = req.body;
+
+    // Validazione tipo attivita
+    if (!tipo_attivita || !ATTIVITA_OFFLINE[tipo_attivita]) {
+        return res.status(400).json({ error: 'Tipo attivita non valido' });
+    }
+
+    // Validazione linea prodotto
+    if (!linea_prodotto || (!CRM_PRODOTTI.includes(linea_prodotto) && linea_prodotto !== 'GENERICO')) {
+        return res.status(400).json({ error: 'Linea prodotto non valida' });
+    }
+
+    try {
+        // Verifica contatto e tipo
+        const contatto = await pool.query('SELECT id, tipo, cognome, nome FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        const tipoContatto = contatto.rows[0].tipo || 'account';
+        if (linea_prodotto === 'GENERICO' && tipoContatto !== 'lead') {
+            return res.status(400).json({ error: 'GENERICO e\' disponibile solo per le lead' });
+        }
+
+        const attivita = ATTIVITA_OFFLINE[tipo_attivita];
+        const oggi = new Date().toISOString().split('T')[0];
+
+        // 1. Inserisci in bridge table (display immediato)
+        const insertResult = await pool.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [contattoId, linea_prodotto, tipo_attivita, attivita.punti, oggi]
+        );
+        const scoreManualId = insertResult.rows[0].id;
+
+        // 2. Logga per sync bidirezionale
+        await pool.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('add_score', $1, $2)`,
+            [contattoId, JSON.stringify({
+                linea_prodotto,
+                tipo_attivita,
+                punti: attivita.punti,
+                data_evento: oggi,
+                label: attivita.label,
+                score_manuale_id: scoreManualId
+            })]
+        );
+
+        const c = contatto.rows[0];
+        console.log(`[CRM Score Manuale] ${c.cognome} ${c.nome} (ID ${contattoId}): +${attivita.punti} per ${linea_prodotto} (${attivita.label})`);
+        res.json({
+            ok: true,
+            punti: attivita.punti,
+            linea_prodotto,
+            tipo_attivita,
+            messaggio: `Score +${attivita.punti} assegnato a ${linea_prodotto} per ${attivita.label}`
+        });
+    } catch (err) {
+        console.error('[CRM Score Manuale]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Segna score manuali come sincronizzati (per push_crm_dashboard.py)
+app.put('/api/crm/score/manuali/sincronizzate', requireReportsKey, async (req, res) => {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+        return res.status(400).json({ error: 'Nessun ID fornito' });
+    }
+    try {
+        await pool.query(
+            'UPDATE crm_score_manuali SET sincronizzata = true WHERE id = ANY($1)',
+            [ids]
+        );
+        console.log(`[CRM Sync] ${ids.length} score manuali segnati come sincronizzati`);
+        res.json({ ok: true, aggiornate: ids.length });
+    } catch (err) {
+        console.error('[CRM Sync Score Manuali]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

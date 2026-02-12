@@ -109,6 +109,39 @@
         </div>
     </div>
 
+    <!-- Modal Assegna Score Manuale -->
+    <div id="modal-score" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo crm-modal-score">
+            <div class="crm-modal-header">
+                <h2>Assegna Score</h2>
+                <span class="crm-modal-close" id="modal-score-close">&times;</span>
+            </div>
+            <p class="crm-score-info" id="score-info"></p>
+            <div class="crm-form-fields">
+                <div class="crm-form-group">
+                    <label>Tipo attivita</label>
+                    <select id="score-tipo-attivita" class="crm-form-select">
+                        <option value="">-- Seleziona attivita --</option>
+                        <option value="richiesta_prodotto_stand">Richiesta prodotto allo stand (+30)</option>
+                        <option value="richiesta_trial_surgery">Richiesta trial surgery (+50)</option>
+                        <option value="richiesta_info_corsi">Richieste informazioni: corsi (+25)</option>
+                        <option value="partecipazione_corso">Partecipazione a corso (+100)</option>
+                    </select>
+                </div>
+                <div class="crm-form-group">
+                    <label>Linea prodotto</label>
+                    <select id="score-linea-prodotto" class="crm-form-select">
+                        <!-- Popolato dinamicamente da JS -->
+                    </select>
+                </div>
+            </div>
+            <div class="crm-form-actions">
+                <button class="crm-btn-si" id="btn-conferma-score">Assegna Score</button>
+                <button class="crm-btn-no" id="btn-annulla-score">Annulla</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Modal Nuovo Contatto -->
     <div id="modal-nuovo-contatto" class="crm-modal-overlay">
         <div class="crm-modal-nuovo">

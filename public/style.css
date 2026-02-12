@@ -2367,3 +2367,45 @@ nav {
 .score-table-lead thead th {
     background: #6c3483 !important;
 }
+
+/* ==================== SCORE MANUALE ==================== */
+.crm-btn-score {
+    background: #f39c12;
+    color: white;
+    border: none;
+    padding: 2px 6px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: bold;
+    margin-right: 3px;
+    line-height: 1;
+}
+.crm-btn-score:hover {
+    background: #e67e22;
+}
+
+/* Modal Score */
+.crm-modal-score .crm-score-info {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 16px 0;
+    padding: 10px 14px;
+    background: #fef9e7;
+    border-radius: 8px;
+    border-left: 4px solid #f39c12;
+}
+.crm-form-select {
+    padding: 8px 10px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 13px;
+    width: 100%;
+    background: white;
+}
+.crm-form-select:focus {
+    border-color: #f39c12;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.15);
+}

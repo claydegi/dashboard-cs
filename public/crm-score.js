@@ -26,11 +26,12 @@ async function caricaScore() {
         const accountContatti = contatti.filter(c => c.tipo === 'account' || !c.tipo);
         const leadContatti = contatti.filter(c => c.tipo === 'lead');
 
-        // Renderizza sezione Account
-        renderHeader('score-thead', linee_prodotto);
-        renderBody('score-tbody', accountContatti, linee_prodotto);
+        // Account: senza colonna GENERICO (non applicabile)
+        const accountLinee = linee_prodotto.filter(lp => lp !== 'GENERICO');
+        renderHeader('score-thead', accountLinee);
+        renderBody('score-tbody', accountContatti, accountLinee);
 
-        // Renderizza sezione Lead
+        // Lead: con GENERICO se presente nei dati
         renderHeader('score-lead-thead', linee_prodotto);
         renderBody('score-lead-tbody', leadContatti, linee_prodotto);
     } catch (err) {

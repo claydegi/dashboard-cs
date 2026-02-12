@@ -34,6 +34,8 @@ let recognition = null;
 let currentDettTarget = null; // 'note' o 'opp' - quale textarea sta usando la dettatura
 let promuoviContattoId = null; // ID contatto per popup promuovi
 let retrocediContattoId = null; // ID contatto per popup retrocedi
+let scoreContattoId = null; // ID contatto per modal score manuale
+let scoreContattoTipo = null; // 'account' o 'lead'
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -125,6 +127,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('btn-conferma-retrocedi').addEventListener('click', confermaRetrocedi);
     document.getElementById('modal-retrocedi').addEventListener('click', (e) => {
         if (e.target.id === 'modal-retrocedi') chiudiModalRetrocedi();
+    });
+
+    // Score manuale modal
+    document.getElementById('modal-score-close').addEventListener('click', chiudiModalScore);
+    document.getElementById('btn-annulla-score').addEventListener('click', chiudiModalScore);
+    document.getElementById('btn-conferma-score').addEventListener('click', confermaScore);
+    document.getElementById('modal-score').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-score') chiudiModalScore();
     });
 });
 
@@ -361,8 +371,8 @@ function renderTableBody() {
 
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
-        // Bottone Retrocedi
-        html += `<td><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07;R</button></td>`;
+        // Bottoni Azioni: Score manuale + Retrocedi
+        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07;R</button></td>`;
 
         html += '</tr>';
     });
@@ -432,7 +442,7 @@ function renderLeadTable() {
 
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
-        html += `<td><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
+        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
         html += '</tr>';
     });
 
@@ -550,6 +560,86 @@ async function confermaRetrocedi() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Retrocedi a Lead';
+    }
+}
+
+// ==================== SCORE MANUALE ====================
+
+function apriScore(contattoId) {
+    const contatto = allContatti.find(c => c.id === contattoId);
+    if (!contatto) return;
+
+    scoreContattoId = contattoId;
+    scoreContattoTipo = contatto.tipo || 'account';
+
+    // Info contatto
+    const displayName = ((contatto._displayCognome || '') + ' ' + (contatto._displayNome || '')).trim();
+    document.getElementById('score-info').textContent = displayName + (contatto.citta ? ' - ' + contatto.citta : '');
+
+    // Popola dropdown linea prodotto
+    const select = document.getElementById('score-linea-prodotto');
+    let opts = '<option value="">-- Seleziona prodotto --</option>';
+    for (const p of PRODOTTI) {
+        opts += `<option value="${p}">${p}</option>`;
+    }
+    if (scoreContattoTipo === 'lead') {
+        opts += '<option value="GENERICO">GENERICO (non legato a prodotto)</option>';
+    }
+    select.innerHTML = opts;
+
+    // Reset form
+    document.getElementById('score-tipo-attivita').value = '';
+
+    document.getElementById('modal-score').classList.add('show');
+}
+
+function chiudiModalScore() {
+    document.getElementById('modal-score').classList.remove('show');
+    scoreContattoId = null;
+    scoreContattoTipo = null;
+}
+
+async function confermaScore() {
+    if (!scoreContattoId) return;
+
+    const tipoAttivita = document.getElementById('score-tipo-attivita').value;
+    const lineaProdotto = document.getElementById('score-linea-prodotto').value;
+
+    if (!tipoAttivita) {
+        mostraToast('Seleziona un tipo di attivita', 'error');
+        return;
+    }
+    if (!lineaProdotto) {
+        mostraToast('Seleziona una linea prodotto', 'error');
+        return;
+    }
+
+    const btn = document.getElementById('btn-conferma-score');
+    btn.disabled = true;
+    btn.textContent = 'Assegnazione...';
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${scoreContattoId}/score?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ tipo_attivita: tipoAttivita, linea_prodotto: lineaProdotto })
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Errore assegnazione score');
+        }
+
+        const data = await res.json();
+        mostraToast(data.messaggio, 'success');
+        chiudiModalScore();
+        await caricaDati();
+    } catch (err) {
+        console.error('Errore score:', err);
+        mostraToast(err.message || 'Errore durante assegnazione score', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Assegna Score';
     }
 }
 
