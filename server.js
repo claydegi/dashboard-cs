@@ -3321,9 +3321,9 @@ app.get('/whatsapp-invite', async (req, res) => {
     const whatsappLink = gruppoConfig.link;
 
     try {
-        // Cerca contatto per email
+        // Cerca contatto per email (incluso tipo per score differenziato)
         const result = await pool.query(
-            `SELECT id, cognome, nome FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+            `SELECT id, cognome, nome, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1`,
             [email]
         );
 
@@ -3342,6 +3342,27 @@ app.get('/whatsapp-invite', async (req, res) => {
                 `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
                  VALUES ('whatsapp_click', $1, $2)`,
                 [contattoId, JSON.stringify({ email, gruppo })]
+            );
+
+            // Score GENERICO: 10 punti account, 30 punti lead
+            const puntiScore = contatto.tipo === 'lead' ? 30 : 10;
+            await pool.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('add_score', $1, $2)`,
+                [contattoId, JSON.stringify({
+                    linea_prodotto: 'GENERICO',
+                    tipo_attivita: 'whatsapp_landing_click',
+                    punti: puntiScore,
+                    label: 'Click landing WhatsApp',
+                    data_evento: new Date().toISOString().split('T')[0]
+                })]
+            );
+
+            // Inserisce anche in crm_score_manuali per display immediato
+            await pool.query(
+                `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti)
+                 VALUES ($1, 'GENERICO', 'whatsapp_landing_click', $2)`,
+                [contattoId, puntiScore]
             );
         }
 
