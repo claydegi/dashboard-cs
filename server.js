@@ -273,6 +273,19 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_data ON crm_cestino(cancellato_il DESC)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_contatto ON crm_cestino(contatto_id)`);
 
+        // Tabella WhatsApp clicks (storico click da landing page enrollment)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_whatsapp_clicks (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                gruppo TEXT NOT NULL,
+                clicked_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_email ON crm_whatsapp_clicks(email)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_data ON crm_whatsapp_clicks(clicked_at DESC)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -3243,6 +3256,212 @@ app.get('/crm-score', (req, res) => {
 
 app.get('/', (req, res) => {
     res.redirect('/cs');
+});
+
+// ==================== WHATSAPP ENROLLMENT LANDING ====================
+
+// Configurazione gruppi WhatsApp (hardcoded per indipendenza da file config)
+const WHATSAPP_GRUPPI = [
+    { id: 'GRUPPO_1', link: 'https://chat.whatsapp.com/JECJ245aZj74c5zSrMm5PF' },
+    { id: 'GRUPPO_2', link: 'https://chat.whatsapp.com/JbuTQK5SscO1qJ6EQNi5Ry' },
+    { id: 'GRUPPO_3', link: 'https://chat.whatsapp.com/HsUqNTRb2l1FZptxWjKkBh' }
+];
+
+// Landing page WhatsApp enrollment (PUBBLICA — no auth, il contatto clicca dall'email)
+app.get('/whatsapp-invite', async (req, res) => {
+    const { email, gruppo } = req.query;
+
+    if (!email || !gruppo) {
+        return res.status(400).send('<h1>Link non valido</h1><p>Parametri mancanti.</p>');
+    }
+
+    // Trova il link WhatsApp dal gruppo
+    const gruppoConfig = WHATSAPP_GRUPPI.find(g => g.id === gruppo);
+    if (!gruppoConfig) {
+        return res.status(400).send('<h1>Gruppo non trovato</h1>');
+    }
+
+    const whatsappLink = gruppoConfig.link;
+
+    try {
+        // Cerca contatto per email
+        const result = await pool.query(
+            `SELECT id, cognome, nome FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+            [email]
+        );
+
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        if (contatto) {
+            // Aggiorna gruppo_whatsapp = true
+            await pool.query(
+                `UPDATE crm_contatti SET gruppo_whatsapp = true WHERE id = $1`,
+                [contattoId]
+            );
+
+            // Logga in crm_modifiche_log per sync bidirezionale
+            await pool.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('whatsapp_click', $1, $2)`,
+                [contattoId, JSON.stringify({ email, gruppo })]
+            );
+        }
+
+        // Registra click (anche se contatto non trovato — per analytics)
+        await pool.query(
+            `INSERT INTO crm_whatsapp_clicks (contatto_id, email, gruppo)
+             VALUES ($1, $2, $3)`,
+            [contattoId, email, gruppo]
+        );
+
+        const cognome = contatto ? contatto.cognome : '';
+        console.log(`[WhatsApp Invite] Click: ${email} (${cognome}) -> ${gruppo}`);
+
+    } catch (err) {
+        console.error('[WhatsApp Invite] Errore DB:', err);
+        // Non blocchiamo l'utente — mostriamo comunque la landing
+    }
+
+    // Genera landing page HTML
+    res.send(`<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSSEOTOUCH – Community WhatsApp</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #00796b;
+            padding: 20px 25px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+        .content {
+            padding: 25px;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto 25px auto;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+        }
+        .video-wrapper iframe {
+            width: 100%;
+            aspect-ratio: 9/16;
+            display: block;
+            border: none;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 16px;
+            color: #333333;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        .subtitle strong {
+            color: #00796b;
+        }
+        .wa-button {
+            display: block;
+            width: 100%;
+            max-width: 350px;
+            margin: 0 auto;
+            padding: 16px 30px;
+            background-color: #25D366;
+            color: #ffffff;
+            text-align: center;
+            text-decoration: none;
+            font-size: 18px;
+            font-weight: bold;
+            border-radius: 10px;
+            border: none;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .wa-button:hover {
+            background-color: #1da851;
+        }
+        .wa-button svg {
+            width: 22px;
+            height: 22px;
+            vertical-align: middle;
+            margin-right: 8px;
+            fill: #ffffff;
+        }
+        .footer {
+            text-align: center;
+            padding: 20px 25px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+        }
+        .footer p {
+            font-size: 12px;
+            color: #999999;
+        }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header h1 { font-size: 18px; }
+            .content { padding: 20px 15px; }
+            .video-wrapper { max-width: 280px; }
+            .wa-button { font-size: 16px; padding: 14px 20px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Community WhatsApp<br>Implantologia Magnetodinamica</h1>
+        </div>
+        <div class="content">
+            <div class="video-wrapper">
+                <iframe
+                    src="https://www.youtube.com/embed/u_mqrOkNqSg?autoplay=1&mute=1&loop=1&playlist=u_mqrOkNqSg&controls=1&rel=0"
+                    allow="autoplay; encrypted-media"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <p class="subtitle">
+                Unisciti a <strong>migliaia di colleghi</strong> che ogni giorno si confrontano su casi clinici di implantologia mini-invasiva con il Magnetic Mallet.
+            </p>
+            <a href="${whatsappLink}" class="wa-button">
+                <svg viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                UNISCITI AL GRUPPO
+            </a>
+        </div>
+        <div class="footer">
+            <p>Osseotouch – Total Control</p>
+        </div>
+    </div>
+</body>
+</html>`);
 });
 
 // ==================== AVVIO SERVER ====================
