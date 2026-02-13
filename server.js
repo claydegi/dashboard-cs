@@ -3361,7 +3361,8 @@ app.delete('/api/crm/contatti/:id/score-manuali/:scoreId', requireAdmin, async (
                         linea_prodotto: record.linea_prodotto,
                         tipo_attivita: record.tipo_attivita,
                         punti: record.punti,
-                        data_evento: record.data_evento
+                        data_evento: record.data_evento,
+                        score_manuale_id: scoreId
                     })]
                 );
             }
