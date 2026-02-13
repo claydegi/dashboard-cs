@@ -2258,13 +2258,15 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
     }
 });
 
-// Toggle gruppo_whatsapp per un contatto
+// Toggle gruppo_whatsapp per un contatto (on/off)
 app.put('/api/crm/contatti/:id/whatsapp', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
+    // Se il body contiene gruppo_whatsapp, usa quello; altrimenti default true (retrocompatibilita')
+    const nuovoValore = req.body && req.body.gruppo_whatsapp !== undefined ? !!req.body.gruppo_whatsapp : true;
     try {
         const result = await pool.query(
-            `UPDATE crm_contatti SET gruppo_whatsapp = true WHERE id = $1 RETURNING id, gruppo_whatsapp`,
-            [contattoId]
+            `UPDATE crm_contatti SET gruppo_whatsapp = $1 WHERE id = $2 RETURNING id, gruppo_whatsapp`,
+            [nuovoValore, contattoId]
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Contatto non trovato' });
@@ -2274,11 +2276,11 @@ app.put('/api/crm/contatti/:id/whatsapp', requireAdmin, async (req, res) => {
         await pool.query(
             `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
              VALUES ('whatsapp_toggle', $1, $2)`,
-            [contattoId, JSON.stringify({ gruppo_whatsapp: true })]
+            [contattoId, JSON.stringify({ gruppo_whatsapp: nuovoValore })]
         );
 
-        console.log(`[CRM] WhatsApp attivato per contatto ${contattoId}`);
-        res.json({ ok: true, gruppo_whatsapp: true });
+        console.log(`[CRM] WhatsApp ${nuovoValore ? 'attivato' : 'disattivato'} per contatto ${contattoId}`);
+        res.json({ ok: true, gruppo_whatsapp: nuovoValore });
     } catch (err) {
         console.error('[CRM WhatsApp Toggle]', err);
         res.status(500).json({ error: 'Errore server' });
