@@ -27,10 +27,9 @@ async function caricaScore() {
         const accountContatti = contatti.filter(c => c.tipo === 'account' || !c.tipo);
         const leadContatti = contatti.filter(c => c.tipo === 'lead');
 
-        // Account: senza colonna GENERICO (non applicabile)
-        const accountLinee = linee_prodotto.filter(lp => lp !== 'GENERICO');
-        renderHeader('score-thead', accountLinee);
-        renderBody('score-tbody', accountContatti, accountLinee);
+        // Account: con GENERICO (score da campagne non legate a prodotto, es. WhatsApp)
+        renderHeader('score-thead', linee_prodotto);
+        renderBody('score-tbody', accountContatti, linee_prodotto);
 
         // Lead: con GENERICO se presente nei dati
         renderHeader('score-lead-thead', linee_prodotto);
