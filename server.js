@@ -1741,9 +1741,24 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
-        // Inserisci prodotti
+        // Inserisci prodotti (skip se esiste gia' stesso contatto+prodotto con fonte protetta)
         if (prodotti && prodotti.length > 0) {
+            // Carica prodotti protetti esistenti per evitare duplicati
+            const protectedFonti = ['dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'];
+            let existingProtected = new Set();
+            if (existingIds.length > 0) {
+                const epResult = await client.query(
+                    `SELECT contatto_id, prodotto FROM crm_prodotti
+                     WHERE contatto_id = ANY($1::int[]) AND fonte = ANY($2::text[])`,
+                    [existingIds, protectedFonti]
+                );
+                for (const row of epResult.rows) {
+                    existingProtected.add(`${row.contatto_id}_${row.prodotto}`);
+                }
+            }
             for (const p of prodotti) {
+                const key = `${p.contatto_id}_${p.prodotto}`;
+                if (existingProtected.has(key)) continue; // gia' presente con fonte protetta, skip
                 await client.query(`
                     INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte)
                     VALUES ($1, $2, $3, $4)
@@ -1810,6 +1825,26 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         res.status(500).json({ error: 'Errore sync: ' + err.message });
     } finally {
         client.release();
+    }
+});
+
+// Pulizia duplicati prodotti (one-shot): rimuove righe duplicate in crm_prodotti (stesso contatto_id + prodotto)
+// Mantiene la riga con id piu' basso (la prima inserita)
+app.post('/api/crm/cleanup-duplicati-prodotti', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            DELETE FROM crm_prodotti WHERE id IN (
+                SELECT id FROM (
+                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, prodotto ORDER BY id) as rn
+                    FROM crm_prodotti
+                ) ranked WHERE rn > 1
+            )
+        `);
+        console.log(`[CRM Cleanup] Rimossi ${result.rowCount} prodotti duplicati`);
+        res.json({ ok: true, rimossi: result.rowCount });
+    } catch (err) {
+        console.error('[CRM Cleanup]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
