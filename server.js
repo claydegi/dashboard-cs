@@ -1692,6 +1692,24 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                 c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false]);
         }
 
+        // Rimuovi contatti della regione che non sono piu' nel payload SQLite
+        // (es. contatti cancellati localmente). Protegge contatti creati dalla dashboard (fonte_sync NULL o dashboard_manual)
+        const syncIds = contatti.map(c => c.id);
+        const orfani = existingIds.filter(eid => !syncIds.includes(eid));
+        if (orfani.length > 0) {
+            // Elimina solo se NON creati manualmente dalla dashboard
+            const orfResult = await client.query(
+                "SELECT id FROM crm_contatti WHERE id = ANY($1::int[]) AND (fonte_sync IS NULL OR fonte_sync NOT IN ('dashboard_manual'))",
+                [orfani]
+            );
+            const idsToDelete = orfResult.rows.map(r => r.id);
+            if (idsToDelete.length > 0) {
+                // CASCADE sulle FK elimina prodotti, acquisti, score, note collegati
+                await client.query('DELETE FROM crm_contatti WHERE id = ANY($1::int[])', [idsToDelete]);
+                console.log(`[CRM Sync] ${regione}: rimossi ${idsToDelete.length} contatti orfani: ${idsToDelete.join(', ')}`);
+            }
+        }
+
         // R2: Se un contatto ha prodotti che richiedono MM ma non ha MM, aggiungi MM
         const INDIPENDENTI_DA_MM = ['IMPIANTI', 'EASYROOT', 'SUTURE', 'CEP'];
         if (prodotti && prodotti.length > 0) {
