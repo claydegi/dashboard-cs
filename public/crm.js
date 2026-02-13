@@ -26,6 +26,7 @@ let noteCountMap = {};      // mappa contatto_id -> num note
 let oppCountMap = {};       // mappa contatto_id -> num opportunita
 let oppScaduteMap = {};     // mappa contatto_id -> num opportunita scadute non viste
 let scoreHotMap = {};       // mappa contatto_id -> {linea_prodotto: score} per score >= 40
+let videoIconsMap = {};     // mappa contatto_id -> {linea_prodotto: num_video_completati}
 let currentSort = 'cognome';
 let currentLeadSort = 'cognome';
 let searchTerm = '';
@@ -208,6 +209,13 @@ async function caricaDati() {
             }
         }
 
+        // Video engagement icons per contatto
+        for (const c of allContatti) {
+            if (c.video_icons && Object.keys(c.video_icons).length > 0) {
+                videoIconsMap[c.id] = c.video_icons;
+            }
+        }
+
         // Build product set per contatto for sorting + applica R2 (MM obbligatorio)
         allContatti.forEach(c => {
             c._prodSet = new Set((c.prodotti || []).map(p => p.prodotto));
@@ -351,8 +359,13 @@ function renderTableBody() {
             } else {
                 // Controlla se c'è un hot score per questa linea prodotto
                 const hotScore = scoreHotMap[c.id] && scoreHotMap[c.id][p];
+                const vidCount = videoIconsMap[c.id] && videoIconsMap[c.id][p];
+                const vidIcon = vidCount >= 3 ? '\u25B6\u25B6' : (vidCount >= 1 ? '\u25B6' : '');
                 if (hotScore) {
-                    html += `<td class="crm-cell-empty crm-hot-opportunity" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="&#128293; Hot Opportunity! Score ${hotScore} - Aggiungi ${p}">&#128293;</td>`;
+                    const vidHtml = vidIcon ? `<span style="color:#CC0000;font-size:10px;margin-left:2px" title="Video completati: ${vidCount}">${vidIcon}</span>` : '';
+                    html += `<td class="crm-cell-empty crm-hot-opportunity" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="&#128293; Hot Opportunity! Score ${hotScore} - Aggiungi ${p}">&#128293;${vidHtml}</td>`;
+                } else if (vidIcon) {
+                    html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Video completati: ${vidCount} - Aggiungi ${p}"><span style="color:#CC0000;font-size:11px">${vidIcon}</span></td>`;
                 } else {
                     // Cella vuota cliccabile per aggiungere prodotto
                     html += `<td class="crm-cell-empty" onclick="aggiungiProdotto(${c.id}, '${p}', this)" title="Aggiungi ${p}"></td>`;

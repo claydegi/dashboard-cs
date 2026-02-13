@@ -1441,12 +1441,32 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
             }
         }
 
+        // Icone video engagement: conta quanti video completati (>=90%) per linea prodotto
+        // ▶ = 1-2 video completati, ▶▶ = 3+ video completati sulla stessa linea
+        let videoIconsMap = {};
+        if (ids.length > 0) {
+            const videoCompletions = await pool.query(`
+                SELECT contatto_id,
+                       SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1) as linea,
+                       COUNT(DISTINCT campagna) as num_video
+                FROM crm_video_tracking
+                WHERE contatto_id = ANY($1::int[])
+                  AND evento = 'score_90'
+                GROUP BY contatto_id, SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1)
+            `, [ids]);
+            for (const v of videoCompletions.rows) {
+                if (!videoIconsMap[v.contatto_id]) videoIconsMap[v.contatto_id] = {};
+                videoIconsMap[v.contatto_id][v.linea] = parseInt(v.num_video);
+            }
+        }
+
         const result = contatti.rows.map(c => ({
             ...c,
             prodotti: prodMap[c.id] || [],
             acquisti_count: acqMap,
             acquisti_last_date: acqLastDateMap,
-            score_hot: scoreMap[c.id] || {}
+            score_hot: scoreMap[c.id] || {},
+            video_icons: videoIconsMap[c.id] || {}
         }));
         res.json(result);
     } catch (err) {
@@ -3927,43 +3947,61 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
              secondi_visti || 0, durata_totale || 0, percentuale || 0]
         );
 
-        // Score ELEVATE: assegna una sola volta quando supera il 50%
-        if (contatto && (percentuale || 0) >= 50) {
-            const giaAssegnato = await pool.query(
-                `SELECT 1 FROM crm_video_tracking
-                 WHERE contatto_id = $1 AND campagna = $2 AND evento = 'score_assigned' LIMIT 1`,
-                [contattoId, campagna]
-            );
+        // Score video: soglie cumulative
+        // Linea prodotto estratta dal tag campagna (es. ELEVATE_SF_ITA1 -> ELEVATE)
+        if (contatto && (secondi_visti || 0) >= 10) {
+            const pct = percentuale || 0;
+            const lineaProdotto = campagna.replace(/_TEST$/, '').split('_SF_')[0] || 'ELEVATE';
+            const oggi = new Date().toISOString().split('T')[0];
 
-            if (giaAssegnato.rows.length === 0) {
-                const punti = contatto.tipo === 'lead' ? 30 : 10;
+            // Soglie: 10s-30% = 15pt, 31-60% = 15pt, >=90% = 30pt (cumulative)
+            const soglie = [
+                { nome: 'score_30', minPct: 1,  maxPct: 100, minSec: 10, punti: 15, label: 'Video watch 10s-30%' },
+                { nome: 'score_60', minPct: 31, maxPct: 100, minSec: 0,  punti: 15, label: 'Video watch 31-60%' },
+                { nome: 'score_90', minPct: 90, maxPct: 100, minSec: 0,  punti: 30, label: 'Video watch >=90%' }
+            ];
 
-                await pool.query(
-                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
-                     VALUES ('add_score', $1, $2)`,
-                    [contattoId, JSON.stringify({
-                        linea_prodotto: 'ELEVATE',
-                        tipo_attivita: 'video_watch',
-                        punti: punti,
-                        label: 'Video watch >50%',
-                        data_evento: new Date().toISOString().split('T')[0]
-                    })]
+            for (const soglia of soglie) {
+                const raggiunta = (pct >= soglia.minPct && (secondi_visti || 0) >= soglia.minSec);
+                if (!raggiunta) continue;
+
+                // Controlla se questa soglia e' gia' stata assegnata per questa campagna
+                const giaAssegnato = await pool.query(
+                    `SELECT 1 FROM crm_video_tracking
+                     WHERE contatto_id = $1 AND campagna = $2 AND evento = $3 LIMIT 1`,
+                    [contattoId, campagna, soglia.nome]
                 );
 
-                await pool.query(
-                    `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
-                     VALUES ($1, 'ELEVATE', 'video_watch', $2, $3)`,
-                    [contattoId, punti, new Date().toISOString().split('T')[0]]
-                );
+                if (giaAssegnato.rows.length === 0) {
+                    // Assegna score
+                    await pool.query(
+                        `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                         VALUES ('add_score', $1, $2)`,
+                        [contattoId, JSON.stringify({
+                            linea_prodotto: lineaProdotto,
+                            tipo_attivita: 'video_watch',
+                            punti: soglia.punti,
+                            label: soglia.label,
+                            data_evento: oggi
+                        })]
+                    );
 
-                await pool.query(
-                    `INSERT INTO crm_video_tracking
-                     (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
-                     VALUES ($1, $2, $3, 'score_assigned', $4, $5, $6)`,
-                    [contattoId, email, campagna, secondi_visti || 0, durata_totale || 0, percentuale || 0]
-                );
+                    await pool.query(
+                        `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                         VALUES ($1, $2, 'video_watch', $3, $4)`,
+                        [contattoId, lineaProdotto, soglia.punti, oggi]
+                    );
 
-                console.log(`[Video Tracking] Score ELEVATE ${punti}pt assegnato a ${email} (${campagna})`);
+                    // Marca soglia come assegnata
+                    await pool.query(
+                        `INSERT INTO crm_video_tracking
+                         (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [contattoId, email, campagna, soglia.nome, secondi_visti || 0, durata_totale || 0, pct]
+                    );
+
+                    console.log(`[Video Tracking] ${lineaProdotto} +${soglia.punti}pt (${soglia.label}) a ${email} (${campagna})`);
+                }
             }
         }
 
