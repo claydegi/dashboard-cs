@@ -286,6 +286,23 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_email ON crm_whatsapp_clicks(email)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_data ON crm_whatsapp_clicks(clicked_at DESC)`);
 
+        // Tabella video tracking (storico eventi visualizzazione video da landing page)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_video_tracking (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                campagna TEXT NOT NULL,
+                evento TEXT NOT NULL,
+                secondi_visti INTEGER DEFAULT 0,
+                durata_totale INTEGER DEFAULT 0,
+                percentuale INTEGER DEFAULT 0,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_email ON crm_video_tracking(email)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_campagna ON crm_video_tracking(campagna)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -1675,15 +1692,16 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             'SELECT id FROM crm_contatti WHERE regione = $1', [regione]
         );
         const existingIds = existing.rows.map(r => r.id);
+        const FONTI_PROTETTE = ['dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp', 'migrazione_fatture_preodoo'];
         if (existingIds.length > 0) {
-            // Elimina solo acquisti e prodotti NON manuali (protegge dashboard_manual, dashboard_promozione, regola_R2_dashboard, finder_email_whatsapp)
+            // Elimina solo acquisti e prodotti NON protetti (protegge fonti che non devono essere sovrascritte dal sync)
             await client.query(
-                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'))",
-                [existingIds]
+                "DELETE FROM crm_acquisti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))",
+                [existingIds, FONTI_PROTETTE]
             );
             await client.query(
-                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'))",
-                [existingIds]
+                "DELETE FROM crm_prodotti WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))",
+                [existingIds, FONTI_PROTETTE]
             );
             // crm_note: mai toccata dal sync
         }
@@ -1743,14 +1761,13 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
 
         // Inserisci prodotti (skip se esiste gia' stesso contatto+prodotto con fonte protetta)
         if (prodotti && prodotti.length > 0) {
-            // Carica prodotti protetti esistenti per evitare duplicati
-            const protectedFonti = ['dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp'];
+            // Riusa FONTI_PROTETTE definita sopra (include migrazione_fatture_preodoo)
             let existingProtected = new Set();
             if (existingIds.length > 0) {
                 const epResult = await client.query(
                     `SELECT contatto_id, prodotto FROM crm_prodotti
                      WHERE contatto_id = ANY($1::int[]) AND fonte = ANY($2::text[])`,
-                    [existingIds, protectedFonti]
+                    [existingIds, FONTI_PROTETTE]
                 );
                 for (const row of epResult.rows) {
                     existingProtected.add(`${row.contatto_id}_${row.prodotto}`);
@@ -1766,22 +1783,37 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
-        // Deduplicazione: se il sync ha portato lo stesso prodotto gia' presente come manuale, rimuovi il duplicato manuale
+        // Deduplicazione: se il sync ha portato lo stesso prodotto gia' presente come protetto, rimuovi il protetto.
+        // Nota: se il prodotto nel SQLite ha la stessa fonte protetta (es. dashboard_manual), la DELETE non lo tocca,
+        // il check anti-duplicato lo salta, e questa dedup non lo matcha (entrambi protetti). Risultato corretto: nessun accumulo.
         if (existingIds.length > 0) {
             await client.query(`
                 DELETE FROM crm_prodotti WHERE id IN (
                     SELECT dm.id FROM crm_prodotti dm
                     INNER JOIN crm_prodotti sync ON dm.contatto_id = sync.contatto_id AND dm.prodotto = sync.prodotto
-                    WHERE dm.fonte IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp')
-                    AND sync.fonte NOT IN ('dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp')
+                    WHERE dm.fonte = ANY($2::text[])
+                    AND NOT (sync.fonte = ANY($2::text[]))
                     AND dm.contatto_id = ANY($1::int[])
                 )
-            `, [existingIds]);
+            `, [existingIds, FONTI_PROTETTE]);
         }
 
-        // Inserisci acquisti ricorrenti
+        // Inserisci acquisti ricorrenti (skip se esiste gia' stesso contatto+prodotto+fattura con fonte protetta)
         if (acquisti && acquisti.length > 0) {
+            let existingProtectedAcq = new Set();
+            if (existingIds.length > 0) {
+                const epAcqResult = await client.query(
+                    `SELECT contatto_id, prodotto, COALESCE(numero_fattura, '') as numero_fattura FROM crm_acquisti
+                     WHERE contatto_id = ANY($1::int[]) AND fonte = ANY($2::text[])`,
+                    [existingIds, FONTI_PROTETTE]
+                );
+                for (const row of epAcqResult.rows) {
+                    existingProtectedAcq.add(`${row.contatto_id}_${row.prodotto}_${row.numero_fattura}`);
+                }
+            }
             for (const a of acquisti) {
+                const key = `${a.contatto_id}_${a.prodotto}_${a.numero_fattura || ''}`;
+                if (existingProtectedAcq.has(key)) continue; // gia' presente con fonte protetta, skip
                 await client.query(`
                     INSERT INTO crm_acquisti (contatto_id, prodotto, numero_fattura, data_fattura, quantita, fonte)
                     VALUES ($1, $2, $3, $4, $5, $6)
@@ -1841,6 +1873,25 @@ app.post('/api/crm/cleanup-duplicati-prodotti', requireAdmin, async (req, res) =
             )
         `);
         console.log(`[CRM Cleanup] Rimossi ${result.rowCount} prodotti duplicati`);
+        res.json({ ok: true, rimossi: result.rowCount });
+    } catch (err) {
+        console.error('[CRM Cleanup]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Pulizia duplicati acquisti (one-shot): rimuove righe duplicate in crm_acquisti (stesso contatto_id + prodotto + numero_fattura)
+app.post('/api/crm/cleanup-duplicati-acquisti', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            DELETE FROM crm_acquisti WHERE id IN (
+                SELECT id FROM (
+                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, prodotto, numero_fattura ORDER BY id) as rn
+                    FROM crm_acquisti
+                ) ranked WHERE rn > 1
+            )
+        `);
+        console.log(`[CRM Cleanup] Rimossi ${result.rowCount} acquisti duplicati`);
         res.json({ ok: true, rimossi: result.rowCount });
     } catch (err) {
         console.error('[CRM Cleanup]', err);
@@ -3520,6 +3571,292 @@ app.get('/whatsapp-invite', async (req, res) => {
     </div>
 </body>
 </html>`);
+});
+
+// ==================== VIDEO TRACKING LANDING ====================
+
+// Landing page video con YouTube IFrame API per tracking visualizzazione
+app.get('/video-landing', async (req, res) => {
+    const { email, campagna, v } = req.query;
+
+    if (!email || !campagna) {
+        return res.status(400).send('<h1>Link non valido</h1><p>Parametri mancanti.</p>');
+    }
+
+    const videoId = v || 'R2Yms8zofxU';
+
+    try {
+        const result = await pool.query(
+            `SELECT id, cognome, nome, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+            [email]
+        );
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        await pool.query(
+            `INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento)
+             VALUES ($1, $2, $3, 'landing_open')`,
+            [contattoId, email, campagna]
+        );
+
+        const cognome = contatto ? contatto.cognome : '';
+        console.log(`[Video Landing] Open: ${email} (${cognome}) -> ${campagna}`);
+    } catch (err) {
+        console.error('[Video Landing] Errore DB:', err);
+    }
+
+    res.send(`<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSSEOTOUCH – Caso Clinico</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .container {
+            background-color: #ffffff;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+        }
+        .header {
+            background-color: #1B5E20;
+            padding: 20px 25px;
+            text-align: center;
+        }
+        .header h1 {
+            color: #ffffff;
+            font-size: 20px;
+            font-weight: bold;
+            line-height: 1.3;
+        }
+        .content { padding: 25px; }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            margin: 0 auto 20px auto;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+        }
+        .video-wrapper #player {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        .subtitle {
+            text-align: center;
+            font-size: 15px;
+            color: #666666;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+        .wa-button {
+            display: block;
+            width: 100%;
+            max-width: 320px;
+            margin: 0 auto;
+            padding: 14px 25px;
+            background-color: #25D366;
+            color: #ffffff;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 10px;
+            transition: background-color 0.2s;
+        }
+        .wa-button:hover { background-color: #1da851; }
+        .footer {
+            text-align: center;
+            padding: 15px 25px;
+            background-color: #f5f5f5;
+            border-top: 1px solid #e0e0e0;
+        }
+        .footer p { font-size: 11px; color: #999999; }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header h1 { font-size: 18px; }
+            .content { padding: 20px 15px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Kit Elevate &ndash; Caso Clinico<br>Mini Rialzi Crestali</h1>
+        </div>
+        <div class="content">
+            <div class="video-wrapper">
+                <div id="player"></div>
+            </div>
+            <p class="subtitle">
+                Dr. Mema &mdash; Mini rialzi crestali con tecnologia magnetodinamica
+            </p>
+            <a href="https://wa.me/393387351260?text=Salve%2C%20vorrei%20informazioni%20sul%20kit%20Elevate" class="wa-button">
+                INFORMAZIONI SUL KIT ELEVATE
+            </a>
+        </div>
+        <div class="footer">
+            <p>Osseotouch &ndash; Questa pagina utilizza sistemi di monitoraggio delle interazioni per migliorare il nostro servizio.</p>
+        </div>
+    </div>
+
+    <script>
+        var EMAIL = ${JSON.stringify(email)};
+        var CAMPAGNA = ${JSON.stringify(campagna)};
+        var player;
+        var trackingInterval;
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(tag, firstScript);
+
+        function onYouTubeIframeAPIReady() {
+            player = new YT.Player('player', {
+                videoId: '${videoId}',
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': onPlayerStateChange }
+            });
+        }
+
+        function inviaEvento(evento, secondi, durata, pct) {
+            try {
+                fetch('/api/video-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: EMAIL, campagna: CAMPAGNA, evento: evento,
+                        secondi_visti: secondi || 0, durata_totale: durata || 0, percentuale: pct || 0
+                    })
+                });
+            } catch(e) {}
+        }
+
+        function onPlayerStateChange(event) {
+            var secondi = Math.floor(player.getCurrentTime());
+            var durata = Math.floor(player.getDuration());
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaEvento('play', secondi, durata, pct);
+                if (!trackingInterval) {
+                    trackingInterval = setInterval(function() {
+                        if (player && player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING) {
+                            var s = Math.floor(player.getCurrentTime());
+                            var d = Math.floor(player.getDuration());
+                            var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                            inviaEvento('progress', s, d, p);
+                        }
+                    }, 5000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                inviaEvento('pause', secondi, durata, pct);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                inviaEvento('ended', durata, durata, 100);
+                if (trackingInterval) { clearInterval(trackingInterval); trackingInterval = null; }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (player && player.getCurrentTime) {
+                var s = Math.floor(player.getCurrentTime());
+                var d = Math.floor(player.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: EMAIL, campagna: CAMPAGNA, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+        });
+    </script>
+</body>
+</html>`);
+});
+
+// Endpoint tracking video (PUBBLICO — riceve beacon dal JS della landing)
+app.post('/api/video-tracking', express.json(), async (req, res) => {
+    const { email, campagna, evento, secondi_visti, durata_totale, percentuale } = req.body;
+
+    if (!email || !campagna || !evento) {
+        return res.status(400).json({ error: 'Parametri mancanti' });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT id, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1',
+            [email]
+        );
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        await pool.query(
+            `INSERT INTO crm_video_tracking
+             (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [contattoId, email, campagna, evento,
+             secondi_visti || 0, durata_totale || 0, percentuale || 0]
+        );
+
+        // Score ELEVATE: assegna una sola volta quando supera il 50%
+        if (contatto && (percentuale || 0) >= 50) {
+            const giaAssegnato = await pool.query(
+                `SELECT 1 FROM crm_video_tracking
+                 WHERE contatto_id = $1 AND campagna = $2 AND evento = 'score_assigned' LIMIT 1`,
+                [contattoId, campagna]
+            );
+
+            if (giaAssegnato.rows.length === 0) {
+                const punti = contatto.tipo === 'lead' ? 30 : 10;
+
+                await pool.query(
+                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                     VALUES ('add_score', $1, $2)`,
+                    [contattoId, JSON.stringify({
+                        linea_prodotto: 'ELEVATE',
+                        tipo_attivita: 'video_watch',
+                        punti: punti,
+                        label: 'Video watch >50%',
+                        data_evento: new Date().toISOString().split('T')[0]
+                    })]
+                );
+
+                await pool.query(
+                    `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                     VALUES ($1, 'ELEVATE', 'video_watch', $2, $3)`,
+                    [contattoId, punti, new Date().toISOString().split('T')[0]]
+                );
+
+                await pool.query(
+                    `INSERT INTO crm_video_tracking
+                     (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                     VALUES ($1, $2, $3, 'score_assigned', $4, $5, $6)`,
+                    [contattoId, email, campagna, secondi_visti || 0, durata_totale || 0, percentuale || 0]
+                );
+
+                console.log(`[Video Tracking] Score ELEVATE ${punti}pt assegnato a ${email} (${campagna})`);
+            }
+        }
+
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('[Video Tracking]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
 });
 
 // ==================== AVVIO SERVER ====================
