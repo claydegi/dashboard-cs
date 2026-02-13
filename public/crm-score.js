@@ -82,10 +82,14 @@ function renderBody(tbodyId, contatti, lineeProdotto) {
 
         for (const lp of lineeProdotto) {
             const val = c.score_prodotti[lp] || 0;
+            const vidCount = c.video_icons && c.video_icons[lp];
+            const vidIcon = vidCount >= 3 ? '\u25B6\u25B6' : (vidCount >= 1 ? '\u25B6' : '');
             if (val > 0) {
                 const isHot = val >= SOGLIA_HOT;
                 const cls = isHot ? 'score-cell score-hot' : 'score-cell';
-                html += `<td class="${cls}">${val}</td>`;
+                const vidColor = isHot ? '#ffffff' : '#CC0000';
+                const vidHtml = vidIcon ? ` <span style="font-size:10px;color:${vidColor}" title="Video completati: ${vidCount}">${vidIcon}</span>` : '';
+                html += `<td class="${cls}">${val}${vidHtml}</td>`;
             } else {
                 html += '<td class="score-cell score-empty"></td>';
             }

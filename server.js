@@ -2980,9 +2980,29 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
             allLinee.add(r.linea_prodotto);
         }
 
+        // Video engagement icons per la pagina score
+        const contattiIds = Object.keys(contattiMap).map(Number);
+        let videoIconsMap = {};
+        if (contattiIds.length > 0) {
+            const videoCompletions = await pool.query(`
+                SELECT contatto_id,
+                       SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1) as linea,
+                       COUNT(DISTINCT campagna) as num_video
+                FROM crm_video_tracking
+                WHERE contatto_id = ANY($1::int[])
+                  AND evento = 'score_90'
+                GROUP BY contatto_id, SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1)
+            `, [contattiIds]);
+            for (const v of videoCompletions.rows) {
+                if (!videoIconsMap[v.contatto_id]) videoIconsMap[v.contatto_id] = {};
+                videoIconsMap[v.contatto_id][v.linea] = parseInt(v.num_video);
+            }
+        }
+
         // Calcola score totale e converti in array
         const contatti = Object.values(contattiMap).map(c => {
             c.score_totale = Object.values(c.score_prodotti).reduce((a, b) => a + b, 0);
+            c.video_icons = videoIconsMap[c.id] || {};
             return c;
         });
 
