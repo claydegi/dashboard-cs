@@ -3221,12 +3221,20 @@ app.get('/report-finanza', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'report-finanza.html'));
 });
 
-app.get('/crm-liguria', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'crm-liguria.html'));
+app.get('/crm', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'crm.html'));
 });
 
+// Redirect vecchi URL per retrocompatibilita
+app.get('/crm-liguria', (req, res) => {
+    const qs = new URLSearchParams(req.query);
+    if (!qs.has('regione')) qs.set('regione', 'LIGURIA');
+    res.redirect('/crm?' + qs.toString());
+});
 app.get('/crm-piemonte', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'crm-piemonte.html'));
+    const qs = new URLSearchParams(req.query);
+    if (!qs.has('regione')) qs.set('regione', 'PIEMONTE');
+    res.redirect('/crm?' + qs.toString());
 });
 
 app.get('/crm-score', (req, res) => {

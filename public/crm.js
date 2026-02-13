@@ -1,6 +1,7 @@
-// CRM Liguria - Dashboard interattiva
+// CRM OSSEOTOUCH - Dashboard interattiva
 const API_URL = window.location.origin + '/api';
 const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
+const CRM_REGIONE = (new URLSearchParams(window.location.search).get('regione') || 'LIGURIA').toUpperCase();
 
 const PRODOTTI = ['MM','ELEVATE','BLACK RUBY','LC','FIRST','EASY IN','EASY PIN',
                   'CEP','GENOA','EASYROOT','IMPIANTI','SUTURE','BLEXO','GUIDATA','PT1'];
@@ -51,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Stat card score -> naviga a pagina score
     document.getElementById('stat-card-score').addEventListener('click', () => {
-        window.location.href = `/crm-score?regione=LIGURIA&key=${ADMIN_KEY}`;
+        window.location.href = `/crm-score?regione=${CRM_REGIONE}&key=${ADMIN_KEY}`;
     });
 
     document.getElementById('crm-search').addEventListener('input', (e) => {
@@ -157,9 +158,9 @@ function renderTableHeader() {
 async function caricaDati() {
     try {
         const [contattiRes, statsRes, noteRes] = await Promise.all([
-            fetch(`${API_URL}/crm/contatti?regione=LIGURIA&key=${ADMIN_KEY}`),
-            fetch(`${API_URL}/crm/stats?regione=LIGURIA&key=${ADMIN_KEY}`),
-            fetch(`${API_URL}/crm/note/bulk?regione=LIGURIA&key=${ADMIN_KEY}`)
+            fetch(`${API_URL}/crm/contatti?regione=${CRM_REGIONE}&key=${ADMIN_KEY}`),
+            fetch(`${API_URL}/crm/stats?regione=${CRM_REGIONE}&key=${ADMIN_KEY}`),
+            fetch(`${API_URL}/crm/note/bulk?regione=${CRM_REGIONE}&key=${ADMIN_KEY}`)
         ]);
 
         if (!contattiRes.ok || !statsRes.ok) throw new Error('Errore caricamento');
@@ -215,7 +216,7 @@ async function caricaDati() {
             }
 
             c._numProd = c._prodSet.size;
-            c._displayCognome = c.cognome || c.nome_azienda || '';
+            c._displayCognome = c.cognome || c.nome_azienda || c.nome || '';
             c._displayNome = c.cognome ? (c.nome || '') : '';
         });
 
@@ -695,7 +696,7 @@ function inlineEdit(contattoId, campo, tdEl) {
 
     // Campo citta: mini-form con input citta + dropdown regione
     if (campo === 'citta') {
-        const regioneAttuale = contatto.regione || 'LIGURIA';
+        const regioneAttuale = contatto.regione || CRM_REGIONE;
         tdEl.classList.add('crm-editing');
         let optsHtml = REGIONI_ITALIA.map(r =>
             `<option value="${r}"${r === regioneAttuale ? ' selected' : ''}>${r}</option>`
@@ -1728,6 +1729,9 @@ function apriModalNuovoContatto() {
     document.getElementById('nuovo-email-error').textContent = '';
     document.getElementById('nuovo-phone-error').textContent = '';
 
+    // Set regione corrente
+    document.getElementById('nuovo-regione').value = CRM_REGIONE;
+
     // Reset tipo a Lead
     document.querySelector('input[name="nuovo-tipo"][value="lead"]').checked = true;
     document.getElementById('nuovo-prodotti-section').style.display = 'none';
@@ -1806,7 +1810,7 @@ async function salvaNuovoContatto() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 cognome, nome, email, telefono, cellulare,
-                citta, regione: 'LIGURIA', tipo, prodotti
+                citta, regione: CRM_REGIONE, tipo, prodotti
             })
         });
         const data = await res.json();
