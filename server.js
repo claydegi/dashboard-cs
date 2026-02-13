@@ -3180,6 +3180,10 @@ app.get('/crm-liguria', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'crm-liguria.html'));
 });
 
+app.get('/crm-piemonte', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'crm-piemonte.html'));
+});
+
 app.get('/crm-score', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'crm-score.html'));
 });

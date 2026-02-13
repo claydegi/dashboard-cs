@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CRM Piemonte - OSSEOTOUCH</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container crm-container">
+        <header>
+            <div id="header-alert-riordini" class="header-alert-box">
+                <h2 class="header-alert-title">ALERT RIORDINI</h2>
+                <p id="header-alert-msg" class="header-alert-msg"></p>
+            </div>
+            <nav>
+                <a href="#" class="nav-link nav-back" id="btn-back">Dashboard Kim</a>
+            </nav>
+        </header>
+
+        <section id="crm-stats" class="stats-section">
+            <div class="stat-card"><span class="stat-number" id="stat-contatti">-</span><span class="stat-label">Account</span></div>
+            <div class="stat-card stat-success"><span class="stat-number" id="stat-odoo">-</span><span class="stat-label">Ordini 2026</span></div>
+            <div class="stat-card stat-card-clickable" id="stat-card-score" style="cursor:pointer;"><span class="stat-number" id="stat-score">-</span><span class="stat-label">Score &gt; 40 - <span style="color:#e74c3c;font-weight:bold;">&#128293; Hot Opportunity!</span></span></div>
+            <div class="stat-card stat-lead"><span class="stat-number" id="stat-lead">-</span><span class="stat-label">Lead</span></div>
+        </section>
+
+        <section class="crm-toolbar">
+            <input type="text" id="crm-search" placeholder="Cerca per nome, cognome, citta, email...">
+            <select id="crm-sort">
+                <option value="cognome">Ordina per Cognome</option>
+                <option value="citta">Ordina per Citta</option>
+                <option value="prodotti">Ordina per N. Prodotti</option>
+            </select>
+            <button class="crm-btn-filter-whatsapp" id="btn-filter-whatsapp" title="Filtra membri Gruppo WhatsApp">&#128172; WhatsApp</button>
+            <button class="crm-btn-nuovo-contatto" id="btn-nuovo-contatto">+ Nuovo Contatto</button>
+        </section>
+
+        <section class="crm-table-wrapper">
+            <table id="crm-table">
+                <thead id="crm-thead"></thead>
+                <tbody id="crm-tbody">
+                    <tr><td colspan="25" class="loading">Caricamento...</td></tr>
+                </tbody>
+            </table>
+        </section>
+
+        <section class="crm-legenda crm-legenda-compact">
+            <span class="crm-leg-item"><span style="display:inline-block;background:#27ae60;color:white;padding:0 4px;border-radius:2px;font-weight:bold;font-size:11px;">X</span> Odoo</span>
+            <span class="crm-leg-item"><span style="color:#27ae60;font-weight:bold;">X</span> Excel/Fatture</span>
+            <span class="crm-leg-item"><span style="color:#2980b9;font-weight:bold;">X</span> Manuale</span>
+            <span class="crm-leg-item"><span style="display:inline-block;background:#eaf7ef;border-bottom:2px solid #27ae60;padding:0 4px;color:#27ae60;font-weight:bold;">X</span> Ricorrente</span>
+            <span class="crm-leg-item"><span style="color:#e74c3c;font-weight:bold;">X</span> No storico</span>
+            <span class="crm-leg-item"><span style="display:inline-block;background:#fff0e0;border-left:3px solid #e74c3c;padding:0 4px;color:#e67e22;font-weight:bold;">X</span> Alert riordino</span>
+            <span class="crm-leg-item"><span style="color:#ccc;">&mdash;</span> Mancante</span>
+        </section>
+
+        <!-- Sezione Lead -->
+        <section class="crm-lead-section">
+            <h2 class="crm-lead-section-title">&#128101; Lead <span id="crm-lead-count" class="crm-lead-count"></span>
+                <select id="crm-lead-sort" style="margin-left:16px;font-size:13px;padding:4px 8px;border-radius:4px;border:1px solid #ccc;">
+                    <option value="cognome">Ordina per Cognome</option>
+                    <option value="citta">Ordina per Citta</option>
+                </select>
+            </h2>
+            <div class="crm-table-wrapper">
+                <table id="crm-lead-table">
+                    <thead id="crm-lead-thead"></thead>
+                    <tbody id="crm-lead-tbody">
+                        <tr><td colspan="8" class="loading">Caricamento...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal Promuovi Lead a Account -->
+    <div id="modal-promuovi" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo crm-modal-promuovi">
+            <div class="crm-modal-header">
+                <h2>Promuovi Lead a Account</h2>
+                <span class="crm-modal-close" id="modal-promuovi-close">&times;</span>
+            </div>
+            <p class="crm-promuovi-info" id="promuovi-info"></p>
+            <div class="crm-form-prodotti">
+                <label>Seleziona i prodotti posseduti:</label>
+                <div class="crm-prodotti-grid" id="promuovi-prodotti-grid"></div>
+            </div>
+            <div class="crm-form-actions">
+                <button class="crm-btn-si" id="btn-conferma-promuovi">Promuovi a Account</button>
+                <button class="crm-btn-no" id="btn-annulla-promuovi">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Retrocedi Account a Lead -->
+    <div id="modal-retrocedi" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo crm-modal-retrocedi">
+            <div class="crm-modal-header">
+                <h2>Retrocedi Account a Lead</h2>
+                <span class="crm-modal-close" id="modal-retrocedi-close">&times;</span>
+            </div>
+            <p class="crm-retrocedi-info" id="retrocedi-info"></p>
+            <p class="crm-retrocedi-warn">Tutti i prodotti verranno rimossi.</p>
+            <div class="crm-form-actions">
+                <button class="crm-btn-si crm-btn-danger" id="btn-conferma-retrocedi">Retrocedi a Lead</button>
+                <button class="crm-btn-no" id="btn-annulla-retrocedi">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Assegna Score Manuale -->
+    <div id="modal-score" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo crm-modal-score">
+            <div class="crm-modal-header">
+                <h2>Assegna Score</h2>
+                <span class="crm-modal-close" id="modal-score-close">&times;</span>
+            </div>
+            <p class="crm-score-info" id="score-info"></p>
+            <div class="crm-form-fields">
+                <div class="crm-form-group">
+                    <label>Tipo attivita</label>
+                    <select id="score-tipo-attivita" class="crm-form-select">
+                        <option value="">-- Seleziona attivita --</option>
+                        <option value="richiesta_prodotto_stand">Richiesta prodotto allo stand (+30)</option>
+                        <option value="richiesta_trial_surgery">Richiesta trial surgery (+50)</option>
+                        <option value="richiesta_info_corsi">Richieste informazioni: corsi (+25)</option>
+                        <option value="partecipazione_corso">Partecipazione a corso (+100)</option>
+                    </select>
+                </div>
+                <div class="crm-form-group">
+                    <label>Linea prodotto</label>
+                    <select id="score-linea-prodotto" class="crm-form-select">
+                        <!-- Popolato dinamicamente da JS -->
+                    </select>
+                </div>
+            </div>
+            <div class="crm-form-actions">
+                <button class="crm-btn-si" id="btn-conferma-score">Assegna Score</button>
+                <button class="crm-btn-no" id="btn-annulla-score">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Nuovo Contatto -->
+    <div id="modal-nuovo-contatto" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo">
+            <div class="crm-modal-header">
+                <h2>Nuovo Contatto</h2>
+                <span class="crm-modal-close" id="modal-nuovo-close">&times;</span>
+            </div>
+
+            <div class="crm-form-tipo">
+                <label class="crm-tipo-toggle">
+                    <input type="radio" name="nuovo-tipo" value="lead" checked>
+                    <span class="crm-tipo-label">Lead</span>
+                </label>
+                <label class="crm-tipo-toggle">
+                    <input type="radio" name="nuovo-tipo" value="account">
+                    <span class="crm-tipo-label">Account</span>
+                </label>
+            </div>
+
+            <div class="crm-form-fields">
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Cognome / Ragione Sociale *</label>
+                        <input type="text" id="nuovo-cognome" placeholder="Cognome o ragione sociale">
+                    </div>
+                    <div class="crm-form-group">
+                        <label>Nome</label>
+                        <input type="text" id="nuovo-nome" placeholder="Nome">
+                    </div>
+                </div>
+                <div class="crm-form-group">
+                    <label>Email * <span class="crm-form-hint">(unica nel sistema)</span></label>
+                    <input type="email" id="nuovo-email" placeholder="email@esempio.com">
+                    <span id="nuovo-email-error" class="crm-form-error"></span>
+                </div>
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Telefono</label>
+                        <input type="tel" id="nuovo-telefono" placeholder="0XX XXXXXXX">
+                    </div>
+                    <div class="crm-form-group">
+                        <label>Cellulare</label>
+                        <input type="tel" id="nuovo-cellulare" placeholder="3XX XXXXXXX">
+                    </div>
+                </div>
+                <span id="nuovo-phone-error" class="crm-form-error"></span>
+                <div class="crm-form-row">
+                    <div class="crm-form-group">
+                        <label>Citta *</label>
+                        <input type="text" id="nuovo-citta" placeholder="Citta" style="text-transform:uppercase;">
+                    </div>
+                    <div class="crm-form-group crm-form-regione">
+                        <label>Regione</label>
+                        <input type="text" id="nuovo-regione" value="PIEMONTE" readonly>
+                    </div>
+                </div>
+            </div>
+
+            <div id="nuovo-prodotti-section" class="crm-form-prodotti" style="display:none;">
+                <label>Prodotti posseduti:</label>
+                <div class="crm-prodotti-grid" id="nuovo-prodotti-grid"></div>
+            </div>
+
+            <div class="crm-form-actions">
+                <button class="crm-btn-si" id="btn-salva-nuovo">Salva Contatto</button>
+                <button class="crm-btn-no" id="btn-annulla-nuovo">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pannello Note + Opportunita (slide-in da destra) -->
+    <div id="crm-notes-panel" class="crm-notes-panel">
+        <div class="crm-notes-header">
+            <h3 id="notes-panel-title">Note</h3>
+            <span class="crm-notes-close" onclick="chiudiNote()">&times;</span>
+        </div>
+
+        <div class="crm-panel-body">
+            <!-- SEZIONE 1: Note generiche -->
+            <div class="crm-panel-section">
+                <div class="crm-panel-section-header">
+                    <h4>&#128221; Note</h4>
+                </div>
+                <div id="notes-lista" class="crm-notes-lista"></div>
+                <div class="crm-notes-input">
+                    <textarea id="notes-textarea" placeholder="Scrivi una nota..." rows="3"></textarea>
+                    <div class="crm-notes-actions">
+                        <button class="crm-mic-btn" id="btn-mic" onclick="toggleDettatura()" title="Dettatura vocale">&#127908;</button>
+                        <span id="mic-status" class="crm-mic-status"></span>
+                        <div style="flex:1"></div>
+                        <button class="crm-btn-si" onclick="salvaNote()">Salva nota</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SEZIONE 2: Opportunita di vendita -->
+            <div class="crm-panel-section crm-panel-section-opp">
+                <div class="crm-panel-section-header crm-opp-section-header">
+                    <h4>&#128176; Opportunita di vendita</h4>
+                </div>
+                <div id="opp-lista" class="crm-notes-lista"></div>
+                <div class="crm-opp-input">
+                    <textarea id="opp-textarea" placeholder="Descrivi l'opportunita..." rows="3"></textarea>
+                    <div class="crm-opp-date-row">
+                        <label for="opp-data-scadenza">Follow-up entro:</label>
+                        <input type="date" id="opp-data-scadenza" class="crm-date-picker">
+                    </div>
+                    <div class="crm-notes-actions">
+                        <button class="crm-mic-btn" id="btn-mic-opp" onclick="toggleDettatura('opp')" title="Dettatura vocale">&#127908;</button>
+                        <span id="mic-status-opp" class="crm-mic-status"></span>
+                        <div style="flex:1"></div>
+                        <button class="crm-btn-si crm-btn-opp" onclick="salvaOpportunita()">Salva opportunita</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
+    <script src="crm-piemonte.js"></script>
+</body>
+</html>
