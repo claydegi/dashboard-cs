@@ -2430,3 +2430,73 @@ nav {
     outline: none;
     box-shadow: 0 0 0 2px rgba(243, 156, 18, 0.15);
 }
+
+/* Bottone Storico Score (✎ accanto alla ★) */
+.crm-btn-storico-score {
+    background: #95a5a6;
+    color: white;
+    border: none;
+    padding: 2px 5px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: bold;
+    margin-right: 3px;
+    line-height: 1;
+}
+.crm-btn-storico-score:hover {
+    background: #7f8c8d;
+}
+
+/* Modal Storico Score */
+.crm-modal-storico-score {
+    max-width: 620px;
+}
+.crm-storico-score-title {
+    margin: 0 0 16px 0;
+    font-size: 1.15rem;
+    color: #2c3e50;
+}
+.crm-storico-score-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+.crm-storico-score-table th {
+    background: #34495e;
+    color: white;
+    padding: 8px 10px;
+    text-align: left;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    position: static;
+}
+.crm-storico-score-table td {
+    padding: 8px 10px;
+    border-bottom: 1px solid #ecf0f1;
+}
+.crm-storico-score-table tr:hover {
+    background: #f8f9fa;
+}
+.crm-storico-score-empty {
+    color: #999;
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+}
+.crm-btn-elimina-score {
+    background: #e74c3c;
+    color: white;
+    border: none;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 11px;
+    font-weight: 600;
+    transition: background 0.15s;
+}
+.crm-btn-elimina-score:hover {
+    background: #c0392b;
+}

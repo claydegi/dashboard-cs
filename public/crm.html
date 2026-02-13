@@ -126,6 +126,7 @@
                         <option value="richiesta_trial_surgery">Richiesta trial surgery (+50)</option>
                         <option value="richiesta_info_corsi">Richieste informazioni: corsi (+25)</option>
                         <option value="partecipazione_corso">Partecipazione a corso (+100)</option>
+                        <option value="richiesta_offerta">Richiesta di offerta (+50)</option>
                     </select>
                 </div>
                 <div class="crm-form-group">
@@ -138,6 +139,33 @@
             <div class="crm-form-actions">
                 <button class="crm-btn-si" id="btn-conferma-score">Assegna Score</button>
                 <button class="crm-btn-no" id="btn-annulla-score">Annulla</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Storico Score Manuali -->
+    <div id="modal-storico-score" class="crm-modal-overlay">
+        <div class="crm-modal-nuovo crm-modal-storico-score">
+            <div class="crm-modal-header">
+                <h2>Score manuali</h2>
+                <span class="crm-modal-close" id="modal-storico-score-close">&times;</span>
+            </div>
+            <p class="crm-score-info" id="storico-score-info"></p>
+            <div id="storico-score-body">
+                <table class="crm-storico-score-table">
+                    <thead>
+                        <tr>
+                            <th>Data</th>
+                            <th>Attivita</th>
+                            <th>Prodotto</th>
+                            <th>Punti</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="storico-score-tbody">
+                    </tbody>
+                </table>
+                <p id="storico-score-vuoto" style="display:none; text-align:center; color:#888; padding:20px;">Nessuno score manuale assegnato</p>
             </div>
         </div>
     </div>

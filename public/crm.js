@@ -137,6 +137,12 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('modal-score').addEventListener('click', (e) => {
         if (e.target.id === 'modal-score') chiudiModalScore();
     });
+
+    // Storico score modal
+    document.getElementById('modal-storico-score-close').addEventListener('click', chiudiStoricoScore);
+    document.getElementById('modal-storico-score').addEventListener('click', (e) => {
+        if (e.target.id === 'modal-storico-score') chiudiStoricoScore();
+    });
 });
 
 function renderTableHeader() {
@@ -376,7 +382,7 @@ function renderTableBody() {
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
         // Bottoni Azioni: Score manuale + Retrocedi
-        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07;R</button></td>`;
+        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-storico-score" onclick="apriStoricoScore(${c.id})" title="Storico score manuali">&#9998;</button><button class="crm-btn-retrocedi" onclick="apriRetrocedi(${c.id})" title="Retrocedi a Lead">&#x2B07;R</button></td>`;
 
         html += '</tr>';
     });
@@ -449,7 +455,7 @@ function renderLeadTable() {
 
         html += `<td class="${noteClass}" onclick="apriNote(${c.id}, '${esc(c._displayCognome)}', '${esc(c._displayNome)}')" title="${noteTitle}">&#9998;</td>`;
 
-        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
+        html += `<td><button class="crm-btn-score" onclick="apriScore(${c.id})" title="Assegna score manuale">&#9733;</button><button class="crm-btn-storico-score" onclick="apriStoricoScore(${c.id})" title="Storico score manuali">&#9998;</button><button class="crm-btn-promuovi" onclick="apriPromuovi(${c.id})" title="Promuovi a Account">&#x2B06; Promuovi</button></td>`;
         html += '</tr>';
     });
 
@@ -647,6 +653,80 @@ async function confermaScore() {
     } finally {
         btn.disabled = false;
         btn.textContent = 'Assegna Score';
+    }
+}
+
+// ==================== STORICO SCORE MANUALI ====================
+
+async function apriStoricoScore(contattoId) {
+    const contatto = allContatti.find(c => c.id === contattoId);
+    if (!contatto) return;
+
+    const displayName = ((contatto._displayCognome || '') + ' ' + (contatto._displayNome || '')).trim();
+    document.getElementById('storico-score-info').textContent = displayName + (contatto.citta ? ' - ' + contatto.citta : '');
+
+    const tbody = document.getElementById('storico-score-tbody');
+    const vuoto = document.getElementById('storico-score-vuoto');
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:15px;">Caricamento...</td></tr>';
+    vuoto.style.display = 'none';
+
+    document.getElementById('modal-storico-score').classList.add('show');
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/score-manuali?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const scores = await res.json();
+
+        if (scores.length === 0) {
+            tbody.innerHTML = '';
+            vuoto.style.display = 'block';
+            return;
+        }
+
+        vuoto.style.display = 'none';
+        tbody.innerHTML = scores.map(s => {
+            const data = s.data_evento || s.created_at?.split('T')[0] || '';
+            return `<tr>
+                <td>${data}</td>
+                <td>${s.label || s.tipo_attivita}</td>
+                <td>${s.linea_prodotto}</td>
+                <td>+${s.punti}</td>
+                <td><button class="crm-btn-elimina-score" onclick="eliminaScore(${s.id}, ${contattoId})" title="Elimina questo score">&times;</button></td>
+            </tr>`;
+        }).join('');
+    } catch (err) {
+        console.error('Errore storico score:', err);
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:red;padding:15px;">Errore caricamento</td></tr>';
+    }
+}
+
+function chiudiStoricoScore() {
+    document.getElementById('modal-storico-score').classList.remove('show');
+}
+
+async function eliminaScore(scoreId, contattoId) {
+    if (!confirm('Eliminare questo score?')) return;
+
+    try {
+        const res = await fetch(`${API_URL}/crm/contatti/${contattoId}/score-manuali/${scoreId}?key=${ADMIN_KEY}`, {
+            method: 'DELETE'
+        });
+
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.error || 'Errore eliminazione');
+        }
+
+        const data = await res.json();
+        mostraToast(data.messaggio, 'success');
+
+        // Ricarica storico
+        await apriStoricoScore(contattoId);
+        // Ricarica dati principali per aggiornare lo score nella tabella
+        await caricaDati();
+    } catch (err) {
+        console.error('Errore eliminazione score:', err);
+        mostraToast(err.message || 'Errore durante eliminazione', 'error');
     }
 }
 

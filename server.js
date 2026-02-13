@@ -1961,7 +1961,8 @@ const ATTIVITA_OFFLINE = {
     'richiesta_prodotto_stand': { label: 'Richiesta prodotto allo stand', punti: 30 },
     'richiesta_trial_surgery':  { label: 'Richiesta trial surgery', punti: 50 },
     'richiesta_info_corsi':     { label: 'Richieste informazioni: corsi', punti: 25 },
-    'partecipazione_corso':     { label: 'Partecipazione a corso', punti: 100 }
+    'partecipazione_corso':     { label: 'Partecipazione a corso', punti: 100 },
+    'richiesta_offerta':        { label: 'Richiesta di offerta', punti: 50 }
 };
 
 // Aggiungi prodotto a un contatto
@@ -3269,6 +3270,120 @@ app.post('/api/crm/contatti/:id/score', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[CRM Score Manuale]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Storico score manuali per un contatto
+app.get('/api/crm/contatti/:id/score-manuali', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            `SELECT id, linea_prodotto, tipo_attivita, punti, data_evento, sincronizzata, created_at
+             FROM crm_score_manuali
+             WHERE contatto_id = $1
+             ORDER BY created_at DESC`,
+            [contattoId]
+        );
+        // Mappa tipo_attivita alla label leggibile
+        const rows = result.rows.map(r => ({
+            ...r,
+            label: ATTIVITA_OFFLINE[r.tipo_attivita] ? ATTIVITA_OFFLINE[r.tipo_attivita].label : r.tipo_attivita
+        }));
+        res.json(rows);
+    } catch (err) {
+        console.error('[CRM Score Manuali GET]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// Elimina uno score manuale
+app.delete('/api/crm/contatti/:id/score-manuali/:scoreId', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    const scoreId = parseInt(req.params.scoreId);
+
+    try {
+        // 1. Leggi il record PRIMA di eliminarlo
+        const existing = await pool.query(
+            'SELECT * FROM crm_score_manuali WHERE id = $1 AND contatto_id = $2',
+            [scoreId, contattoId]
+        );
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Score non trovato' });
+        }
+
+        const record = existing.rows[0];
+        const client = await pool.connect();
+
+        try {
+            await client.query('BEGIN');
+
+            // 2. Soft-delete in cestino
+            await client.query(
+                `INSERT INTO crm_cestino (tabella_origine, record_id, contatto_id, dati) VALUES ($1, $2, $3, $4)`,
+                ['crm_score_manuali', scoreId, contattoId, JSON.stringify(record)]
+            );
+
+            // 3. Audit log
+            await client.query(
+                `INSERT INTO crm_audit_log (azione, tabella, record_id, contatto_id, dettagli)
+                 VALUES ($1, $2, $3, $4, $5)`,
+                ['delete', 'crm_score_manuali', scoreId, contattoId,
+                 JSON.stringify({ linea_prodotto: record.linea_prodotto, tipo_attivita: record.tipo_attivita, punti: record.punti })]
+            );
+
+            // 4. Se gia' sincronizzato, propagare la cancellazione al SQLite
+            if (record.sincronizzata) {
+                await client.query(
+                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                     VALUES ('delete_score_manuale', $1, $2)`,
+                    [contattoId, JSON.stringify({
+                        linea_prodotto: record.linea_prodotto,
+                        tipo_attivita: record.tipo_attivita,
+                        punti: record.punti,
+                        data_evento: record.data_evento
+                    })]
+                );
+            }
+
+            // 5. Elimina da crm_score_manuali
+            await client.query('DELETE FROM crm_score_manuali WHERE id = $1', [scoreId]);
+
+            // 6. Aggiorna crm_score_prodotti per la linea del record eliminato
+            //    Sottrai i punti. Se lo score scende a 0, rimuovi la riga.
+            const existingScore = await client.query(
+                'SELECT score FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = $2',
+                [contattoId, record.linea_prodotto]
+            );
+            if (existingScore.rows.length > 0) {
+                const newScore = existingScore.rows[0].score - record.punti;
+                if (newScore <= 0) {
+                    await client.query(
+                        'DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = $2',
+                        [contattoId, record.linea_prodotto]
+                    );
+                } else {
+                    await client.query(
+                        'UPDATE crm_score_prodotti SET score = $1 WHERE contatto_id = $2 AND linea_prodotto = $3',
+                        [newScore, contattoId, record.linea_prodotto]
+                    );
+                }
+            }
+
+            await client.query('COMMIT');
+
+            const c = (await pool.query('SELECT cognome, nome FROM crm_contatti WHERE id = $1', [contattoId])).rows[0] || {};
+            console.log(`[CRM Score Delete] ${c.cognome} ${c.nome} (ID ${contattoId}): -${record.punti} per ${record.linea_prodotto} (${record.tipo_attivita})`);
+
+            res.json({ ok: true, messaggio: `Score -${record.punti} rimosso da ${record.linea_prodotto}` });
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('[CRM Score Delete]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
