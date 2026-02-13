@@ -1,24 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 440 100" width="440" height="100">
-  <defs>
-    <linearGradient id="chrome" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#ffffff;stop-opacity:1" />
-      <stop offset="30%" style="stop-color:#e0e0e0;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#b0b0b0;stop-opacity:1" />
-      <stop offset="70%" style="stop-color:#d0d0d0;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#ffffff;stop-opacity:1" />
-    </linearGradient>
-    <linearGradient id="chrome-stroke" x1="0%" y1="0%" x2="0%" y2="100%">
-      <stop offset="0%" style="stop-color:#cccccc;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#888888;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#cccccc;stop-opacity:1" />
-    </linearGradient>
-  </defs>
-  <!-- ELEV -->
-  <text x="10" y="75" font-family="Arial Black, Impact, sans-serif" font-size="68" font-weight="900" font-style="italic" fill="url(#chrome)" stroke="url(#chrome-stroke)" stroke-width="1" letter-spacing="2">ELE</text>
-  <!-- V grande -->
-  <text x="200" y="82" font-family="Arial Black, Impact, sans-serif" font-size="90" font-weight="900" font-style="italic" fill="url(#chrome)" stroke="url(#chrome-stroke)" stroke-width="1.5">V</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 460 110" width="460" height="110">
+  <!-- Sfondo nero -->
+  <rect width="460" height="110" fill="#0a0a0a" rx="6"/>
+  <!-- Linea superiore sottile -->
+  <line x1="20" y1="12" x2="440" y2="12" stroke="#ffffff" stroke-width="1.5" opacity="0.6"/>
+  <!-- ELE (italic, bold, bianco) -->
+  <text x="22" y="80" font-family="Arial Black, Impact, sans-serif" font-size="64" font-weight="900" font-style="italic" fill="#ffffff" letter-spacing="1">ELE</text>
+  <!-- V grande (piu' alta delle altre lettere) -->
+  <text x="200" y="88" font-family="Arial Black, Impact, sans-serif" font-size="88" font-weight="900" font-style="italic" fill="#ffffff">V</text>
   <!-- ATE -->
-  <text x="275" y="75" font-family="Arial Black, Impact, sans-serif" font-size="68" font-weight="900" font-style="italic" fill="url(#chrome)" stroke="url(#chrome-stroke)" stroke-width="1" letter-spacing="2">ATE</text>
-  <!-- Linea sottile sotto -->
-  <line x1="10" y1="88" x2="430" y2="88" stroke="url(#chrome-stroke)" stroke-width="2"/>
+  <text x="278" y="80" font-family="Arial Black, Impact, sans-serif" font-size="64" font-weight="900" font-style="italic" fill="#ffffff" letter-spacing="1">ATE</text>
+  <!-- Linea inferiore -->
+  <line x1="20" y1="95" x2="440" y2="95" stroke="#ffffff" stroke-width="2" opacity="0.8"/>
 </svg>
