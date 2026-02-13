@@ -2245,6 +2245,33 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
     }
 });
 
+// Toggle gruppo_whatsapp per un contatto
+app.put('/api/crm/contatti/:id/whatsapp', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            `UPDATE crm_contatti SET gruppo_whatsapp = true WHERE id = $1 RETURNING id, gruppo_whatsapp`,
+            [contattoId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+
+        // Log per sync bidirezionale con SQLite
+        await pool.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('whatsapp_toggle', $1, $2)`,
+            [contattoId, JSON.stringify({ gruppo_whatsapp: true })]
+        );
+
+        console.log(`[CRM] WhatsApp attivato per contatto ${contattoId}`);
+        res.json({ ok: true, gruppo_whatsapp: true });
+    } catch (err) {
+        console.error('[CRM WhatsApp Toggle]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Aggiorna campi contatto (email, telefono, cellulare, citta, regione)
 app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
