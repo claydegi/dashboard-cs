@@ -1,6 +1,7 @@
 // CRM Score - Engagement per linea prodotto
 const API_URL = window.location.origin + '/api';
 const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
+const REGIONE = (new URLSearchParams(window.location.search).get('regione') || 'LIGURIA').toUpperCase();
 
 const SOGLIA_HOT = 40;
 
@@ -10,13 +11,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    document.getElementById('btn-back').href = `/crm-liguria?key=${ADMIN_KEY}`;
+    document.getElementById('btn-back').href = `/crm-${REGIONE.toLowerCase()}?key=${ADMIN_KEY}`;
     caricaScore();
 });
 
 async function caricaScore() {
     try {
-        const res = await fetch(`${API_URL}/crm/score?regione=LIGURIA&key=${ADMIN_KEY}`);
+        const res = await fetch(`${API_URL}/crm/score?regione=${REGIONE}&key=${ADMIN_KEY}`);
         if (!res.ok) throw new Error('Errore caricamento');
 
         const data = await res.json();

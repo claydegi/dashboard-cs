@@ -51,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Stat card score -> naviga a pagina score
     document.getElementById('stat-card-score').addEventListener('click', () => {
-        window.location.href = `/crm-score?key=${ADMIN_KEY}`;
+        window.location.href = `/crm-score?regione=LIGURIA&key=${ADMIN_KEY}`;
     });
 
     document.getElementById('crm-search').addEventListener('input', (e) => {
