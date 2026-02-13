@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    document.getElementById('btn-back').href = `/crm-${REGIONE.toLowerCase()}?key=${ADMIN_KEY}`;
+    document.getElementById('btn-back').href = `/crm?regione=${REGIONE}&key=${ADMIN_KEY}`;
     caricaScore();
 });
 
@@ -71,7 +71,7 @@ function renderBody(tbodyId, contatti, lineeProdotto) {
 
     let html = '';
     contatti.forEach((c, idx) => {
-        const displayCognome = c.cognome || c.nome_azienda || '';
+        const displayCognome = c.cognome || c.nome_azienda || c.nome || '';
         const displayNome = c.cognome ? (c.nome || '') : '';
         const fullName = displayNome ? `${displayCognome} ${displayNome}` : displayCognome;
 
