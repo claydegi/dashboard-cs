@@ -1773,7 +1773,7 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                 if (!prods.has('MM')) {
                     const richiedeMM = [...prods].some(p => !INDIPENDENTI_DA_MM.includes(p));
                     if (richiedeMM) {
-                        prodotti.push({ contatto_id: parseInt(cid), prodotto: 'MM', data_inserimento: new Date().toISOString().split('T')[0], fonte: 'regola_R2' });
+                        prodotti.push({ contatto_id: parseInt(cid), prodotto: 'MM', data_inserimento: new Date().toISOString().split('T')[0], fonte: 'regola_R2_dashboard' });
                     }
                 }
             }
