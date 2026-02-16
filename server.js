@@ -372,7 +372,34 @@ async function initDB() {
             )
         `);
 
-        // Metriche aggregate canale (storico)
+        // Views per dispositivo
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_dispositivi (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT NOT NULL REFERENCES yt_videos(video_id) ON DELETE CASCADE,
+                data_snapshot DATE NOT NULL,
+                dispositivo TEXT NOT NULL,
+                views INTEGER DEFAULT 0,
+                watch_time_minuti REAL DEFAULT 0,
+                UNIQUE(video_id, data_snapshot, dispositivo)
+            )
+        `);
+
+        // Curva di retention per video (segmenti 0-100%)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_retention (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT NOT NULL REFERENCES yt_videos(video_id) ON DELETE CASCADE,
+                data_snapshot DATE NOT NULL,
+                segmento_percentuale REAL NOT NULL,
+                audience_watch_ratio REAL,
+                relative_retention REAL,
+                UNIQUE(video_id, data_snapshot, segmento_percentuale)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_yt_retention_video ON yt_retention(video_id)`);
+
+        // Metriche aggregate canale (storico giornaliero)
         await client.query(`
             CREATE TABLE IF NOT EXISTS yt_canale_storico (
                 id SERIAL PRIMARY KEY,
@@ -380,8 +407,26 @@ async function initDB() {
                 iscritti_totali INTEGER,
                 views_totali BIGINT,
                 video_totali INTEGER,
-                watch_time_totale_ore REAL
+                watch_time_totale_ore REAL,
+                iscritti_guadagnati INTEGER DEFAULT 0,
+                iscritti_persi INTEGER DEFAULT 0,
+                shares INTEGER DEFAULT 0,
+                avg_view_duration REAL,
+                avg_view_percentage REAL
             )
+        `);
+
+        // Aggiungi colonne nuove a tabelle esistenti (safe: IF NOT EXISTS via DO $$ block)
+        await client.query(`
+            DO $$ BEGIN
+                ALTER TABLE yt_metriche ADD COLUMN IF NOT EXISTS shares INTEGER DEFAULT 0;
+                ALTER TABLE yt_metriche ADD COLUMN IF NOT EXISTS avg_view_percentage REAL;
+                ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS iscritti_guadagnati INTEGER DEFAULT 0;
+                ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS iscritti_persi INTEGER DEFAULT 0;
+                ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS shares INTEGER DEFAULT 0;
+                ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_duration REAL;
+                ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_percentage REAL;
+            END $$;
         `);
 
         console.log('[DB] Tabelle inizializzate');
@@ -4120,7 +4165,7 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
 app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
     const client = await pool.connect();
     try {
-        const { videos, metriche, traffico, geografia, canale } = req.body;
+        const { videos, metriche, traffico, geografia, dispositivi, retention, canale, canale_giornaliero } = req.body;
         await client.query('BEGIN');
 
         // 1. UPSERT video
@@ -4146,27 +4191,26 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
             }
         }
 
-        // 2. UPSERT metriche
+        // 2. UPSERT metriche (con shares e avg_view_percentage)
         if (metriche && metriche.length > 0) {
             for (const m of metriche) {
                 await client.query(`
-                    INSERT INTO yt_metriche (video_id, data_snapshot, views, likes, commenti, watch_time_minuti, durata_media_view_secondi, retention_percentuale, iscritti_guadagnati, iscritti_persi, impressioni, ctr_percentuale)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    INSERT INTO yt_metriche (video_id, data_snapshot, views, likes, commenti, watch_time_minuti, durata_media_view_secondi, iscritti_guadagnati, iscritti_persi, shares, avg_view_percentage)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
                     ON CONFLICT (video_id, data_snapshot) DO UPDATE SET
                         views = EXCLUDED.views,
                         likes = EXCLUDED.likes,
                         commenti = EXCLUDED.commenti,
                         watch_time_minuti = EXCLUDED.watch_time_minuti,
                         durata_media_view_secondi = EXCLUDED.durata_media_view_secondi,
-                        retention_percentuale = EXCLUDED.retention_percentuale,
                         iscritti_guadagnati = EXCLUDED.iscritti_guadagnati,
                         iscritti_persi = EXCLUDED.iscritti_persi,
-                        impressioni = EXCLUDED.impressioni,
-                        ctr_percentuale = EXCLUDED.ctr_percentuale
+                        shares = EXCLUDED.shares,
+                        avg_view_percentage = EXCLUDED.avg_view_percentage
                 `, [m.video_id, m.data_snapshot, m.views || 0, m.likes || 0, m.commenti || 0,
                     m.watch_time_minuti || 0, m.durata_media_view_secondi || null,
-                    m.retention_percentuale || null, m.iscritti_guadagnati || 0,
-                    m.iscritti_persi || 0, m.impressioni || 0, m.ctr_percentuale || null]);
+                    m.iscritti_guadagnati || 0, m.iscritti_persi || 0,
+                    m.shares || 0, m.avg_view_percentage || null]);
             }
         }
 
@@ -4196,7 +4240,34 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
             }
         }
 
-        // 5. UPSERT canale storico
+        // 5. UPSERT dispositivi
+        if (dispositivi && dispositivi.length > 0) {
+            for (const d of dispositivi) {
+                await client.query(`
+                    INSERT INTO yt_dispositivi (video_id, data_snapshot, dispositivo, views, watch_time_minuti)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (video_id, data_snapshot, dispositivo) DO UPDATE SET
+                        views = EXCLUDED.views,
+                        watch_time_minuti = EXCLUDED.watch_time_minuti
+                `, [d.video_id, d.data_snapshot, d.dispositivo, d.views || 0, d.watch_time_minuti || 0]);
+            }
+        }
+
+        // 6. UPSERT retention (curva segmenti)
+        if (retention && retention.length > 0) {
+            for (const r of retention) {
+                await client.query(`
+                    INSERT INTO yt_retention (video_id, data_snapshot, segmento_percentuale, audience_watch_ratio, relative_retention)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (video_id, data_snapshot, segmento_percentuale) DO UPDATE SET
+                        audience_watch_ratio = EXCLUDED.audience_watch_ratio,
+                        relative_retention = EXCLUDED.relative_retention
+                `, [r.video_id, r.data_snapshot, r.segmento_percentuale,
+                    r.audience_watch_ratio || null, r.relative_retention || null]);
+            }
+        }
+
+        // 7. UPSERT canale storico (snapshot singolo)
         if (canale && canale.length > 0) {
             for (const c of canale) {
                 await client.query(`
@@ -4212,6 +4283,26 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
             }
         }
 
+        // 8. UPSERT canale giornaliero (metriche aggregate per giorno dal Analytics API)
+        if (canale_giornaliero && canale_giornaliero.length > 0) {
+            for (const c of canale_giornaliero) {
+                await client.query(`
+                    INSERT INTO yt_canale_storico (data_snapshot, views_totali, watch_time_totale_ore, iscritti_guadagnati, iscritti_persi, shares, avg_view_duration, avg_view_percentage)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                    ON CONFLICT (data_snapshot) DO UPDATE SET
+                        views_totali = COALESCE(EXCLUDED.views_totali, yt_canale_storico.views_totali),
+                        watch_time_totale_ore = COALESCE(EXCLUDED.watch_time_totale_ore, yt_canale_storico.watch_time_totale_ore),
+                        iscritti_guadagnati = EXCLUDED.iscritti_guadagnati,
+                        iscritti_persi = EXCLUDED.iscritti_persi,
+                        shares = EXCLUDED.shares,
+                        avg_view_duration = EXCLUDED.avg_view_duration,
+                        avg_view_percentage = EXCLUDED.avg_view_percentage
+                `, [c.data_snapshot, c.views_totali || null, c.watch_time_totale_ore || null,
+                    c.iscritti_guadagnati || 0, c.iscritti_persi || 0, c.shares || 0,
+                    c.avg_view_duration || null, c.avg_view_percentage || null]);
+            }
+        }
+
         await client.query('COMMIT');
 
         const counts = {
@@ -4219,9 +4310,12 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
             metriche: metriche ? metriche.length : 0,
             traffico: traffico ? traffico.length : 0,
             geografia: geografia ? geografia.length : 0,
-            canale: canale ? canale.length : 0
+            dispositivi: dispositivi ? dispositivi.length : 0,
+            retention: retention ? retention.length : 0,
+            canale: canale ? canale.length : 0,
+            canale_giornaliero: canale_giornaliero ? canale_giornaliero.length : 0
         };
-        console.log(`[YouTube Sync] Ricevuti: ${counts.videos} video, ${counts.metriche} metriche, ${counts.traffico} traffico, ${counts.geografia} geo, ${counts.canale} canale`);
+        console.log(`[YouTube Sync] Ricevuti: ${counts.videos} video, ${counts.metriche} metriche, ${counts.traffico} traffico, ${counts.geografia} geo, ${counts.dispositivi} disp, ${counts.retention} retention, ${counts.canale} canale, ${counts.canale_giornaliero} canale_g`);
         res.json({ ok: true, counts });
     } catch (err) {
         await client.query('ROLLBACK');
@@ -4238,7 +4332,8 @@ app.get('/api/youtube/videos', requireAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT v.*,
                    m.views, m.likes, m.commenti, m.watch_time_minuti,
-                   m.retention_percentuale, m.impressioni, m.ctr_percentuale,
+                   m.durata_media_view_secondi, m.shares, m.avg_view_percentage,
+                   m.iscritti_guadagnati, m.iscritti_persi,
                    m.data_snapshot
             FROM yt_videos v
             LEFT JOIN LATERAL (
@@ -4270,11 +4365,19 @@ app.get('/api/youtube/stats', requireAdmin, async (req, res) => {
             ORDER BY views_totali DESC
             LIMIT 10
         `);
+        const topDispositivi = await pool.query(`
+            SELECT dispositivo, SUM(views) as views_totali, SUM(watch_time_minuti) as watch_time_totale
+            FROM yt_dispositivi
+            WHERE data_snapshot = (SELECT MAX(data_snapshot) FROM yt_dispositivi)
+            GROUP BY dispositivo
+            ORDER BY views_totali DESC
+        `);
         res.json({
             video_totali: parseInt(videoCount.rows[0].totale),
             ultimo_sync: lastSync.rows[0]?.ultimo_sync,
             canale: canale.rows[0] || null,
-            top_paesi: topPaesi.rows
+            top_paesi: topPaesi.rows,
+            top_dispositivi: topDispositivi.rows
         });
     } catch (err) {
         console.error('[YouTube Stats]', err);
