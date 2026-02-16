@@ -3893,7 +3893,7 @@ app.get('/video-landing', async (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>OSSEOTOUCH – Caso Clinico</title>
+    <title>ELEVATE by OsseoTouch – Caso Clinico</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -3980,17 +3980,17 @@ app.get('/video-landing', async (req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>Kit Elevate &ndash; Caso Clinico<br>Mini Rialzi Crestali</h1>
+            <h1>ELEVATE by OsseoTouch<br>Mini Rialzi Crestali con Tecnologia Magnetodinamica</h1>
         </div>
         <div class="content">
             <div class="video-wrapper">
                 <div id="player"></div>
             </div>
             <p class="subtitle">
-                Dr. Mema &mdash; Mini rialzi crestali con tecnologia magnetodinamica
+                Il Dr. Mema illustra la procedura di mini rialzo crestale<br>con il kit Elevate e la tecnologia magnetodinamica OsseoTouch
             </p>
             <a href="https://wa.me/393387351260?text=Salve%2C%20vorrei%20informazioni%20sul%20kit%20Elevate" class="wa-button">
-                INFORMAZIONI SUL KIT ELEVATE
+                &#128172; Scopri il Kit Elevate su WhatsApp
             </a>
         </div>
         <div class="footer">
