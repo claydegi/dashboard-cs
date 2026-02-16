@@ -426,6 +426,7 @@ async function initDB() {
                 ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS shares INTEGER DEFAULT 0;
                 ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_duration REAL;
                 ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_percentage REAL;
+                ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS promosso BOOLEAN DEFAULT FALSE;
             END $$;
         `);
 
@@ -4381,6 +4382,39 @@ app.get('/api/youtube/stats', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[YouTube Stats]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/youtube/promosso — flagga video come promossi o rimuovi flag
+// Body: { video_ids: ["abc123", "def456"], promosso: true/false }
+app.post('/api/youtube/promosso', requireAdmin, async (req, res) => {
+    try {
+        const { video_ids, promosso } = req.body;
+        if (!video_ids || !Array.isArray(video_ids)) {
+            return res.status(400).json({ error: 'video_ids deve essere un array' });
+        }
+        const flag = promosso !== false; // default true
+        const result = await pool.query(
+            `UPDATE yt_videos SET promosso = $1, updated_at = NOW() WHERE video_id = ANY($2)`,
+            [flag, video_ids]
+        );
+        res.json({ aggiornati: result.rowCount, promosso: flag });
+    } catch (err) {
+        console.error('[YouTube Promosso]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/youtube/promossi — lista video promossi
+app.get('/api/youtube/promossi', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT video_id, titolo, data_pubblicazione FROM yt_videos WHERE promosso = TRUE ORDER BY data_pubblicazione DESC`
+        );
+        res.json({ promossi: result.rows });
+    } catch (err) {
+        console.error('[YouTube Promossi]', err);
         res.status(500).json({ error: err.message });
     }
 });
