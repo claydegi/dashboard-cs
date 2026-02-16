@@ -303,6 +303,87 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_email ON crm_video_tracking(email)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_campagna ON crm_video_tracking(campagna)`);
 
+        // ==================== TABELLE YOUTUBE ANALYTICS ====================
+
+        // Anagrafica video del canale
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_videos (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT UNIQUE NOT NULL,
+                titolo TEXT,
+                descrizione TEXT,
+                data_pubblicazione TIMESTAMPTZ,
+                durata_secondi INTEGER,
+                tags TEXT,
+                thumbnail_url TEXT,
+                playlist_id TEXT,
+                prodotto_associato TEXT,
+                kol_nome TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        // Snapshot metriche per video (giornaliero)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_metriche (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT NOT NULL REFERENCES yt_videos(video_id) ON DELETE CASCADE,
+                data_snapshot DATE NOT NULL,
+                views INTEGER DEFAULT 0,
+                likes INTEGER DEFAULT 0,
+                commenti INTEGER DEFAULT 0,
+                watch_time_minuti REAL DEFAULT 0,
+                durata_media_view_secondi REAL,
+                retention_percentuale REAL,
+                iscritti_guadagnati INTEGER DEFAULT 0,
+                iscritti_persi INTEGER DEFAULT 0,
+                impressioni INTEGER DEFAULT 0,
+                ctr_percentuale REAL,
+                UNIQUE(video_id, data_snapshot)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_yt_metriche_video ON yt_metriche(video_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_yt_metriche_data ON yt_metriche(data_snapshot)`);
+
+        // Fonti traffico per video
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_traffico (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT NOT NULL REFERENCES yt_videos(video_id) ON DELETE CASCADE,
+                data_snapshot DATE NOT NULL,
+                fonte TEXT NOT NULL,
+                views INTEGER DEFAULT 0,
+                watch_time_minuti REAL DEFAULT 0,
+                UNIQUE(video_id, data_snapshot, fonte)
+            )
+        `);
+
+        // Views per paese
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_geografia (
+                id SERIAL PRIMARY KEY,
+                video_id TEXT NOT NULL REFERENCES yt_videos(video_id) ON DELETE CASCADE,
+                data_snapshot DATE NOT NULL,
+                paese_codice TEXT NOT NULL,
+                views INTEGER DEFAULT 0,
+                watch_time_minuti REAL DEFAULT 0,
+                UNIQUE(video_id, data_snapshot, paese_codice)
+            )
+        `);
+
+        // Metriche aggregate canale (storico)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS yt_canale_storico (
+                id SERIAL PRIMARY KEY,
+                data_snapshot DATE UNIQUE NOT NULL,
+                iscritti_totali INTEGER,
+                views_totali BIGINT,
+                video_totali INTEGER,
+                watch_time_totale_ore REAL
+            )
+        `);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -4030,6 +4111,174 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
     } catch (err) {
         console.error('[Video Tracking]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== YOUTUBE ANALYTICS API ====================
+
+// POST /api/youtube/sync — riceve payload metriche da youtube_sync.py
+app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        const { videos, metriche, traffico, geografia, canale } = req.body;
+        await client.query('BEGIN');
+
+        // 1. UPSERT video
+        if (videos && videos.length > 0) {
+            for (const v of videos) {
+                await client.query(`
+                    INSERT INTO yt_videos (video_id, titolo, descrizione, data_pubblicazione, durata_secondi, tags, thumbnail_url, playlist_id, prodotto_associato, kol_nome)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    ON CONFLICT (video_id) DO UPDATE SET
+                        titolo = EXCLUDED.titolo,
+                        descrizione = EXCLUDED.descrizione,
+                        data_pubblicazione = EXCLUDED.data_pubblicazione,
+                        durata_secondi = EXCLUDED.durata_secondi,
+                        tags = EXCLUDED.tags,
+                        thumbnail_url = EXCLUDED.thumbnail_url,
+                        playlist_id = EXCLUDED.playlist_id,
+                        prodotto_associato = COALESCE(EXCLUDED.prodotto_associato, yt_videos.prodotto_associato),
+                        kol_nome = COALESCE(EXCLUDED.kol_nome, yt_videos.kol_nome),
+                        updated_at = NOW()
+                `, [v.video_id, v.titolo, v.descrizione, v.data_pubblicazione, v.durata_secondi,
+                    v.tags ? JSON.stringify(v.tags) : null, v.thumbnail_url, v.playlist_id,
+                    v.prodotto_associato || null, v.kol_nome || null]);
+            }
+        }
+
+        // 2. UPSERT metriche
+        if (metriche && metriche.length > 0) {
+            for (const m of metriche) {
+                await client.query(`
+                    INSERT INTO yt_metriche (video_id, data_snapshot, views, likes, commenti, watch_time_minuti, durata_media_view_secondi, retention_percentuale, iscritti_guadagnati, iscritti_persi, impressioni, ctr_percentuale)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+                    ON CONFLICT (video_id, data_snapshot) DO UPDATE SET
+                        views = EXCLUDED.views,
+                        likes = EXCLUDED.likes,
+                        commenti = EXCLUDED.commenti,
+                        watch_time_minuti = EXCLUDED.watch_time_minuti,
+                        durata_media_view_secondi = EXCLUDED.durata_media_view_secondi,
+                        retention_percentuale = EXCLUDED.retention_percentuale,
+                        iscritti_guadagnati = EXCLUDED.iscritti_guadagnati,
+                        iscritti_persi = EXCLUDED.iscritti_persi,
+                        impressioni = EXCLUDED.impressioni,
+                        ctr_percentuale = EXCLUDED.ctr_percentuale
+                `, [m.video_id, m.data_snapshot, m.views || 0, m.likes || 0, m.commenti || 0,
+                    m.watch_time_minuti || 0, m.durata_media_view_secondi || null,
+                    m.retention_percentuale || null, m.iscritti_guadagnati || 0,
+                    m.iscritti_persi || 0, m.impressioni || 0, m.ctr_percentuale || null]);
+            }
+        }
+
+        // 3. UPSERT traffico
+        if (traffico && traffico.length > 0) {
+            for (const t of traffico) {
+                await client.query(`
+                    INSERT INTO yt_traffico (video_id, data_snapshot, fonte, views, watch_time_minuti)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (video_id, data_snapshot, fonte) DO UPDATE SET
+                        views = EXCLUDED.views,
+                        watch_time_minuti = EXCLUDED.watch_time_minuti
+                `, [t.video_id, t.data_snapshot, t.fonte, t.views || 0, t.watch_time_minuti || 0]);
+            }
+        }
+
+        // 4. UPSERT geografia
+        if (geografia && geografia.length > 0) {
+            for (const g of geografia) {
+                await client.query(`
+                    INSERT INTO yt_geografia (video_id, data_snapshot, paese_codice, views, watch_time_minuti)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (video_id, data_snapshot, paese_codice) DO UPDATE SET
+                        views = EXCLUDED.views,
+                        watch_time_minuti = EXCLUDED.watch_time_minuti
+                `, [g.video_id, g.data_snapshot, g.paese_codice, g.views || 0, g.watch_time_minuti || 0]);
+            }
+        }
+
+        // 5. UPSERT canale storico
+        if (canale && canale.length > 0) {
+            for (const c of canale) {
+                await client.query(`
+                    INSERT INTO yt_canale_storico (data_snapshot, iscritti_totali, views_totali, video_totali, watch_time_totale_ore)
+                    VALUES ($1, $2, $3, $4, $5)
+                    ON CONFLICT (data_snapshot) DO UPDATE SET
+                        iscritti_totali = EXCLUDED.iscritti_totali,
+                        views_totali = EXCLUDED.views_totali,
+                        video_totali = EXCLUDED.video_totali,
+                        watch_time_totale_ore = EXCLUDED.watch_time_totale_ore
+                `, [c.data_snapshot, c.iscritti_totali || null, c.views_totali || null,
+                    c.video_totali || null, c.watch_time_totale_ore || null]);
+            }
+        }
+
+        await client.query('COMMIT');
+
+        const counts = {
+            videos: videos ? videos.length : 0,
+            metriche: metriche ? metriche.length : 0,
+            traffico: traffico ? traffico.length : 0,
+            geografia: geografia ? geografia.length : 0,
+            canale: canale ? canale.length : 0
+        };
+        console.log(`[YouTube Sync] Ricevuti: ${counts.videos} video, ${counts.metriche} metriche, ${counts.traffico} traffico, ${counts.geografia} geo, ${counts.canale} canale`);
+        res.json({ ok: true, counts });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[YouTube Sync] Errore:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /api/youtube/videos — lista video con ultime metriche
+app.get('/api/youtube/videos', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT v.*,
+                   m.views, m.likes, m.commenti, m.watch_time_minuti,
+                   m.retention_percentuale, m.impressioni, m.ctr_percentuale,
+                   m.data_snapshot
+            FROM yt_videos v
+            LEFT JOIN LATERAL (
+                SELECT * FROM yt_metriche
+                WHERE video_id = v.video_id
+                ORDER BY data_snapshot DESC
+                LIMIT 1
+            ) m ON true
+            ORDER BY v.data_pubblicazione DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[YouTube Videos]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/youtube/stats — statistiche riepilogative canale
+app.get('/api/youtube/stats', requireAdmin, async (req, res) => {
+    try {
+        const videoCount = await pool.query(`SELECT COUNT(*) as totale FROM yt_videos`);
+        const lastSync = await pool.query(`SELECT MAX(data_snapshot) as ultimo_sync FROM yt_metriche`);
+        const canale = await pool.query(`SELECT * FROM yt_canale_storico ORDER BY data_snapshot DESC LIMIT 1`);
+        const topPaesi = await pool.query(`
+            SELECT paese_codice, SUM(views) as views_totali, SUM(watch_time_minuti) as watch_time_totale
+            FROM yt_geografia
+            WHERE data_snapshot = (SELECT MAX(data_snapshot) FROM yt_geografia)
+            GROUP BY paese_codice
+            ORDER BY views_totali DESC
+            LIMIT 10
+        `);
+        res.json({
+            video_totali: parseInt(videoCount.rows[0].totale),
+            ultimo_sync: lastSync.rows[0]?.ultimo_sync,
+            canale: canale.rows[0] || null,
+            top_paesi: topPaesi.rows
+        });
+    } catch (err) {
+        console.error('[YouTube Stats]', err);
+        res.status(500).json({ error: err.message });
     }
 });
 
