@@ -2355,6 +2355,19 @@ nav {
     background: #d35400;
 }
 
+/* Bottone elimina contatto (X accanto al numero progressivo) */
+.crm-btn-elimina {
+    color: #ccc;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    margin-right: 4px;
+    transition: color 0.2s;
+}
+.crm-btn-elimina:hover {
+    color: #e74c3c;
+}
+
 /* Modal Retrocedi */
 .crm-modal-retrocedi .crm-retrocedi-info {
     font-size: 1.1rem;
