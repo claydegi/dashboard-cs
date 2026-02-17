@@ -4327,22 +4327,41 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
     }
 });
 
-// GET /api/youtube/videos — lista video con ultime metriche
+// GET /api/youtube/videos — lista video con metriche aggregate (SUM giornaliere)
 app.get('/api/youtube/videos', requireAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT v.*,
-                   m.views, m.likes, m.commenti, m.watch_time_minuti,
-                   m.durata_media_view_secondi, m.shares, m.avg_view_percentage,
-                   m.iscritti_guadagnati, m.iscritti_persi,
+                   COALESCE(m.views, 0) as views,
+                   COALESCE(m.likes, 0) as likes,
+                   COALESCE(m.commenti, 0) as commenti,
+                   COALESCE(m.watch_time_minuti, 0) as watch_time_minuti,
+                   COALESCE(m.shares, 0) as shares,
+                   COALESCE(m.iscritti_guadagnati, 0) as iscritti_guadagnati,
+                   COALESCE(m.iscritti_persi, 0) as iscritti_persi,
+                   CASE WHEN m.views > 0
+                        THEN m.sum_avg_pct_weighted / m.views
+                        ELSE 0 END as avg_view_percentage,
+                   CASE WHEN m.views > 0
+                        THEN m.sum_dur_weighted / m.views
+                        ELSE 0 END as durata_media_view_secondi,
                    m.data_snapshot
             FROM yt_videos v
-            LEFT JOIN LATERAL (
-                SELECT * FROM yt_metriche
-                WHERE video_id = v.video_id
-                ORDER BY data_snapshot DESC
-                LIMIT 1
-            ) m ON true
+            LEFT JOIN (
+                SELECT video_id,
+                       SUM(views) as views,
+                       SUM(likes) as likes,
+                       SUM(commenti) as commenti,
+                       SUM(watch_time_minuti) as watch_time_minuti,
+                       SUM(shares) as shares,
+                       SUM(iscritti_guadagnati) as iscritti_guadagnati,
+                       SUM(iscritti_persi) as iscritti_persi,
+                       SUM(avg_view_percentage * views) as sum_avg_pct_weighted,
+                       SUM(durata_media_view_secondi * views) as sum_dur_weighted,
+                       MAX(data_snapshot) as data_snapshot
+                FROM yt_metriche
+                GROUP BY video_id
+            ) m ON m.video_id = v.video_id
             ORDER BY v.data_pubblicazione DESC
         `);
         res.json(result.rows);
