@@ -427,6 +427,9 @@ async function initDB() {
                 ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_duration REAL;
                 ALTER TABLE yt_canale_storico ADD COLUMN IF NOT EXISTS avg_view_percentage REAL;
                 ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS promosso BOOLEAN DEFAULT FALSE;
+                ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS views_lifetime INTEGER DEFAULT 0;
+                ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS likes_lifetime INTEGER DEFAULT 0;
+                ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS commenti_lifetime INTEGER DEFAULT 0;
             END $$;
         `);
 
@@ -3298,6 +3301,93 @@ app.put('/api/crm/contatti/:id/retrocedi', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== ELIMINAZIONE CONTATTO ====================
+
+app.delete('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id);
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Verifica che il contatto esista
+        const contatto = await client.query('SELECT * FROM crm_contatti WHERE id = $1', [contattoId]);
+        if (contatto.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        const c = contatto.rows[0];
+
+        // 2. Fetch tutti i dati collegati PRIMA della delete (CASCADE li cancellera')
+        const [prodotti, acquisti, note, opportunita, scoreProdotti, scoreManuali, videoTracking] = await Promise.all([
+            client.query('SELECT * FROM crm_prodotti WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_acquisti WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_note WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_opportunita WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_score_prodotti WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_score_manuali WHERE contatto_id = $1', [contattoId]),
+            client.query('SELECT * FROM crm_video_tracking WHERE contatto_id = $1', [contattoId])
+        ]);
+
+        // 3. Snapshot completo nel cestino (recuperabile)
+        const snapshot = {
+            contatto: c,
+            prodotti: prodotti.rows,
+            acquisti: acquisti.rows,
+            note: note.rows,
+            opportunita: opportunita.rows,
+            score_prodotti: scoreProdotti.rows,
+            score_manuali: scoreManuali.rows,
+            video_tracking: videoTracking.rows
+        };
+
+        await logAndTrash(client, {
+            azione: 'delete_contatto',
+            tabella: 'crm_contatti',
+            recordId: contattoId,
+            contattoId: contattoId,
+            dati: snapshot,
+            ip: req.ip
+        });
+
+        // 4. Log per sync bidirezionale (solo se ID positivo = esiste in SQLite)
+        if (contattoId > 0) {
+            await client.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('delete_contatto', $1, $2)`,
+                [contattoId, JSON.stringify({
+                    email: c.email,
+                    tipo: c.tipo || 'account',
+                    regione: c.regione,
+                    cognome: c.cognome,
+                    nome: c.nome
+                })]
+            );
+        }
+
+        // 5. DELETE — ON DELETE CASCADE rimuove automaticamente:
+        // crm_prodotti, crm_acquisti, crm_note, crm_opportunita,
+        // crm_score_prodotti, crm_score_manuali, crm_promozioni_log,
+        // crm_video_tracking, crm_whatsapp_clicks
+        await client.query('DELETE FROM crm_contatti WHERE id = $1', [contattoId]);
+
+        await client.query('COMMIT');
+
+        const displayName = `${c.cognome || ''} ${c.nome || ''}`.trim() || c.email || `ID ${contattoId}`;
+        console.log(`[CRM Eliminazione] Contatto eliminato: ${displayName} (ID ${contattoId}, ${c.tipo})`);
+        res.json({
+            ok: true,
+            messaggio: `Contatto ${displayName} eliminato definitivamente.`
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[CRM Eliminazione]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
+    }
+});
+
 // Promozioni pendenti (per push_crm_dashboard.py sync bidirezionale)
 app.get('/api/crm/promozioni/pendenti', requireReportsKey, async (req, res) => {
     try {
@@ -4173,8 +4263,8 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
         if (videos && videos.length > 0) {
             for (const v of videos) {
                 await client.query(`
-                    INSERT INTO yt_videos (video_id, titolo, descrizione, data_pubblicazione, durata_secondi, tags, thumbnail_url, playlist_id, prodotto_associato, kol_nome)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    INSERT INTO yt_videos (video_id, titolo, descrizione, data_pubblicazione, durata_secondi, tags, thumbnail_url, playlist_id, prodotto_associato, kol_nome, views_lifetime, likes_lifetime, commenti_lifetime)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
                     ON CONFLICT (video_id) DO UPDATE SET
                         titolo = EXCLUDED.titolo,
                         descrizione = EXCLUDED.descrizione,
@@ -4185,10 +4275,14 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
                         playlist_id = EXCLUDED.playlist_id,
                         prodotto_associato = COALESCE(EXCLUDED.prodotto_associato, yt_videos.prodotto_associato),
                         kol_nome = COALESCE(EXCLUDED.kol_nome, yt_videos.kol_nome),
+                        views_lifetime = COALESCE(EXCLUDED.views_lifetime, yt_videos.views_lifetime),
+                        likes_lifetime = COALESCE(EXCLUDED.likes_lifetime, yt_videos.likes_lifetime),
+                        commenti_lifetime = COALESCE(EXCLUDED.commenti_lifetime, yt_videos.commenti_lifetime),
                         updated_at = NOW()
                 `, [v.video_id, v.titolo, v.descrizione, v.data_pubblicazione, v.durata_secondi,
                     v.tags ? JSON.stringify(v.tags) : null, v.thumbnail_url, v.playlist_id,
-                    v.prodotto_associato || null, v.kol_nome || null]);
+                    v.prodotto_associato || null, v.kol_nome || null,
+                    v.views_lifetime || 0, v.likes_lifetime || 0, v.commenti_lifetime || 0]);
             }
         }
 
@@ -4327,37 +4421,34 @@ app.post('/api/youtube/sync', requireReportsKey, async (req, res) => {
     }
 });
 
-// GET /api/youtube/videos — lista video con metriche aggregate (SUM giornaliere)
+// GET /api/youtube/videos — lista video con metriche lifetime + avg da Analytics
 app.get('/api/youtube/videos', requireAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT v.*,
-                   COALESCE(m.views, 0) as views,
-                   COALESCE(m.likes, 0) as likes,
-                   COALESCE(m.commenti, 0) as commenti,
+                   COALESCE(v.views_lifetime, 0) as views,
+                   COALESCE(v.likes_lifetime, 0) as likes,
+                   COALESCE(v.commenti_lifetime, 0) as commenti,
                    COALESCE(m.watch_time_minuti, 0) as watch_time_minuti,
                    COALESCE(m.shares, 0) as shares,
                    COALESCE(m.iscritti_guadagnati, 0) as iscritti_guadagnati,
                    COALESCE(m.iscritti_persi, 0) as iscritti_persi,
-                   CASE WHEN m.views > 0
-                        THEN m.sum_avg_pct_weighted / m.views
-                        ELSE 0 END as avg_view_percentage,
-                   CASE WHEN m.views > 0
-                        THEN m.sum_dur_weighted / m.views
-                        ELSE 0 END as durata_media_view_secondi,
+                   COALESCE(m.avg_view_percentage, 0) as avg_view_percentage,
+                   COALESCE(m.durata_media_view_secondi, 0) as durata_media_view_secondi,
                    m.data_snapshot
             FROM yt_videos v
             LEFT JOIN (
                 SELECT video_id,
-                       SUM(views) as views,
-                       SUM(likes) as likes,
-                       SUM(commenti) as commenti,
                        SUM(watch_time_minuti) as watch_time_minuti,
                        SUM(shares) as shares,
                        SUM(iscritti_guadagnati) as iscritti_guadagnati,
                        SUM(iscritti_persi) as iscritti_persi,
-                       SUM(avg_view_percentage * views) as sum_avg_pct_weighted,
-                       SUM(durata_media_view_secondi * views) as sum_dur_weighted,
+                       CASE WHEN SUM(views) > 0
+                            THEN SUM(avg_view_percentage * views) / SUM(views)
+                            ELSE 0 END as avg_view_percentage,
+                       CASE WHEN SUM(views) > 0
+                            THEN SUM(durata_media_view_secondi * views) / SUM(views)
+                            ELSE 0 END as durata_media_view_secondi,
                        MAX(data_snapshot) as data_snapshot
                 FROM yt_metriche
                 GROUP BY video_id
@@ -4421,6 +4512,29 @@ app.post('/api/youtube/promosso', requireAdmin, async (req, res) => {
         res.json({ aggiornati: result.rowCount, promosso: flag });
     } catch (err) {
         console.error('[YouTube Promosso]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/youtube/views-lifetime — aggiorna views/likes/commenti lifetime in batch
+// Body: { videos: [{ video_id, views, likes, commenti }, ...] }
+app.post('/api/youtube/views-lifetime', requireAdmin, async (req, res) => {
+    try {
+        const { videos } = req.body;
+        if (!videos || !Array.isArray(videos)) {
+            return res.status(400).json({ error: 'videos deve essere un array' });
+        }
+        let aggiornati = 0;
+        for (const v of videos) {
+            const result = await pool.query(
+                `UPDATE yt_videos SET views_lifetime = $1, likes_lifetime = $2, commenti_lifetime = $3, updated_at = NOW() WHERE video_id = $4`,
+                [v.views || 0, v.likes || 0, v.commenti || 0, v.video_id]
+            );
+            aggiornati += result.rowCount;
+        }
+        res.json({ aggiornati });
+    } catch (err) {
+        console.error('[YouTube Views Lifetime]', err);
         res.status(500).json({ error: err.message });
     }
 });
