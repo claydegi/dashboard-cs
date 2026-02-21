@@ -430,6 +430,7 @@ async function initDB() {
                 ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS views_lifetime INTEGER DEFAULT 0;
                 ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS likes_lifetime INTEGER DEFAULT 0;
                 ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS commenti_lifetime INTEGER DEFAULT 0;
+                ALTER TABLE yt_videos ADD COLUMN IF NOT EXISTS categoria TEXT;
             END $$;
         `);
 
@@ -4535,6 +4536,29 @@ app.post('/api/youtube/views-lifetime', requireAdmin, async (req, res) => {
         res.json({ aggiornati });
     } catch (err) {
         console.error('[YouTube Views Lifetime]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/youtube/categorie — aggiorna categorie video in batch
+// Body: { categorie: { "video_id": "categoria", ... } }
+app.post('/api/youtube/categorie', requireAdmin, async (req, res) => {
+    try {
+        const { categorie } = req.body;
+        if (!categorie || typeof categorie !== 'object') {
+            return res.status(400).json({ error: 'categorie deve essere un oggetto {video_id: categoria}' });
+        }
+        let aggiornati = 0;
+        for (const [video_id, categoria] of Object.entries(categorie)) {
+            const result = await pool.query(
+                `UPDATE yt_videos SET categoria = $1, updated_at = NOW() WHERE video_id = $2`,
+                [categoria, video_id]
+            );
+            aggiornati += result.rowCount;
+        }
+        res.json({ aggiornati, totale: Object.keys(categorie).length });
+    } catch (err) {
+        console.error('[YouTube Categorie]', err);
         res.status(500).json({ error: err.message });
     }
 });
