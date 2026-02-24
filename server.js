@@ -2862,6 +2862,25 @@ app.put('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// Reset flag vista su opportunita (ripristina alert dashboard)
+app.put('/api/crm/opportunita/:id/reset-vista', requireAdmin, async (req, res) => {
+    const oppId = parseInt(req.params.id);
+    try {
+        const result = await pool.query(
+            'UPDATE crm_opportunita SET vista = false WHERE id = $1 RETURNING *',
+            [oppId]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Opportunita non trovata' });
+        }
+        console.log(`[CRM] Opportunita ${oppId}: vista resettata a false`);
+        res.json({ ok: true, opportunita: result.rows[0] });
+    } catch (err) {
+        console.error('[CRM Reset Vista]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Elimina opportunita (con soft-delete + audit)
 app.delete('/api/crm/opportunita/:id', requireAdmin, async (req, res) => {
     const oppId = parseInt(req.params.id);
