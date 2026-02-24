@@ -98,6 +98,22 @@ async function caricaAlertOpportunita() {
             }
         } catch (e) { /* Silenzioso */ }
     }
+
+    // Alert LOMBARDIA
+    const alertDivLombardia = document.getElementById('crm-opp-alert-lombardia');
+    if (alertDivLombardia) {
+        try {
+            const res3 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=LOMBARDIA&key=${ADMIN_KEY}`);
+            if (res3.ok) {
+                const data3 = await res3.json();
+                const totale3 = data3.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale3 > 0) {
+                    const clienti3 = data3.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivLombardia.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale3} opportunita di vendita scadute - LOMBARDIA<br><small style="font-weight:normal;">Clienti: ${clienti3}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
 }
 
 async function caricaFatture() {

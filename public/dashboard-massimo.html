@@ -27,6 +27,18 @@
                     <p class="loading">Caricamento...</p>
                 </div>
             </section>
+
+            <section class="reports-section">
+                <h2>Strumenti</h2>
+                <div class="report-cards-grid">
+                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=LOMBARDIA&key=' + new URLSearchParams(window.location.search).get('key')">
+                        <div class="report-card-tipo">CRM</div>
+                        <div class="report-card-titolo">CRM Lombardia</div>
+                        <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
+                        <div id="crm-opp-alert-lombardia"></div>
+                    </div>
+                </div>
+            </section>
         </main>
     </div>
 
