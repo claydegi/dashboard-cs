@@ -1669,16 +1669,19 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
                 HAVING SUM(score) >= 40
             ) hot
         `, [regione]);
-        const nuoviOdoo = await pool.query(
-            `SELECT COUNT(DISTINCT p.contatto_id) as totale FROM crm_prodotti p
-             JOIN crm_contatti c ON p.contatto_id = c.id
-             WHERE c.regione = $1 AND p.fonte LIKE 'odoo:%'`, [regione]
+        const clientiFattura2026 = await pool.query(
+            `SELECT COUNT(DISTINCT a.contatto_id) as totale
+             FROM crm_acquisti a
+             JOIN crm_contatti c ON a.contatto_id = c.id
+             WHERE c.regione = $1
+               AND (c.tipo = 'account' OR c.tipo IS NULL)
+               AND a.fonte LIKE 'odoo:INV/2026/%'`, [regione]
         );
         res.json({
             tot_contatti: parseInt(totAccount.rows[0].totale),
             tot_lead: parseInt(totLead.rows[0].totale),
             con_score: parseInt(conScore.rows[0].totale),
-            nuovi_odoo: parseInt(nuoviOdoo.rows[0].totale)
+            nuovi_odoo: parseInt(clientiFattura2026.rows[0].totale)
         });
     } catch (err) {
         console.error('[CRM Stats]', err);
