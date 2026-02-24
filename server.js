@@ -3044,12 +3044,14 @@ app.get('/api/crm/audit', requireAdmin, async (req, res) => {
     }
 });
 
-// Conteggio opportunita scadute per dashboard (notifica esterna)
+// Conteggio opportunita scadute per dashboard (notifica esterna) - con nomi clienti
 app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || '').toUpperCase();
     try {
         let query = `
-            SELECT COUNT(*) as totale, c.regione
+            SELECT c.regione,
+                   COUNT(*) as totale,
+                   array_agg(DISTINCT TRIM(COALESCE(c.cognome, '') || ' ' || COALESCE(c.nome, ''))) as clienti
             FROM crm_opportunita o
             JOIN crm_contatti c ON o.contatto_id = c.id
             WHERE o.data_scadenza <= CURRENT_DATE AND o.vista = false

@@ -67,20 +67,36 @@ function apriReport(tipo) {
 }
 
 async function caricaAlertOpportunita() {
+    // Alert LIGURIA
     const alertDiv = document.getElementById('crm-opp-alert');
-    if (!alertDiv) return;
+    if (alertDiv) {
+        try {
+            const res = await fetch(`${API_URL}/crm/opportunita/scadute?regione=LIGURIA&key=${ADMIN_KEY}`);
+            if (res.ok) {
+                const data = await res.json();
+                const totale = data.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale > 0) {
+                    const clienti = data.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDiv.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale} opportunita di vendita scadute - LIGURIA<br><small style="font-weight:normal;">Clienti: ${clienti}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
 
-    try {
-        const res = await fetch(`${API_URL}/crm/opportunita/scadute?regione=LIGURIA&key=${ADMIN_KEY}`);
-        if (!res.ok) return;
-        const data = await res.json();
-
-        const totale = data.reduce((sum, r) => sum + parseInt(r.totale), 0);
-        if (totale > 0) {
-            alertDiv.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale} opportunita di vendita scadute - LIGURIA</span>`;
-        }
-    } catch (e) {
-        // Silenzioso - e' solo una notifica
+    // Alert PIEMONTE
+    const alertDivPiemonte = document.getElementById('crm-opp-alert-piemonte');
+    if (alertDivPiemonte) {
+        try {
+            const res2 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=PIEMONTE&key=${ADMIN_KEY}`);
+            if (res2.ok) {
+                const data2 = await res2.json();
+                const totale2 = data2.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale2 > 0) {
+                    const clienti2 = data2.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivPiemonte.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale2} opportunita di vendita scadute - PIEMONTE<br><small style="font-weight:normal;">Clienti: ${clienti2}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
     }
 }
 
