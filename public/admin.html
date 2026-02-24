@@ -138,11 +138,6 @@
                         <div class="report-card-titolo">CRM Piemonte</div>
                         <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
                     </div>
-                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=LOMBARDIA&key=' + new URLSearchParams(window.location.search).get('key')">
-                        <div class="report-card-tipo">CRM</div>
-                        <div class="report-card-titolo">CRM Lombardia</div>
-                        <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
-                    </div>
                 </div>
             </section>
 
@@ -170,6 +165,15 @@
                     </div>
                 </div>
                 <div id="fatture-massimo-list" class="fatture-list"></div>
+
+                <h3 style="margin-top: 24px; margin-bottom: 16px;">Strumenti</h3>
+                <div class="report-cards-grid">
+                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=LOMBARDIA&key=' + new URLSearchParams(window.location.search).get('key')">
+                        <div class="report-card-tipo">CRM</div>
+                        <div class="report-card-titolo">CRM Lombardia</div>
+                        <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
+                    </div>
+                </div>
             </section>
         </main>
     </div>
