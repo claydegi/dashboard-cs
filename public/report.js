@@ -118,7 +118,7 @@ function renderCampagnaCard(c) {
     return `
         <div class="report-card" style="border-left-color:${borderColor};opacity:${opacity};cursor:default;">
             <div class="report-card-tipo" style="color:${tipoColor};">
-                ${isInviata ? '&#10003; Eseguita' : '&#9993; Da eseguire'}
+                ${isInviata ? '&#10003; Attivita\' eseguita' : '&#9993; Attivita\' da eseguire'}
             </div>
             <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
         </div>
