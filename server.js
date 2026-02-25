@@ -241,6 +241,13 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS gruppo_whatsapp BOOLEAN DEFAULT false`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_secondaria TEXT`);
 
+        // Migrazione: campi consenso GDPR
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email_data TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email_fonte TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_senza_risposta INTEGER DEFAULT 0`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_consenso ON crm_contatti(consenso_email)`);
+
         // Tabella audit log CRM (traccia ogni azione di cancellazione)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_audit_log (
@@ -303,6 +310,23 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_email ON crm_video_tracking(email)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_video_track_campagna ON crm_video_tracking(campagna)`);
+
+        // Tabella audit trail consensi GDPR (PostgreSQL only, come crm_video_tracking)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_consensi_log (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                azione TEXT NOT NULL,
+                fonte TEXT NOT NULL,
+                campagna TEXT,
+                ip_address TEXT,
+                user_agent TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_consensi_log_contatto ON crm_consensi_log(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_consensi_log_email ON crm_consensi_log(email)`);
 
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
@@ -1874,8 +1898,8 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
-                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp, email_secondaria)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp, email_secondaria, consenso_email, consenso_email_data, consenso_email_fonte, email_senza_risposta)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
                 ON CONFLICT (id) DO UPDATE SET
                     cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
                     telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
@@ -1883,10 +1907,19 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                     fonte_sync = EXCLUDED.fonte_sync, data_inserimento = EXCLUDED.data_inserimento,
                     score = EXCLUDED.score, tipo = EXCLUDED.tipo, mercato = EXCLUDED.mercato,
                     gruppo_whatsapp = CASE WHEN EXCLUDED.gruppo_whatsapp = true THEN true ELSE crm_contatti.gruppo_whatsapp END,
-                    email_secondaria = COALESCE(EXCLUDED.email_secondaria, crm_contatti.email_secondaria)
+                    email_secondaria = COALESCE(EXCLUDED.email_secondaria, crm_contatti.email_secondaria),
+                    consenso_email = COALESCE(EXCLUDED.consenso_email, crm_contatti.consenso_email),
+                    consenso_email_data = COALESCE(EXCLUDED.consenso_email_data, crm_contatti.consenso_email_data),
+                    consenso_email_fonte = COALESCE(EXCLUDED.consenso_email_fonte, crm_contatti.consenso_email_fonte),
+                    email_senza_risposta = CASE
+                        WHEN EXCLUDED.email_senza_risposta > COALESCE(crm_contatti.email_senza_risposta, 0)
+                        THEN EXCLUDED.email_senza_risposta
+                        ELSE COALESCE(crm_contatti.email_senza_risposta, EXCLUDED.email_senza_risposta)
+                    END
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
-                c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false, c.email_secondaria || null]);
+                c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false, c.email_secondaria || null,
+                c.consenso_email || null, c.consenso_email_data || null, c.consenso_email_fonte || null, c.email_senza_risposta || 0]);
         }
 
         // Rimuovi contatti della regione che non sono piu' nel payload SQLite
@@ -4286,6 +4319,101 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
         console.error('[Video Tracking]', err);
         res.status(500).json({ error: 'Errore server' });
     }
+});
+
+// ==================== LANDING PAGE CONSENSO GDPR ====================
+
+// GET /consent — Landing page pubblica per raccolta consenso email (PUBBLICA, no auth)
+app.get('/consent', async (req, res) => {
+    const { email, campagna, risposta } = req.query;
+
+    if (!email || !risposta || !['si', 'no'].includes(risposta)) {
+        return res.status(400).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Link non valido</title></head><body style="font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f4f4;margin:0;"><div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.1);"><h2 style="color:#c00;">Link non valido</h2><p style="color:#666;">Parametri mancanti o non validi.</p></div></body></html>`);
+    }
+
+    const consensoStato = risposta === 'si' ? 'granted' : 'revoked';
+    const oggi = new Date().toISOString().split('T')[0];
+
+    try {
+        // Cerca contatto per email
+        const result = await pool.query(
+            'SELECT id, cognome, nome, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1',
+            [email]
+        );
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        if (contatto) {
+            // Aggiorna consenso su crm_contatti
+            await pool.query(
+                `UPDATE crm_contatti SET
+                    consenso_email = $1,
+                    consenso_email_data = $2,
+                    consenso_email_fonte = 'email_link',
+                    email_senza_risposta = CASE WHEN $1 = 'granted' THEN 0 ELSE email_senza_risposta END
+                 WHERE id = $3`,
+                [consensoStato, oggi, contattoId]
+            );
+
+            // Logga in crm_modifiche_log per sync bidirezionale con SQLite
+            await pool.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('consenso_email', $1, $2)`,
+                [contattoId, JSON.stringify({
+                    consenso_email: consensoStato,
+                    consenso_email_data: oggi,
+                    consenso_email_fonte: 'email_link',
+                    campagna: campagna || null
+                })]
+            );
+        }
+
+        // Audit trail (anche se contatto non trovato — per analytics)
+        await pool.query(
+            `INSERT INTO crm_consensi_log (contatto_id, email, azione, fonte, campagna, ip_address, user_agent)
+             VALUES ($1, $2, $3, 'email_link', $4, $5, $6)`,
+            [contattoId, email, consensoStato, campagna || null,
+             req.headers['x-forwarded-for'] || req.ip,
+             req.headers['user-agent'] || '']
+        );
+
+        const cognome = contatto ? contatto.cognome : '';
+        console.log(`[Consenso] ${consensoStato}: ${email} (${cognome}) campagna=${campagna || 'N/A'}`);
+
+    } catch (err) {
+        console.error('[Consenso] Errore DB:', err);
+    }
+
+    // Pagina HTML di conferma
+    const titolo = risposta === 'si'
+        ? 'Grazie! Preferenza registrata.'
+        : 'Preferenza registrata.';
+    const messaggio = risposta === 'si'
+        ? 'Continuer&agrave; a ricevere i nostri contenuti dedicati: casi clinici, tutorial e offerte pensate per la sua pratica.'
+        : 'Non ricever&agrave; pi&ugrave; le nostre comunicazioni email. Se cambia idea, potr&agrave; sempre reiscriversi.';
+    const coloreHeader = risposta === 'si' ? '#1B5E20' : '#555555';
+
+    res.send(`<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OSSEOTOUCH - Preferenze Email</title>
+</head>
+<body style="margin:0;padding:0;font-family:Arial,sans-serif;background-color:#f4f4f4;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:20px;">
+    <div style="background-color:#ffffff;border-radius:12px;overflow:hidden;max-width:500px;width:100%;box-shadow:0 4px 20px rgba(0,0,0,0.1);">
+        <div style="background-color:${coloreHeader};padding:25px;text-align:center;">
+            <h1 style="color:#ffffff;font-size:20px;font-weight:bold;margin:0;">${titolo}</h1>
+        </div>
+        <div style="padding:30px 25px;text-align:center;">
+            <p style="font-size:16px;color:#333333;line-height:1.6;margin:0;">${messaggio}</p>
+        </div>
+        <div style="text-align:center;padding:15px 25px;background-color:#f5f5f5;border-top:1px solid #e0e0e0;">
+            <p style="font-size:11px;color:#999999;margin:0;">Osseotouch &ndash; La sua preferenza &egrave; stata salvata.</p>
+        </div>
+    </div>
+</body>
+</html>`);
 });
 
 // ==================== YOUTUBE ANALYTICS API ====================
