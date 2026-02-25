@@ -1802,6 +1802,8 @@ let dettStartTimeout = null; // Timeout per rilevare mancato avvio
 
 function toggleDettatura(target) {
     // target: undefined/'note' = textarea note, 'opp' = textarea opportunita
+    console.log('[MIC] toggleDettatura chiamata, target:', target);
+    try {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
         mostraToast('Dettatura non disponibile. Vai in Impostazioni > Generali > Tastiera e attiva "Abilita Dettatura". Se il problema persiste, prova con Chrome.', 'error', 8000);
@@ -1885,6 +1887,10 @@ function toggleDettatura(target) {
         if (dettStartTimeout) { clearTimeout(dettStartTimeout); dettStartTimeout = null; }
         mostraToast('Errore avvio microfono. Verifica i permessi nelle Impostazioni del telefono.', 'error', 8000);
         stopDettatura();
+    }
+    } catch (globalErr) {
+        console.error('[MIC] Errore globale toggleDettatura:', globalErr);
+        mostraToast('Errore microfono: ' + globalErr.message, 'error', 6000);
     }
 }
 
