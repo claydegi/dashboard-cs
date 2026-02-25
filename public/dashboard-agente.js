@@ -146,6 +146,22 @@ async function caricaAlertOpportunita() {
             }
         } catch (e) { /* Silenzioso */ }
     }
+
+    // Alert VALLE D'AOSTA
+    const alertDivValledaosta = document.getElementById('crm-opp-alert-valledaosta');
+    if (alertDivValledaosta) {
+        try {
+            const res6 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=VALLE%20D%27AOSTA&key=${ADMIN_KEY}`);
+            if (res6.ok) {
+                const data6 = await res6.json();
+                const totale6 = data6.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale6 > 0) {
+                    const clienti6 = data6.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivValledaosta.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale6} opportunita di vendita scadute - VALLE D'AOSTA<br><small style="font-weight:normal;">Clienti: ${clienti6}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
 }
 
 async function caricaFatture() {
