@@ -246,6 +246,7 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email_data TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email_fonte TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_senza_risposta INTEGER DEFAULT 0`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mailing_ricevuto BOOLEAN DEFAULT false`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_consenso ON crm_contatti(consenso_email)`);
 
         // Tabella audit log CRM (traccia ogni azione di cancellazione)
@@ -1898,8 +1899,8 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
-                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp, email_secondaria, consenso_email, consenso_email_data, consenso_email_fonte, email_senza_risposta)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20)
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp, email_secondaria, consenso_email, consenso_email_data, consenso_email_fonte, email_senza_risposta, mailing_ricevuto)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19, $20, $21)
                 ON CONFLICT (id) DO UPDATE SET
                     cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
                     telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
@@ -1915,11 +1916,12 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                         WHEN EXCLUDED.email_senza_risposta > COALESCE(crm_contatti.email_senza_risposta, 0)
                         THEN EXCLUDED.email_senza_risposta
                         ELSE COALESCE(crm_contatti.email_senza_risposta, EXCLUDED.email_senza_risposta)
-                    END
+                    END,
+                    mailing_ricevuto = CASE WHEN EXCLUDED.mailing_ricevuto = true THEN true ELSE crm_contatti.mailing_ricevuto END
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
                 c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false, c.email_secondaria || null,
-                c.consenso_email || null, c.consenso_email_data || null, c.consenso_email_fonte || null, c.email_senza_risposta || 0]);
+                c.consenso_email || null, c.consenso_email_data || null, c.consenso_email_fonte || null, c.email_senza_risposta || 0, c.mailing_ricevuto || false]);
         }
 
         // Rimuovi contatti della regione che non sono piu' nel payload SQLite
@@ -4456,8 +4458,7 @@ app.get('/consent', async (req, res) => {
 // GET /api/consent-stats — statistiche consenso GDPR per riquadro dashboard
 app.get('/api/consent-stats', requireAdmin, async (req, res) => {
     try {
-        // Conta solo i contatti effettivamente sollecitati (hanno ricevuto almeno un mailing con link consenso):
-        // email_senza_risposta > 0 (ricevuto ma non risposto) OPPURE consenso_email IS NOT NULL (hanno risposto)
+        // Conta solo i contatti che hanno effettivamente ricevuto almeno un mailing (flag sticky da invii_email)
         const stats = await pool.query(`
             SELECT
                 tipo,
@@ -4467,9 +4468,8 @@ app.get('/api/consent-stats', requireAdmin, async (req, res) => {
                 COUNT(*) FILTER (WHERE consenso_email = 'revoked') as negato,
                 COUNT(*) FILTER (WHERE consenso_email IS NULL) as in_attesa
             FROM crm_contatti
-            WHERE email IS NOT NULL AND email != ''
-              AND tipo IN ('account', 'lead')
-              AND (COALESCE(email_senza_risposta, 0) > 0 OR consenso_email IS NOT NULL)
+            WHERE tipo IN ('account', 'lead')
+              AND mailing_ricevuto = true
             GROUP BY tipo
         `);
 

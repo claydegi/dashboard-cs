@@ -78,19 +78,17 @@ function escapeHtml(text) {
 }
 
 async function caricaConsensi() {
-    const container = document.getElementById('consentStats');
+    const container = document.getElementById('latestReports');
     if (!container) return;
-    container.innerHTML = '<p class="loading">Caricamento...</p>';
 
     try {
         const response = await fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`);
         if (!response.ok) throw new Error('Errore caricamento');
         const data = await response.json();
 
-        container.innerHTML = renderConsentCard('Account', data.account) + renderConsentCard('Lead', data.lead);
+        container.insertAdjacentHTML('beforeend', renderConsentCard('Account', data.account) + renderConsentCard('Lead', data.lead));
     } catch (err) {
         console.error('Errore consensi:', err);
-        container.innerHTML = '<div class="empty-state"><p>Errore caricamento consensi</p></div>';
     }
 }
 
