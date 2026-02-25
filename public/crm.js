@@ -46,8 +46,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Back button
-    document.getElementById('btn-back').href = `/dashboard-kim.html?key=${ADMIN_KEY}`;
+    // Back button — regione-aware
+    if (CRM_REGIONE === 'LOMBARDIA') {
+        document.getElementById('btn-back').href = `/dashboard-massimo.html?key=${ADMIN_KEY}`;
+        document.getElementById('btn-back').textContent = 'Dashboard Massimo';
+    } else {
+        document.getElementById('btn-back').href = `/dashboard-kim.html?key=${ADMIN_KEY}`;
+    }
 
     renderTableHeader();
     caricaDati();
