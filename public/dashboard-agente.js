@@ -114,6 +114,22 @@ async function caricaAlertOpportunita() {
             }
         } catch (e) { /* Silenzioso */ }
     }
+
+    // Alert CAMPANIA
+    const alertDivCampania = document.getElementById('crm-opp-alert-campania');
+    if (alertDivCampania) {
+        try {
+            const res4 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=CAMPANIA&key=${ADMIN_KEY}`);
+            if (res4.ok) {
+                const data4 = await res4.json();
+                const totale4 = data4.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale4 > 0) {
+                    const clienti4 = data4.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivCampania.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale4} opportunita di vendita scadute - CAMPANIA<br><small style="font-weight:normal;">Clienti: ${clienti4}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
 }
 
 async function caricaFatture() {
