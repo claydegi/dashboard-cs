@@ -4456,8 +4456,8 @@ app.get('/consent', async (req, res) => {
 // GET /api/consent-stats — statistiche consenso GDPR per riquadro dashboard
 app.get('/api/consent-stats', requireAdmin, async (req, res) => {
     try {
-        // Conta tutti i contatti con email (= base sollecitabile) per tipo,
-        // e il loro stato di consenso attuale
+        // Conta solo i contatti effettivamente sollecitati (hanno ricevuto almeno un mailing con link consenso):
+        // email_senza_risposta > 0 (ricevuto ma non risposto) OPPURE consenso_email IS NOT NULL (hanno risposto)
         const stats = await pool.query(`
             SELECT
                 tipo,
@@ -4465,12 +4465,11 @@ app.get('/api/consent-stats', requireAdmin, async (req, res) => {
                 COUNT(*) FILTER (WHERE consenso_email = 'granted' AND consenso_email_fonte = 'email_link') as consenso_completo,
                 COUNT(*) FILTER (WHERE consenso_email = 'granted' AND consenso_email_fonte = 'email_link_no_tracking') as solo_email,
                 COUNT(*) FILTER (WHERE consenso_email = 'revoked') as negato,
-                COUNT(*) FILTER (WHERE consenso_email IS NULL
-                    OR (consenso_email = 'granted' AND COALESCE(consenso_email_fonte, '') NOT IN ('email_link', 'email_link_no_tracking'))
-                ) as in_attesa
+                COUNT(*) FILTER (WHERE consenso_email IS NULL) as in_attesa
             FROM crm_contatti
             WHERE email IS NOT NULL AND email != ''
               AND tipo IN ('account', 'lead')
+              AND (COALESCE(email_senza_risposta, 0) > 0 OR consenso_email IS NOT NULL)
             GROUP BY tipo
         `);
 

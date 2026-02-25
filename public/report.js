@@ -95,33 +95,21 @@ async function caricaConsensi() {
 }
 
 function renderConsentCard(label, s) {
-    const pctCompleto = s.totale > 0 ? Math.round(s.consenso_completo / s.totale * 100) : 0;
-    const pctEmail = s.totale > 0 ? Math.round(s.solo_email / s.totale * 100) : 0;
-    const pctNegato = s.totale > 0 ? Math.round(s.negato / s.totale * 100) : 0;
-    const pctAttesa = s.totale > 0 ? Math.round(s.in_attesa / s.totale * 100) : 0;
     const borderColor = label === 'Account' ? 'var(--primary)' : 'var(--warning, #f59e0b)';
     const tipoColor = label === 'Account' ? 'var(--primary)' : 'var(--warning, #f59e0b)';
 
+    const riga = (icona, testo, n, colore) =>
+        `<span style="font-size:0.8rem;color:${colore};">${icona} ${testo} <strong>${n}</strong></span>`;
+
     return `
         <div class="report-card" style="border-left-color: ${borderColor}; cursor: default;">
-            <div class="report-card-tipo" style="color: ${tipoColor}; margin-bottom: 12px;">CONSENSI ${label.toUpperCase()}</div>
-            <div style="font-size: 2rem; font-weight: 700; color: var(--gray-900); margin-bottom: 4px;">${s.totale}</div>
-            <div style="font-size: 0.8rem; color: var(--gray-500); margin-bottom: 16px;">contatti sollecitati</div>
-            <div class="consent-row" style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;">
-                <span style="font-size:0.85rem;color:#2E7D32;font-weight:600;">&#10003; Consenso completo</span>
-                <span style="font-size:0.95rem;font-weight:700;color:#2E7D32;">${s.consenso_completo} <span style="font-size:0.75rem;font-weight:400;">(${pctCompleto}%)</span></span>
-            </div>
-            <div class="consent-row" style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;">
-                <span style="font-size:0.85rem;color:#666;">&#9993; Solo email</span>
-                <span style="font-size:0.95rem;font-weight:700;color:#666;">${s.solo_email} <span style="font-size:0.75rem;font-weight:400;">(${pctEmail}%)</span></span>
-            </div>
-            <div class="consent-row" style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f0f0f0;">
-                <span style="font-size:0.85rem;color:#c00;">&#10007; Negato</span>
-                <span style="font-size:0.95rem;font-weight:700;color:#c00;">${s.negato} <span style="font-size:0.75rem;font-weight:400;">(${pctNegato}%)</span></span>
-            </div>
-            <div class="consent-row" style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;">
-                <span style="font-size:0.85rem;color:#999;">&#8987; In attesa</span>
-                <span style="font-size:0.95rem;font-weight:700;color:#999;">${s.in_attesa} <span style="font-size:0.75rem;font-weight:400;">(${pctAttesa}%)</span></span>
+            <div class="report-card-tipo" style="color: ${tipoColor};">Consensi ${label}</div>
+            <div class="report-card-titolo">${s.totale} sollecitati</div>
+            <div class="report-card-data" style="display:flex;flex-direction:column;gap:3px;">
+                ${riga('&#10003;', 'Completo', s.consenso_completo, '#2E7D32')}
+                ${riga('&#9993;', 'Solo email', s.solo_email, '#666')}
+                ${riga('&#10007;', 'Negato', s.negato, '#c00')}
+                ${riga('&#8987;', 'In attesa', s.in_attesa, '#999')}
             </div>
         </div>
     `;
