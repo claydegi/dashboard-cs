@@ -1691,7 +1691,8 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
             tot_contatti: parseInt(totAccount.rows[0].totale),
             tot_lead: parseInt(totLead.rows[0].totale),
             con_score: parseInt(conScore.rows[0].totale),
-            nuovi_odoo: parseInt(clientiFattura2026.rows[0].totale)
+            nuovi_odoo: parseInt(clientiFattura2026.rows[0].totale),
+            soglia_hot: sogliaStats
         });
     } catch (err) {
         console.error('[CRM Stats]', err);

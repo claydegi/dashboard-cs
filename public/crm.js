@@ -198,6 +198,9 @@ async function caricaDati() {
         document.getElementById('stat-contatti').textContent = stats.tot_contatti;
         document.getElementById('stat-odoo').textContent = stats.nuovi_odoo;
         document.getElementById('stat-score').textContent = stats.con_score;
+        if (stats.soglia_hot && document.getElementById('stat-soglia-hot')) {
+            document.getElementById('stat-soglia-hot').textContent = stats.soglia_hot;
+        }
         if (document.getElementById('stat-lead')) {
             document.getElementById('stat-lead').textContent = stats.tot_lead || 0;
         }
