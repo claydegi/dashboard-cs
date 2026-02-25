@@ -4048,13 +4048,15 @@ app.get('/whatsapp-invite', async (req, res) => {
 
 // Landing page video con YouTube IFrame API per tracking visualizzazione
 app.get('/video-landing', async (req, res) => {
-    const { email, campagna, v } = req.query;
+    const { email, campagna, v, title, desc } = req.query;
 
     if (!email || !campagna) {
         return res.status(400).send('<h1>Link non valido</h1><p>Parametri mancanti.</p>');
     }
 
     const videoId = v || 'R2Yms8zofxU';
+    const landingTitle = title || 'ELEVATE by OSSEOTOUCH — Mini Rialzi Crestali con Tecnologia Magnetodinamica';
+    const landingDesc = desc || 'Il Dr. Mema illustra la procedura di mini rialzo crestale con il kit Elevate e la tecnologia magnetodinamica OSSEOTOUCH';
 
     try {
         const result = await pool.query(
@@ -4168,14 +4170,14 @@ app.get('/video-landing', async (req, res) => {
 <body>
     <div class="container">
         <div class="header">
-            <h1>ELEVATE by OSSEOTOUCH<br>Mini Rialzi Crestali con Tecnologia Magnetodinamica</h1>
+            <h1>${landingTitle.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}</h1>
         </div>
         <div class="content">
             <div class="video-wrapper">
                 <div id="player"></div>
             </div>
             <p class="subtitle">
-                Il Dr. Mema illustra la procedura di mini rialzo crestale<br>con il kit Elevate e la tecnologia magnetodinamica OSSEOTOUCH
+                ${landingDesc.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')}
             </p>
             <a href="https://wa.me/393387351260?text=Salve%2C%20vorrei%20informazioni%20sul%20kit%20Elevate" class="wa-button">
                 &#128172; Richiedi informazioni sul Kit Elevate
