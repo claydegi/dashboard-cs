@@ -329,6 +329,31 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_consensi_log_contatto ON crm_consensi_log(contatto_id)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_consensi_log_email ON crm_consensi_log(email)`);
 
+        // Tabella campagne preparate (PostgreSQL only, come crm_video_tracking)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_campagne (
+                id SERIAL PRIMARY KEY,
+                tag TEXT UNIQUE NOT NULL,
+                nome TEXT NOT NULL,
+                subject TEXT NOT NULL,
+                template_path TEXT NOT NULL,
+                mercato TEXT,
+                regioni TEXT,
+                tipo TEXT,
+                ha_prodotto TEXT,
+                no_prodotto TEXT,
+                escludi_gia_inviati BOOLEAN DEFAULT true,
+                no_whatsapp BOOLEAN DEFAULT false,
+                sequenza TEXT,
+                stato TEXT DEFAULT 'preparata',
+                note TEXT,
+                data_prevista TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                inviata_at TIMESTAMPTZ
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_campagne_stato ON crm_campagne(stato)`);
+
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
         // Anagrafica video del canale
@@ -4490,6 +4515,122 @@ app.get('/api/consent-stats', requireAdmin, async (req, res) => {
         res.json(risultato);
     } catch (err) {
         console.error('[Consent Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== CAMPAGNE PREPARATE API ====================
+
+// GET /api/campagne — lista campagne (preparata prima, poi inviata)
+app.get('/api/campagne', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM crm_campagne
+            ORDER BY
+                CASE WHEN stato = 'preparata' THEN 0 ELSE 1 END,
+                data_prevista ASC NULLS LAST,
+                inviata_at DESC NULLS LAST
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Campagne GET]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/campagne — crea campagna (chiamata da Python/Claude)
+app.post('/api/campagne', requireReportsKey, async (req, res) => {
+    const { tag, nome, subject, template_path, mercato, regioni, tipo,
+            ha_prodotto, no_prodotto, escludi_gia_inviati, no_whatsapp,
+            sequenza, note, data_prevista } = req.body;
+
+    if (!tag || !nome || !subject || !template_path) {
+        return res.status(400).json({ error: 'Campi obbligatori: tag, nome, subject, template_path' });
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO crm_campagne (tag, nome, subject, template_path, mercato, regioni, tipo,
+                ha_prodotto, no_prodotto, escludi_gia_inviati, no_whatsapp,
+                sequenza, note, data_prevista)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)
+            RETURNING *
+        `, [tag, nome, subject, template_path, mercato || null, regioni || null, tipo || null,
+            ha_prodotto || null, no_prodotto || null,
+            escludi_gia_inviati !== undefined ? escludi_gia_inviati : true,
+            no_whatsapp || false, sequenza || null, note || null, data_prevista || null]);
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        if (err.code === '23505') {
+            return res.status(409).json({ error: `Campagna con tag '${tag}' esiste gia'` });
+        }
+        console.error('[Campagne POST]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// PUT /api/campagne/:id — aggiorna campagna (stato -> inviata, ecc.)
+app.put('/api/campagne/:id', requireReportsKey, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const fields = req.body;
+
+    try {
+        const existing = await pool.query('SELECT * FROM crm_campagne WHERE id = $1', [id]);
+        if (existing.rows.length === 0) {
+            return res.status(404).json({ error: 'Campagna non trovata' });
+        }
+
+        const c = existing.rows[0];
+        const result = await pool.query(`
+            UPDATE crm_campagne SET
+                tag = $1, nome = $2, subject = $3, template_path = $4,
+                mercato = $5, regioni = $6, tipo = $7,
+                ha_prodotto = $8, no_prodotto = $9,
+                escludi_gia_inviati = $10, no_whatsapp = $11,
+                sequenza = $12, stato = $13, note = $14,
+                data_prevista = $15, inviata_at = $16
+            WHERE id = $17
+            RETURNING *
+        `, [
+            fields.tag !== undefined ? fields.tag : c.tag,
+            fields.nome !== undefined ? fields.nome : c.nome,
+            fields.subject !== undefined ? fields.subject : c.subject,
+            fields.template_path !== undefined ? fields.template_path : c.template_path,
+            fields.mercato !== undefined ? fields.mercato : c.mercato,
+            fields.regioni !== undefined ? fields.regioni : c.regioni,
+            fields.tipo !== undefined ? fields.tipo : c.tipo,
+            fields.ha_prodotto !== undefined ? fields.ha_prodotto : c.ha_prodotto,
+            fields.no_prodotto !== undefined ? fields.no_prodotto : c.no_prodotto,
+            fields.escludi_gia_inviati !== undefined ? fields.escludi_gia_inviati : c.escludi_gia_inviati,
+            fields.no_whatsapp !== undefined ? fields.no_whatsapp : c.no_whatsapp,
+            fields.sequenza !== undefined ? fields.sequenza : c.sequenza,
+            fields.stato !== undefined ? fields.stato : c.stato,
+            fields.note !== undefined ? fields.note : c.note,
+            fields.data_prevista !== undefined ? fields.data_prevista : c.data_prevista,
+            fields.inviata_at !== undefined ? fields.inviata_at : c.inviata_at,
+            id
+        ]);
+
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Campagne PUT]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// DELETE /api/campagne/:id — elimina campagna
+app.delete('/api/campagne/:id', requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    try {
+        const result = await pool.query('DELETE FROM crm_campagne WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Campagna non trovata' });
+        }
+        res.json({ ok: true, id });
+    } catch (err) {
+        console.error('[Campagne DELETE]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

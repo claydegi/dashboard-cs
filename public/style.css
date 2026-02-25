@@ -642,11 +642,35 @@ nav {
     margin-bottom: 32px;
 }
 
+.report-marketing-section {
+    margin-bottom: 32px;
+}
+
 .report-latest-section h2,
+.report-marketing-section h2,
 .report-archive-section h2 {
     font-size: 1.25rem;
     margin-bottom: 20px;
     color: var(--gray-900);
+}
+
+/* Badge filtri campagna */
+.campagna-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: var(--gray-100, #f3f4f6);
+    color: var(--gray-600, #4b5563);
+    margin-right: 4px;
+}
+.campagna-badge-no {
+    background: #fef2f2;
+    color: #991b1b;
+}
+.campagna-badge-ha {
+    background: #f0fdf4;
+    color: #166534;
 }
 
 /* Card report recenti */

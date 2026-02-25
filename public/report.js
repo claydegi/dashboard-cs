@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('folderProgressivo').href = `report-progressivo.html?key=${ADMIN_KEY}`;
 
     caricaReportRecenti();
-    caricaConsensi();
+    caricaMarketing();
 });
 
 async function caricaReportRecenti() {
@@ -77,19 +77,82 @@ function escapeHtml(text) {
     return div.innerHTML;
 }
 
-async function caricaConsensi() {
-    const container = document.getElementById('latestReports');
+// ==================== SEZIONE MARKETING ====================
+
+async function caricaMarketing() {
+    const container = document.getElementById('marketingSection');
     if (!container) return;
 
     try {
-        const response = await fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`);
-        if (!response.ok) throw new Error('Errore caricamento');
-        const data = await response.json();
+        const [campagneResp, consensiResp] = await Promise.all([
+            fetch(`${API_URL}/campagne?key=${ADMIN_KEY}`),
+            fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`)
+        ]);
 
-        container.insertAdjacentHTML('beforeend', renderConsentCard('Account', data.account) + renderConsentCard('Lead', data.lead));
+        let html = '';
+
+        if (campagneResp.ok) {
+            const campagne = await campagneResp.json();
+            html += campagne.map(c => renderCampagnaCard(c)).join('');
+        }
+
+        if (consensiResp.ok) {
+            const data = await consensiResp.json();
+            html += renderConsentCard('Account', data.account);
+            html += renderConsentCard('Lead', data.lead);
+        }
+
+        container.innerHTML = html || '<div class="empty-state"><p>Nessuna attivita\' marketing</p></div>';
     } catch (err) {
-        console.error('Errore consensi:', err);
+        console.error('Errore marketing:', err);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
     }
+}
+
+function renderCampagnaCard(c) {
+    const isInviata = c.stato === 'inviata';
+    const borderColor = isInviata ? 'var(--gray-300)' : '#8b5cf6';
+    const tipoColor = isInviata ? 'var(--gray-400)' : '#8b5cf6';
+    const opacity = isInviata ? '0.6' : '1';
+
+    // Destinatari
+    const destParts = [];
+    if (c.tipo) destParts.push(c.tipo);
+    if (c.regioni) destParts.push(c.regioni);
+    if (c.mercato && c.mercato !== 'ITALY') destParts.push(c.mercato);
+    const destStr = destParts.length > 0 ? destParts.join(' · ') : 'Tutti';
+
+    // Badge filtri
+    let badges = '';
+    if (c.no_prodotto) badges += `<span class="campagna-badge campagna-badge-no">no ${escapeHtml(c.no_prodotto)}</span>`;
+    if (c.ha_prodotto) badges += `<span class="campagna-badge campagna-badge-ha">ha ${escapeHtml(c.ha_prodotto)}</span>`;
+    if (c.sequenza) badges += `<span class="campagna-badge">seq: ${escapeHtml(c.sequenza)}</span>`;
+
+    // Data
+    let dateStr = '';
+    if (isInviata && c.inviata_at) {
+        dateStr = 'Inviata ' + formattaData(c.inviata_at);
+    } else if (c.data_prevista) {
+        dateStr = 'Prevista: ' + c.data_prevista;
+    } else {
+        dateStr = 'Data non definita';
+    }
+
+    return `
+        <div class="report-card" style="border-left-color:${borderColor};opacity:${opacity};cursor:default;">
+            <div class="report-card-tipo" style="color:${tipoColor};">
+                ${isInviata ? '&#10003; Campagna inviata' : '&#9993; Campagna preparata'}
+            </div>
+            <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
+            <div class="report-card-data">
+                <span style="font-size:0.8rem;color:#666;">${escapeHtml(c.tag)}</span><br>
+                <span style="font-size:0.8rem;color:#999;">${destStr}</span>
+                ${badges ? '<div style="margin-top:4px;">' + badges + '</div>' : ''}
+            </div>
+            <div class="report-card-size">${dateStr}</div>
+            ${c.note ? '<div style="font-size:0.75rem;color:var(--gray-400);margin-top:6px;font-style:italic;">' + escapeHtml(c.note) + '</div>' : ''}
+        </div>
+    `;
 }
 
 function renderConsentCard(label, s) {
