@@ -354,6 +354,21 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_campagne_stato ON crm_campagne(stato)`);
 
+        // Tabella attivita' marketing pianificate/richieste (solo PostgreSQL)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_attivita_mktg (
+                id SERIAL PRIMARY KEY,
+                titolo TEXT NOT NULL,
+                descrizione TEXT,
+                richiedente TEXT NOT NULL,
+                stato TEXT DEFAULT 'richiesta',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                promossa_at TIMESTAMPTZ,
+                eseguita_at TIMESTAMPTZ
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_attivita_mktg_stato ON crm_attivita_mktg(stato)`);
+
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
         // Anagrafica video del canale
@@ -4633,6 +4648,87 @@ app.delete('/api/campagne/:id', requireAdmin, async (req, res) => {
         res.json({ ok: true, id });
     } catch (err) {
         console.error('[Campagne DELETE]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== ATTIVITA' MARKETING PIANIFICATE ====================
+
+// GET /api/attivita-mktg — lista attivita' (escluse 'eseguita')
+app.get('/api/attivita-mktg', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT * FROM crm_attivita_mktg
+            WHERE stato != 'eseguita'
+            ORDER BY
+                CASE WHEN stato = 'richiesta' THEN 0 ELSE 1 END,
+                created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Attivita MKTG GET]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/attivita-mktg — crea attivita'
+app.post('/api/attivita-mktg', requireAdmin, async (req, res) => {
+    const { titolo, descrizione, richiedente } = req.body;
+    if (!titolo || !richiedente) {
+        return res.status(400).json({ error: 'Titolo e richiedente obbligatori' });
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO crm_attivita_mktg (titolo, descrizione, richiedente)
+            VALUES ($1, $2, $3)
+            RETURNING *
+        `, [titolo.trim(), descrizione ? descrizione.trim() : null, richiedente.trim().toLowerCase()]);
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Attivita MKTG POST]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// PUT /api/attivita-mktg/:id — aggiorna stato
+app.put('/api/attivita-mktg/:id', requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+    const { stato } = req.body;
+    const statiValidi = ['richiesta', 'da_eseguire', 'eseguita'];
+    if (!statiValidi.includes(stato)) {
+        return res.status(400).json({ error: 'Stato non valido' });
+    }
+
+    try {
+        const extra = stato === 'da_eseguire' ? ', promossa_at = NOW()' :
+                       stato === 'eseguita' ? ', eseguita_at = NOW()' : '';
+        const result = await pool.query(
+            `UPDATE crm_attivita_mktg SET stato = $1${extra} WHERE id = $2 RETURNING *`,
+            [stato, id]
+        );
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Attivita non trovata' });
+        }
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Attivita MKTG PUT]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// DELETE /api/attivita-mktg/:id — elimina attivita'
+app.delete('/api/attivita-mktg/:id', requireAdmin, async (req, res) => {
+    const id = parseInt(req.params.id);
+
+    try {
+        const result = await pool.query('DELETE FROM crm_attivita_mktg WHERE id = $1 RETURNING id', [id]);
+        if (result.rows.length === 0) {
+            return res.status(404).json({ error: 'Attivita non trovata' });
+        }
+        res.json({ ok: true, id });
+    } catch (err) {
+        console.error('[Attivita MKTG DELETE]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

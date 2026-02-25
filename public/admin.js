@@ -38,6 +38,11 @@ document.addEventListener('DOMContentLoaded', () => {
         reportLink.href = `report.html?key=${ADMIN_KEY}`;
     }
 
+    const mktgLink = document.querySelector('.nav-mktg');
+    if (mktgLink) {
+        mktgLink.href = `pianificazione-mktg.html?key=${ADMIN_KEY}`;
+    }
+
     loadTasks();
     setupEventListeners();
 });

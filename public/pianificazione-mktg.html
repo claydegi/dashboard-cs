@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pianificazione Marketing - OSSEOTOUCH</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .mktg-form-section {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        .mktg-form-section h3 {
+            margin: 0 0 16px 0;
+            font-size: 1.1rem;
+            color: var(--gray-700);
+        }
+        .mktg-form-row {
+            display: grid;
+            grid-template-columns: 180px 1fr;
+            gap: 12px;
+            align-items: start;
+        }
+        .mktg-form-row .form-group {
+            margin-bottom: 0;
+        }
+        .mktg-form-row input,
+        .mktg-form-row select,
+        .mktg-form-row textarea {
+            width: 100%;
+            padding: 10px 14px;
+            border: 1px solid var(--gray-300);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            box-sizing: border-box;
+        }
+        .mktg-form-row textarea {
+            resize: vertical;
+            min-height: 60px;
+        }
+        .mktg-form-actions {
+            margin-top: 12px;
+            display: flex;
+            gap: 8px;
+        }
+        .mktg-section {
+            margin-bottom: 28px;
+        }
+        .mktg-section h2 {
+            font-size: 1.15rem;
+            color: var(--gray-700);
+            margin: 0 0 12px 0;
+            padding-bottom: 8px;
+            border-bottom: 2px solid var(--gray-200);
+        }
+        .card-actions {
+            margin-top: 10px;
+            display: flex;
+            gap: 6px;
+        }
+        .card-actions button {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            font-weight: 600;
+            transition: opacity 0.2s;
+        }
+        .card-actions button:hover { opacity: 0.85; }
+        .btn-promuovi { background: #8b5cf6; color: white; }
+        .btn-fatto { background: var(--success); color: white; }
+        .btn-elimina { background: var(--danger); color: white; }
+        .report-card-richiedente {
+            font-size: 0.8rem;
+            color: var(--gray-500);
+            margin-top: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Pianificazione Marketing</h1>
+            <nav>
+                <a href="admin.html" class="nav-link nav-back">&#8592; Torna alla Dashboard</a>
+            </nav>
+        </header>
+
+        <main>
+            <!-- Form inserimento attivita' -->
+            <section class="mktg-form-section" id="formSection">
+                <h3>Inserisci attivita'</h3>
+                <form id="attivitaForm">
+                    <div class="mktg-form-row">
+                        <div class="form-group" id="richiedenteGroup">
+                            <select id="richiedente" required>
+                                <option value="">Richiedente...</option>
+                                <option value="claudio">Claudio</option>
+                                <option value="manuel">Manuel</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <input type="text" id="titolo" placeholder="Titolo attivita' *" required>
+                        </div>
+                    </div>
+                    <div style="margin-top: 8px;">
+                        <textarea id="descrizione" placeholder="Descrizione (opzionale)" rows="2"></textarea>
+                    </div>
+                    <div class="mktg-form-actions">
+                        <button type="submit" class="btn btn-primary">Conferma</button>
+                    </div>
+                </form>
+            </section>
+
+            <!-- Riquadro: Attivita' richieste -->
+            <section class="mktg-section">
+                <h2>Attivita' richieste</h2>
+                <div id="richiesteGrid" class="report-cards-grid">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- Riquadro: Attivita' da eseguire -->
+            <section class="mktg-section">
+                <h2>Attivita' da eseguire</h2>
+                <div id="daEseguireGrid" class="report-cards-grid">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <!-- Riquadro: Consensi GDPR -->
+            <section class="mktg-section">
+                <h2>Consensi GDPR</h2>
+                <div id="consensiGrid" class="report-cards-grid">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+    const API_URL = window.location.origin + '/api';
+    const params = new URLSearchParams(window.location.search);
+    const ADMIN_KEY = params.get('key') || '';
+    const RICHIEDENTE_FISSO = params.get('richiedente') || '';
+    const FROM_PAGE = params.get('from') || '';
+    const IS_ADMIN = !RICHIEDENTE_FISSO;
+
+    document.addEventListener('DOMContentLoaded', () => {
+        if (!ADMIN_KEY) {
+            document.body.innerHTML = '<div class="container"><h1>Accesso negato</h1><p>Chiave admin mancante.</p></div>';
+            return;
+        }
+
+        // Propaga chiave al link torna
+        const backLink = document.querySelector('.nav-back');
+        if (backLink) {
+            if (FROM_PAGE === 'kim') {
+                backLink.href = `dashboard-kim.html?key=${ADMIN_KEY}`;
+                backLink.textContent = '\u2190 Torna alla Dashboard';
+            } else if (FROM_PAGE === 'massimo') {
+                backLink.href = `dashboard-massimo.html?key=${ADMIN_KEY}`;
+                backLink.textContent = '\u2190 Torna alla Dashboard';
+            } else {
+                backLink.href = `admin.html?key=${ADMIN_KEY}`;
+            }
+        }
+
+        // Se richiedente fisso (Kim/Massimo), nascondi il select e imposta il valore
+        if (RICHIEDENTE_FISSO) {
+            const sel = document.getElementById('richiedente');
+            // Aggiungi l'opzione se non esiste
+            let opt = sel.querySelector(`option[value="${RICHIEDENTE_FISSO}"]`);
+            if (!opt) {
+                opt = document.createElement('option');
+                opt.value = RICHIEDENTE_FISSO;
+                opt.textContent = RICHIEDENTE_FISSO.charAt(0).toUpperCase() + RICHIEDENTE_FISSO.slice(1);
+                sel.appendChild(opt);
+            }
+            sel.value = RICHIEDENTE_FISSO;
+            document.getElementById('richiedenteGroup').style.display = 'none';
+            // Rendi il form a colonna singola
+            document.querySelector('.mktg-form-row').style.gridTemplateColumns = '1fr';
+        }
+
+        // Form submit
+        document.getElementById('attivitaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const titolo = document.getElementById('titolo').value.trim();
+            const descrizione = document.getElementById('descrizione').value.trim();
+            const richiedente = RICHIEDENTE_FISSO || document.getElementById('richiedente').value;
+
+            if (!titolo || !richiedente) return;
+
+            try {
+                const resp = await fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ titolo, descrizione: descrizione || null, richiedente })
+                });
+                if (!resp.ok) throw new Error('Errore');
+
+                // Redirect o reload
+                if (FROM_PAGE === 'kim') {
+                    window.location.href = `dashboard-kim.html?key=${ADMIN_KEY}`;
+                } else if (FROM_PAGE === 'massimo') {
+                    window.location.href = `dashboard-massimo.html?key=${ADMIN_KEY}`;
+                } else {
+                    document.getElementById('titolo').value = '';
+                    document.getElementById('descrizione').value = '';
+                    document.getElementById('richiedente').value = '';
+                    caricaTutto();
+                }
+            } catch (err) {
+                console.error('Errore invio:', err);
+                alert('Errore durante il salvataggio');
+            }
+        });
+
+        caricaTutto();
+    });
+
+    async function caricaTutto() {
+        try {
+            const [attivitaResp, campagneResp, consensiResp] = await Promise.all([
+                fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/campagne?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`)
+            ]);
+
+            // Attivita'
+            const attivita = attivitaResp.ok ? await attivitaResp.json() : [];
+            const richieste = attivita.filter(a => a.stato === 'richiesta');
+            const daEseguireAtt = attivita.filter(a => a.stato === 'da_eseguire');
+
+            // Campagne preparate
+            const campagne = campagneResp.ok ? await campagneResp.json() : [];
+            const campagnePreparate = campagne.filter(c => c.stato === 'preparata');
+
+            // Render richieste
+            renderRichieste(richieste);
+
+            // Render da eseguire (attivita' promosse + campagne preparate)
+            renderDaEseguire(daEseguireAtt, campagnePreparate);
+
+            // Consensi
+            if (consensiResp.ok) {
+                const data = await consensiResp.json();
+                renderConsensi(data);
+            } else {
+                document.getElementById('consensiGrid').innerHTML = '<div class="empty-state"><p>Dati non disponibili</p></div>';
+            }
+        } catch (err) {
+            console.error('Errore caricamento:', err);
+        }
+    }
+
+    function renderRichieste(richieste) {
+        const grid = document.getElementById('richiesteGrid');
+        if (richieste.length === 0) {
+            grid.innerHTML = '<div class="empty-state"><p>Nessuna attivita\' richiesta</p></div>';
+            return;
+        }
+        grid.innerHTML = richieste.map(a => `
+            <div class="report-card" style="border-left-color: #f59e0b; cursor: default;">
+                <div class="report-card-tipo" style="color: #f59e0b;">&#9993; Attivita' richiesta</div>
+                <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
+                ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
+                <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
+                ${IS_ADMIN ? `
+                    <div class="card-actions">
+                        <button class="btn-promuovi" onclick="promuovi(${a.id})">Promuovi</button>
+                        <button class="btn-elimina" onclick="elimina(${a.id})">Elimina</button>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+    }
+
+    function renderDaEseguire(attivita, campagne) {
+        const grid = document.getElementById('daEseguireGrid');
+        let html = '';
+
+        // Attivita' promosse
+        html += attivita.map(a => `
+            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
+                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
+                <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
+                ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
+                <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
+                ${IS_ADMIN ? `
+                    <div class="card-actions">
+                        <button class="btn-fatto" onclick="fatto(${a.id})">Fatto</button>
+                        <button class="btn-elimina" onclick="elimina(${a.id})">Elimina</button>
+                    </div>
+                ` : ''}
+            </div>
+        `).join('');
+
+        // Campagne preparate
+        html += campagne.map(c => `
+            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
+                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
+                <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
+            </div>
+        `).join('');
+
+        if (!html) {
+            grid.innerHTML = '<div class="empty-state"><p>Nessuna attivita\' da eseguire</p></div>';
+        } else {
+            grid.innerHTML = html;
+        }
+    }
+
+    function renderConsensi(data) {
+        const grid = document.getElementById('consensiGrid');
+        grid.innerHTML = renderConsentCard('Account', data.account) + renderConsentCard('Lead', data.lead);
+    }
+
+    function renderConsentCard(label, s) {
+        if (!s) return '';
+        const borderColor = label === 'Account' ? 'var(--primary)' : 'var(--warning, #f59e0b)';
+        const tipoColor = label === 'Account' ? 'var(--primary)' : 'var(--warning, #f59e0b)';
+
+        const riga = (icona, testo, n, colore) =>
+            `<span style="font-size:0.8rem;color:${colore};">${icona} ${testo} <strong>${n}</strong></span>`;
+
+        return `
+            <div class="report-card" style="border-left-color: ${borderColor}; cursor: default;">
+                <div class="report-card-tipo" style="color: ${tipoColor};">Consensi ${label}</div>
+                <div class="report-card-titolo">${s.totale} sollecitati</div>
+                <div class="report-card-data" style="display:flex;flex-direction:column;gap:3px;">
+                    ${riga('&#10003;', 'Completo', s.consenso_completo, '#2E7D32')}
+                    ${riga('&#9993;', 'Solo email', s.solo_email, '#666')}
+                    ${riga('&#10007;', 'Negato', s.negato, '#c00')}
+                    ${riga('&#8987;', 'In attesa', s.in_attesa, '#999')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Azioni admin
+    async function promuovi(id) {
+        try {
+            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'da_eseguire' })
+            });
+            caricaTutto();
+        } catch (err) {
+            console.error('Errore promuovi:', err);
+        }
+    }
+
+    async function fatto(id) {
+        try {
+            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ stato: 'eseguita' })
+            });
+            caricaTutto();
+        } catch (err) {
+            console.error('Errore fatto:', err);
+        }
+    }
+
+    async function elimina(id) {
+        if (!confirm('Eliminare questa attivita\'?')) return;
+        try {
+            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
+                method: 'DELETE'
+            });
+            caricaTutto();
+        } catch (err) {
+            console.error('Errore elimina:', err);
+        }
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function capitalizza(str) {
+        if (!str) return '';
+        return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+    </script>
+</body>
+</html>
