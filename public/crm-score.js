@@ -3,7 +3,7 @@ const API_URL = window.location.origin + '/api';
 const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
 const REGIONE = (new URLSearchParams(window.location.search).get('regione') || 'LIGURIA').toUpperCase();
 
-const SOGLIA_HOT = 40;
+let SOGLIA_HOT = 40; // default, sovrascritto dalla risposta API per regione
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -22,6 +22,7 @@ async function caricaScore() {
 
         const data = await res.json();
         const { contatti, linee_prodotto } = data;
+        if (data.soglia_hot) SOGLIA_HOT = data.soglia_hot;
 
         // Separa account e lead
         const accountContatti = contatti.filter(c => c.tipo === 'account' || !c.tipo);

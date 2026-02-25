@@ -239,6 +239,7 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS tipo TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mercato TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS gruppo_whatsapp BOOLEAN DEFAULT false`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_secondaria TEXT`);
 
         // Tabella audit log CRM (traccia ogni azione di cancellazione)
         await client.query(`
@@ -1509,6 +1510,13 @@ app.delete('/api/fatture/:id', requireAdmin, async (req, res) => {
 
 // ==================== API CRM ====================
 
+// Soglia hot score per regione (default 40, LOMBARDIA 150)
+const SOGLIA_HOT_PER_REGIONE = { 'LOMBARDIA': 150 };
+const SOGLIA_HOT_DEFAULT = 40;
+function getSogliaHot(regione) {
+    return SOGLIA_HOT_PER_REGIONE[regione] || SOGLIA_HOT_DEFAULT;
+}
+
 // Lista contatti CRM con prodotti e score
 app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
@@ -1555,6 +1563,7 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
         // Combina crm_score_prodotti + crm_score_manuali non ancora sincronizzati
         let scoreMap = {};
         if (ids.length > 0) {
+            const soglia = getSogliaHot(regione);
             const scores = await pool.query(`
                 SELECT contatto_id, linea_prodotto, SUM(score) as score FROM (
                     SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti
@@ -1564,8 +1573,8 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
                     WHERE sincronizzata = false AND contatto_id = ANY($1::int[])
                 ) combined
                 GROUP BY contatto_id, linea_prodotto
-                HAVING SUM(score) >= 40
-            `, [ids]);
+                HAVING SUM(score) >= $2
+            `, [ids, soglia]);
             for (const s of scores.rows) {
                 if (!scoreMap[s.contatto_id]) scoreMap[s.contatto_id] = {};
                 scoreMap[s.contatto_id][s.linea_prodotto] = parseInt(s.score);
@@ -1657,6 +1666,7 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
         const totLead = await pool.query(
             "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND tipo = 'lead'", [regione]
         );
+        const sogliaStats = getSogliaHot(regione);
         const conScore = await pool.query(`
             SELECT COUNT(DISTINCT contatto_id) as totale FROM (
                 SELECT contatto_id, linea_prodotto, SUM(score) as total FROM (
@@ -1666,9 +1676,9 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
                 ) combined
                 WHERE contatto_id IN (SELECT id FROM crm_contatti WHERE regione = $1)
                 GROUP BY contatto_id, linea_prodotto
-                HAVING SUM(score) >= 40
+                HAVING SUM(score) >= $2
             ) hot
-        `, [regione]);
+        `, [regione, sogliaStats]);
         const clientiFattura2026 = await pool.query(
             `SELECT COUNT(DISTINCT a.contatto_id) as totale
              FROM crm_acquisti a
@@ -1863,18 +1873,19 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         // Upsert contatti (preserva FK per dati dashboard_manual)
         for (const c of contatti) {
             await client.query(`
-                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp, email_secondaria)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16)
                 ON CONFLICT (id) DO UPDATE SET
                     cognome = EXCLUDED.cognome, nome = EXCLUDED.nome, email = EXCLUDED.email,
                     telefono = EXCLUDED.telefono, cellulare = EXCLUDED.cellulare, citta = EXCLUDED.citta,
                     regione = EXCLUDED.regione, nome_azienda = EXCLUDED.nome_azienda,
                     fonte_sync = EXCLUDED.fonte_sync, data_inserimento = EXCLUDED.data_inserimento,
                     score = EXCLUDED.score, tipo = EXCLUDED.tipo, mercato = EXCLUDED.mercato,
-                    gruppo_whatsapp = CASE WHEN EXCLUDED.gruppo_whatsapp = true THEN true ELSE crm_contatti.gruppo_whatsapp END
+                    gruppo_whatsapp = CASE WHEN EXCLUDED.gruppo_whatsapp = true THEN true ELSE crm_contatti.gruppo_whatsapp END,
+                    email_secondaria = COALESCE(EXCLUDED.email_secondaria, crm_contatti.email_secondaria)
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
-                c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false]);
+                c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false, c.email_secondaria || null]);
         }
 
         // Rimuovi contatti della regione che non sono piu' nel payload SQLite
@@ -3164,7 +3175,8 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
         // Estrai tutte le linee prodotto presenti
         const lineeProdotto = [...allLinee].sort();
 
-        res.json({ contatti, linee_prodotto: lineeProdotto });
+        const sogliaScore = getSogliaHot(regione);
+        res.json({ contatti, linee_prodotto: lineeProdotto, soglia_hot: sogliaScore });
     } catch (err) {
         console.error('[CRM Score]', err);
         res.status(500).json({ error: 'Errore server' });

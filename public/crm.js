@@ -1052,7 +1052,11 @@ function aggiornaHeaderAlert() {
     boxEl.classList.remove('header-alert-red', 'header-alert-yellow', 'header-alert-green');
 
     if (n > 5) {
-        msgEl.innerHTML = `Varda che a-i &eacute; pi che sinch clienti pront p&euml;r &euml;l r&euml;&ograve;rdin, neh. <strong>(${n})</strong>`;
+        if (CRM_REGIONE === 'LOMBARDIA') {
+            msgEl.innerHTML = `Varda che gh'&egrave; pus&eacute;e de cinch client pront par el ri&ograve;rden, neh. <strong>(${n})</strong>`;
+        } else {
+            msgEl.innerHTML = `Varda che a-i &eacute; pi che sinch clienti pront p&euml;r &euml;l r&euml;&ograve;rdin, neh. <strong>(${n})</strong>`;
+        }
         boxEl.classList.add('header-alert-red');
     } else if (n > 0) {
         msgEl.textContent = `Alcuni riordini da valutare (${n})`;
