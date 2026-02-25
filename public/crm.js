@@ -1798,11 +1798,13 @@ async function salvaNote() {
 
 // ==================== TRASCRIZIONE AUDIO ====================
 
+let dettStartTimeout = null; // Timeout per rilevare mancato avvio
+
 function toggleDettatura(target) {
     // target: undefined/'note' = textarea note, 'opp' = textarea opportunita
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SpeechRecognition) {
-        mostraToast('Browser non supportato. Usa Chrome o Edge.', 'error');
+        mostraToast('Dettatura non disponibile. Vai in Impostazioni > Generali > Tastiera e attiva "Abilita Dettatura". Se il problema persiste, prova con Chrome.', 'error', 8000);
         return;
     }
 
@@ -1824,8 +1826,11 @@ function toggleDettatura(target) {
     const textarea = document.getElementById(isOpp ? 'opp-textarea' : 'notes-textarea');
 
     let finalTranscript = textarea.value;
+    let started = false;
 
     recognition.onstart = () => {
+        started = true;
+        if (dettStartTimeout) { clearTimeout(dettStartTimeout); dettStartTimeout = null; }
         micBtn.classList.add('recording');
         micStatus.textContent = 'In ascolto...';
     };
@@ -1845,8 +1850,17 @@ function toggleDettatura(target) {
 
     recognition.onerror = (event) => {
         console.error('Speech recognition error:', event.error);
+        if (dettStartTimeout) { clearTimeout(dettStartTimeout); dettStartTimeout = null; }
         if (event.error === 'not-allowed') {
-            mostraToast('Permesso microfono negato', 'error');
+            mostraToast('Permesso microfono negato. Su iPhone: Impostazioni > Safari > Microfono > Consenti', 'error', 8000);
+        } else if (event.error === 'service-not-allowed' || event.error === 'language-not-supported') {
+            mostraToast('Dettatura non attiva. Vai in Impostazioni > Generali > Tastiera e attiva "Abilita Dettatura"', 'error', 8000);
+        } else if (event.error === 'network') {
+            mostraToast('Errore di rete. La dettatura richiede connessione internet.', 'error', 6000);
+        } else if (event.error === 'audio-capture') {
+            mostraToast('Microfono non disponibile. Verifica che nessun\'altra app lo stia usando.', 'error', 6000);
+        } else {
+            mostraToast('Errore dettatura: ' + event.error, 'error', 6000);
         }
         stopDettatura();
     };
@@ -1860,8 +1874,16 @@ function toggleDettatura(target) {
 
     try {
         recognition.start();
+        // Timeout di sicurezza: se dopo 3 secondi onstart non e' stato chiamato, c'e' un problema
+        dettStartTimeout = setTimeout(() => {
+            if (!started && recognition) {
+                mostraToast('Il microfono non si e\' avviato. Controlla: Impostazioni > Generali > Tastiera > Abilita Dettatura, e Impostazioni > Safari > Microfono > Consenti', 'error', 10000);
+                stopDettatura();
+            }
+        }, 3000);
     } catch (e) {
-        mostraToast('Errore avvio microfono', 'error');
+        if (dettStartTimeout) { clearTimeout(dettStartTimeout); dettStartTimeout = null; }
+        mostraToast('Errore avvio microfono. Verifica i permessi nelle Impostazioni del telefono.', 'error', 8000);
         stopDettatura();
     }
 }
@@ -2010,7 +2032,7 @@ async function salvaNuovoContatto() {
 
 // ==================== UTILITY ====================
 
-function mostraToast(messaggio, tipo) {
+function mostraToast(messaggio, tipo, durata) {
     const container = document.getElementById('toast-container');
     if (!container) return;
     const toast = document.createElement('div');
@@ -2021,7 +2043,7 @@ function mostraToast(messaggio, tipo) {
     setTimeout(() => {
         toast.classList.remove('show');
         setTimeout(() => toast.remove(), 300);
-    }, 3000);
+    }, durata || 3000);
 }
 
 function formatDate(dateStr) {
