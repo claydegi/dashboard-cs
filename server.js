@@ -1917,7 +1917,7 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                         THEN EXCLUDED.email_senza_risposta
                         ELSE COALESCE(crm_contatti.email_senza_risposta, EXCLUDED.email_senza_risposta)
                     END,
-                    mailing_ricevuto = CASE WHEN EXCLUDED.mailing_ricevuto = true THEN true ELSE crm_contatti.mailing_ricevuto END
+                    mailing_ricevuto = EXCLUDED.mailing_ricevuto
             `, [c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score || 0,
                 c.tipo || null, c.mercato || null, c.gruppo_whatsapp || false, c.email_secondaria || null,
