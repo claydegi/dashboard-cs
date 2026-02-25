@@ -4454,7 +4454,7 @@ app.get('/consent', async (req, res) => {
 });
 
 // GET /api/consent-stats — statistiche consenso GDPR per riquadro dashboard
-app.get('/api/consent-stats', requireAdminKey, async (req, res) => {
+app.get('/api/consent-stats', requireAdmin, async (req, res) => {
     try {
         // Conta tutti i contatti con email (= base sollecitabile) per tipo,
         // e il loro stato di consenso attuale
