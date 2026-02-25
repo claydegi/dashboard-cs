@@ -130,6 +130,22 @@ async function caricaAlertOpportunita() {
             }
         } catch (e) { /* Silenzioso */ }
     }
+
+    // Alert LAZIO
+    const alertDivLazio = document.getElementById('crm-opp-alert-lazio');
+    if (alertDivLazio) {
+        try {
+            const res5 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=LAZIO&key=${ADMIN_KEY}`);
+            if (res5.ok) {
+                const data5 = await res5.json();
+                const totale5 = data5.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale5 > 0) {
+                    const clienti5 = data5.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivLazio.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale5} opportunita di vendita scadute - LAZIO<br><small style="font-weight:normal;">Clienti: ${clienti5}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
 }
 
 async function caricaFatture() {
