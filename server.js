@@ -4453,6 +4453,48 @@ app.get('/consent', async (req, res) => {
 </html>`);
 });
 
+// GET /api/consent-stats — statistiche consenso GDPR per riquadro dashboard
+app.get('/api/consent-stats', requireAdminKey, async (req, res) => {
+    try {
+        // Conta tutti i contatti con email (= base sollecitabile) per tipo,
+        // e il loro stato di consenso attuale
+        const stats = await pool.query(`
+            SELECT
+                tipo,
+                COUNT(*) as totale,
+                COUNT(*) FILTER (WHERE consenso_email = 'granted' AND consenso_email_fonte = 'email_link') as consenso_completo,
+                COUNT(*) FILTER (WHERE consenso_email = 'granted' AND consenso_email_fonte = 'email_link_no_tracking') as solo_email,
+                COUNT(*) FILTER (WHERE consenso_email = 'revoked') as negato,
+                COUNT(*) FILTER (WHERE consenso_email IS NULL
+                    OR (consenso_email = 'granted' AND COALESCE(consenso_email_fonte, '') NOT IN ('email_link', 'email_link_no_tracking'))
+                ) as in_attesa
+            FROM crm_contatti
+            WHERE email IS NOT NULL AND email != ''
+              AND tipo IN ('account', 'lead')
+            GROUP BY tipo
+        `);
+
+        const risultato = { account: null, lead: null };
+        for (const r of stats.rows) {
+            risultato[r.tipo] = {
+                totale: parseInt(r.totale),
+                consenso_completo: parseInt(r.consenso_completo),
+                solo_email: parseInt(r.solo_email),
+                negato: parseInt(r.negato),
+                in_attesa: parseInt(r.in_attesa)
+            };
+        }
+
+        if (!risultato.account) risultato.account = { totale: 0, consenso_completo: 0, solo_email: 0, negato: 0, in_attesa: 0 };
+        if (!risultato.lead) risultato.lead = { totale: 0, consenso_completo: 0, solo_email: 0, negato: 0, in_attesa: 0 };
+
+        res.json(risultato);
+    } catch (err) {
+        console.error('[Consent Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== YOUTUBE ANALYTICS API ====================
 
 // POST /api/youtube/sync — riceve payload metriche da youtube_sync.py
