@@ -4175,7 +4175,7 @@ app.get('/video-landing', async (req, res) => {
                 </a>
             </div>
             <p style="color: #999999; font-size: 11px; margin: 12px 0 0 0;">
-                Preferisce guardare il video senza tracciamento? Lo trovi su
+                Preferisce guardare il video senza personalizzazione? Lo trovi su
                 <a href="https://youtu.be/${videoId}" style="color: #CC0000; text-decoration: underline;">YouTube</a>.
             </p>
         </div>
