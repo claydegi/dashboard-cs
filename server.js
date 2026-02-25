@@ -4154,6 +4154,32 @@ app.get('/video-landing', async (req, res) => {
                 &#128172; Richiedi informazioni sul Kit Elevate
             </a>
         </div>
+
+        <!-- Consenso GDPR — 3 opzioni (identico alla email) -->
+        <div style="border-top: 1px solid #e0e0e0; padding: 20px 25px; text-align: center;">
+            <p style="color: #666666; font-size: 13px; line-height: 1.6; margin: 0 0 14px 0;">
+                Per inviarle contenuti sempre pi&ugrave; utili &mdash; casi clinici mirati, tutorial su misura, offerte dedicate &mdash; ci serve capire cosa le interessa davvero. Ci dia il suo ok e personalizzeremo tutto per lei.
+            </p>
+            <div style="margin: 0 auto; max-width: 340px;">
+                <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=si"
+                   style="display: block; background-color: #2E7D32; color: #ffffff; text-decoration: none; padding: 11px 20px; border-radius: 6px; font-size: 13px; font-weight: bold; text-align: center; margin-bottom: 8px;">
+                    &#10003; S&igrave;, voglio contenuti personalizzati
+                </a>
+                <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=solo_email"
+                   style="display: block; background-color: #e0e0e0; color: #555555; text-decoration: none; padding: 9px 20px; border-radius: 6px; font-size: 12px; text-align: center; margin-bottom: 8px;">
+                    Preferisco solo le email, senza personalizzazione
+                </a>
+                <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=no"
+                   style="display: block; background-color: transparent; color: #999999; text-decoration: underline; padding: 8px 20px; font-size: 11px; text-align: center;">
+                    Non mi interessa pi&ugrave;
+                </a>
+            </div>
+            <p style="color: #999999; font-size: 11px; margin: 12px 0 0 0;">
+                Preferisce guardare il video senza tracciamento? Lo trovi su
+                <a href="https://youtu.be/${videoId}" style="color: #CC0000; text-decoration: underline;">YouTube</a>.
+            </p>
+        </div>
+
         <div class="footer">
             <p>Osseotouch &ndash; Questa pagina utilizza sistemi di monitoraggio delle interazioni per migliorare il nostro servizio.</p>
         </div>
@@ -4327,11 +4353,12 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
 app.get('/consent', async (req, res) => {
     const { email, campagna, risposta } = req.query;
 
-    if (!email || !risposta || !['si', 'no'].includes(risposta)) {
+    if (!email || !risposta || !['si', 'no', 'solo_email'].includes(risposta)) {
         return res.status(400).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Link non valido</title></head><body style="font-family:Arial,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f4f4f4;margin:0;"><div style="background:#fff;border-radius:12px;padding:30px;max-width:500px;text-align:center;box-shadow:0 4px 20px rgba(0,0,0,0.1);"><h2 style="color:#c00;">Link non valido</h2><p style="color:#666;">Parametri mancanti o non validi.</p></div></body></html>`);
     }
 
-    const consensoStato = risposta === 'si' ? 'granted' : 'revoked';
+    // 3 opzioni: si = granted (email + tracking), solo_email = granted (solo email, no tracking), no = revoked
+    const consensoStato = risposta === 'no' ? 'revoked' : 'granted';
     const oggi = new Date().toISOString().split('T')[0];
 
     try {
@@ -4343,16 +4370,19 @@ app.get('/consent', async (req, res) => {
         const contatto = result.rows[0] || null;
         const contattoId = contatto ? contatto.id : null;
 
+        // Fonte distingue le 3 opzioni: email_link (si = email+tracking), email_link_no_tracking (solo email), email_link (no = revoked)
+        const consensoFonte = risposta === 'solo_email' ? 'email_link_no_tracking' : 'email_link';
+
         if (contatto) {
             // Aggiorna consenso su crm_contatti
             await pool.query(
                 `UPDATE crm_contatti SET
                     consenso_email = $1,
                     consenso_email_data = $2,
-                    consenso_email_fonte = 'email_link',
+                    consenso_email_fonte = $3,
                     email_senza_risposta = CASE WHEN $1 = 'granted' THEN 0 ELSE email_senza_risposta END
-                 WHERE id = $3`,
-                [consensoStato, oggi, contattoId]
+                 WHERE id = $4`,
+                [consensoStato, oggi, consensoFonte, contattoId]
             );
 
             // Logga in crm_modifiche_log per sync bidirezionale con SQLite
@@ -4362,7 +4392,7 @@ app.get('/consent', async (req, res) => {
                 [contattoId, JSON.stringify({
                     consenso_email: consensoStato,
                     consenso_email_data: oggi,
-                    consenso_email_fonte: 'email_link',
+                    consenso_email_fonte: consensoFonte,
                     campagna: campagna || null
                 })]
             );
@@ -4371,8 +4401,8 @@ app.get('/consent', async (req, res) => {
         // Audit trail (anche se contatto non trovato — per analytics)
         await pool.query(
             `INSERT INTO crm_consensi_log (contatto_id, email, azione, fonte, campagna, ip_address, user_agent)
-             VALUES ($1, $2, $3, 'email_link', $4, $5, $6)`,
-            [contattoId, email, consensoStato, campagna || null,
+             VALUES ($1, $2, $3, $4, $5, $6)`,
+            [contattoId, email, consensoStato, consensoFonte, campagna || null,
              req.headers['x-forwarded-for'] || req.ip,
              req.headers['user-agent'] || '']
         );
@@ -4384,14 +4414,21 @@ app.get('/consent', async (req, res) => {
         console.error('[Consenso] Errore DB:', err);
     }
 
-    // Pagina HTML di conferma
-    const titolo = risposta === 'si'
-        ? 'Grazie! Preferenza registrata.'
-        : 'Preferenza registrata.';
-    const messaggio = risposta === 'si'
-        ? 'Continuer&agrave; a ricevere i nostri contenuti dedicati: casi clinici, tutorial e offerte pensate per la sua pratica.'
-        : 'Non ricever&agrave; pi&ugrave; le nostre comunicazioni email. Se cambia idea, potr&agrave; sempre reiscriversi.';
-    const coloreHeader = risposta === 'si' ? '#1B5E20' : '#555555';
+    // Pagina HTML di conferma — 3 varianti
+    let titolo, messaggio, coloreHeader;
+    if (risposta === 'si') {
+        titolo = 'Grazie! Esperienza personalizzata attivata.';
+        messaggio = 'Ricever&agrave; contenuti selezionati in base ai suoi interessi: casi clinici, tutorial e offerte pensate per la sua pratica. Analizzeremo come interagisce con i nostri contenuti per renderli sempre pi&ugrave; utili.';
+        coloreHeader = '#1B5E20';
+    } else if (risposta === 'solo_email') {
+        titolo = 'Preferenza registrata.';
+        messaggio = 'Continuer&agrave; a ricevere i nostri aggiornamenti via email. Se in futuro desidera anche contenuti personalizzati, potr&agrave; aggiornare la preferenza in qualsiasi momento.';
+        coloreHeader = '#2E7D32';
+    } else {
+        titolo = 'Preferenza registrata.';
+        messaggio = 'Non ricever&agrave; pi&ugrave; le nostre comunicazioni email. Se cambia idea, potr&agrave; sempre reiscriversi.';
+        coloreHeader = '#555555';
+    }
 
     res.send(`<!DOCTYPE html>
 <html lang="it">
