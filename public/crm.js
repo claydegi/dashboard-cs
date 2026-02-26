@@ -39,6 +39,7 @@ let retrocediContattoId = null; // ID contatto per popup retrocedi
 let scoreContattoId = null; // ID contatto per modal score manuale
 let scoreContattoTipo = null; // 'account' o 'lead'
 let eliminaContattoId = null; // ID contatto per modal elimina
+let detailColsVisible = false; // Colonne dettaglio (Nome, Email, Telefono, Cellulare) nascoste di default
 
 document.addEventListener('DOMContentLoaded', () => {
     if (!ADMIN_KEY) {
@@ -164,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 function renderTableHeader() {
     const thead = document.getElementById('crm-thead');
-    let html = '<tr><th>#</th><th>Cognome</th><th>Nome</th><th>Email</th><th>Telefono</th><th>Cellulare</th><th>Citta</th>';
+    let html = '<tr><th>#</th><th>Cognome</th><th class="crm-col-detail">Nome</th><th class="crm-col-detail">Email</th><th class="crm-col-detail">Telefono</th><th class="crm-col-detail">Cellulare</th><th>Citta</th>';
     for (const p of PRODOTTI) {
         html += `<th class="prod">${p}</th>`;
     }
@@ -174,7 +175,24 @@ function renderTableHeader() {
     // Header tabella lead
     const leadThead = document.getElementById('crm-lead-thead');
     if (leadThead) {
-        leadThead.innerHTML = '<tr><th>#</th><th>Cognome</th><th>Nome</th><th>Email</th><th>Telefono</th><th>Cellulare</th><th>Citta</th><th class="prod" title="Note">&#9998;</th><th>Azioni</th></tr>';
+        leadThead.innerHTML = '<tr><th>#</th><th>Cognome</th><th class="crm-col-detail">Nome</th><th class="crm-col-detail">Email</th><th class="crm-col-detail">Telefono</th><th class="crm-col-detail">Cellulare</th><th>Citta</th><th class="prod" title="Note">&#9998;</th><th>Azioni</th></tr>';
+    }
+}
+
+function toggleDetailCols() {
+    detailColsVisible = !detailColsVisible;
+    const tables = document.querySelectorAll('.crm-table');
+    tables.forEach(t => {
+        if (detailColsVisible) {
+            t.classList.remove('crm-cols-hidden');
+        } else {
+            t.classList.add('crm-cols-hidden');
+        }
+    });
+    const btn = document.getElementById('btn-toggle-cols');
+    if (btn) {
+        btn.innerHTML = detailColsVisible ? '&#9664; Nascondi dettagli' : '&#9654; Mostra dettagli';
+        btn.title = detailColsVisible ? 'Nascondi colonne Nome, Email, Telefono, Cellulare' : 'Mostra colonne Nome, Email, Telefono, Cellulare';
     }
 }
 
@@ -334,10 +352,10 @@ function renderTableBody() {
             ? `<span class="crm-wa-icon crm-wa-active" title="Clicca per rimuovere da WhatsApp" onclick="toggleWhatsApp(${c.id}, this, false)">${waSvg}</span>`
             : `<span class="crm-wa-icon crm-wa-toggle" title="Clicca per aggiungere a WhatsApp" onclick="toggleWhatsApp(${c.id}, this, true)">${waSvg}</span>`;
         html += `<td>${esc(c._displayCognome)}${waIcon}</td>`;
-        html += `<td>${esc(c._displayNome)}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
+        html += `<td class="crm-col-detail">${esc(c._displayNome)}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
         html += `<td class="crm-editable${c.citta ? '' : ' crm-empty'}" onclick="inlineEdit(${c.id}, 'citta', this)" title="Clicca per modificare">${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
 
         // Prodotti
@@ -460,10 +478,10 @@ function renderLeadTable() {
             ? `<span class="crm-wa-icon crm-wa-active" title="Clicca per rimuovere da WhatsApp" onclick="toggleWhatsApp(${c.id}, this, false)">${waSvgLead}</span>`
             : `<span class="crm-wa-icon crm-wa-toggle" title="Clicca per aggiungere a WhatsApp" onclick="toggleWhatsApp(${c.id}, this, true)">${waSvgLead}</span>`;
         html += `<td>${esc(c._displayCognome)}${waIconLead}</td>`;
-        html += `<td>${esc(c._displayNome)}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
-        html += `<td class="crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
+        html += `<td class="crm-col-detail">${esc(c._displayNome)}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'email', this)" title="Clicca per modificare">${esc(c.email || '')}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'telefono', this)" title="Clicca per modificare">${esc(c.telefono || '')}</td>`;
+        html += `<td class="crm-col-detail crm-editable" onclick="inlineEdit(${c.id}, 'cellulare', this)" title="Clicca per modificare">${esc(c.cellulare || '')}</td>`;
         html += `<td class="crm-editable${c.citta ? '' : ' crm-empty'}" onclick="inlineEdit(${c.id}, 'citta', this)" title="Clicca per modificare">${c.citta ? esc(c.citta) : '&mdash;'}</td>`;
 
         // Note + Opportunita icon

@@ -2082,6 +2082,28 @@ nav {
     color: white;
 }
 
+/* Toggle colonne dettaglio (Nome, Email, Telefono, Cellulare) */
+.crm-btn-toggle-cols {
+    padding: 6px 12px;
+    border: 1px solid #3498db;
+    background: white;
+    color: #3498db;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    transition: all 0.2s;
+}
+.crm-btn-toggle-cols:hover {
+    background: #eaf2fb;
+}
+
+/* Nascondi colonne dettaglio quando la tabella ha crm-cols-hidden */
+.crm-table.crm-cols-hidden .crm-col-detail {
+    display: none;
+}
+
 .crm-btn-nuovo-contatto {
     padding: 8px 16px;
     background: #27ae60;

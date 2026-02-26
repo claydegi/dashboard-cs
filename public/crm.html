@@ -33,11 +33,12 @@
                 <option value="prodotti">Ordina per N. Prodotti</option>
             </select>
             <button class="crm-btn-filter-whatsapp" id="btn-filter-whatsapp" title="Filtra membri Gruppo WhatsApp">&#128172; WhatsApp</button>
+            <button class="crm-btn-toggle-cols" id="btn-toggle-cols" onclick="toggleDetailCols()" title="Mostra colonne Nome, Email, Telefono, Cellulare">&#9654; Mostra dettagli</button>
             <button class="crm-btn-nuovo-contatto" id="btn-nuovo-contatto">+ Nuovo Contatto</button>
         </section>
 
         <section class="crm-table-wrapper">
-            <table id="crm-table">
+            <table id="crm-table" class="crm-table crm-cols-hidden">
                 <thead id="crm-thead"></thead>
                 <tbody id="crm-tbody">
                     <tr><td colspan="25" class="loading">Caricamento...</td></tr>
@@ -64,7 +65,7 @@
                 </select>
             </h2>
             <div class="crm-table-wrapper">
-                <table id="crm-lead-table">
+                <table id="crm-lead-table" class="crm-table crm-cols-hidden">
                     <thead id="crm-lead-thead"></thead>
                     <tbody id="crm-lead-tbody">
                         <tr><td colspan="8" class="loading">Caricamento...</td></tr>

@@ -1577,9 +1577,9 @@ app.delete('/api/fatture/:id', requireAdmin, async (req, res) => {
 
 // ==================== API CRM ====================
 
-// Soglia hot score per regione (default 40, LOMBARDIA 150)
-const SOGLIA_HOT_PER_REGIONE = { 'LOMBARDIA': 150 };
-const SOGLIA_HOT_DEFAULT = 40;
+// Soglia hot score per regione (default 500)
+const SOGLIA_HOT_PER_REGIONE = {};
+const SOGLIA_HOT_DEFAULT = 500;
 function getSogliaHot(regione) {
     return SOGLIA_HOT_PER_REGIONE[regione] || SOGLIA_HOT_DEFAULT;
 }
