@@ -8,42 +8,52 @@
     <style>
         .mktg-form-section {
             background: white;
-            padding: 24px;
+            padding: 28px 32px;
             border-radius: 12px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
+            margin-bottom: 28px;
+            border-left: 5px solid var(--primary);
         }
         .mktg-form-section h3 {
-            margin: 0 0 16px 0;
-            font-size: 1.1rem;
+            margin: 0 0 20px 0;
+            font-size: 1.15rem;
             color: var(--gray-700);
+            font-weight: 600;
         }
         .mktg-form-row {
             display: grid;
             grid-template-columns: 180px 1fr;
-            gap: 12px;
+            gap: 14px;
             align-items: start;
         }
-        .mktg-form-row .form-group {
+        .mktg-form-section .form-group {
             margin-bottom: 0;
         }
-        .mktg-form-row input,
-        .mktg-form-row select,
-        .mktg-form-row textarea {
+        .mktg-form-section input,
+        .mktg-form-section select,
+        .mktg-form-section textarea {
             width: 100%;
-            padding: 10px 14px;
+            padding: 11px 14px;
             border: 1px solid var(--gray-300);
             border-radius: 8px;
             font-size: 0.95rem;
             font-family: inherit;
             box-sizing: border-box;
+            transition: border-color 0.2s;
         }
-        .mktg-form-row textarea {
+        .mktg-form-section input:focus,
+        .mktg-form-section select:focus,
+        .mktg-form-section textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        .mktg-form-section textarea {
             resize: vertical;
-            min-height: 60px;
+            min-height: 100px;
         }
         .mktg-form-actions {
-            margin-top: 12px;
+            margin-top: 16px;
             display: flex;
             gap: 8px;
         }
@@ -98,48 +108,54 @@
                 <form id="attivitaForm">
                     <div class="mktg-form-row">
                         <div class="form-group" id="richiedenteGroup">
+                            <label for="richiedente" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Richiedente</label>
                             <select id="richiedente" required>
-                                <option value="">Richiedente...</option>
+                                <option value="">Seleziona...</option>
                                 <option value="claudio">Claudio</option>
                                 <option value="manuel">Manuel</option>
                             </select>
                         </div>
                         <div class="form-group">
-                            <input type="text" id="titolo" placeholder="Titolo attivita' *" required>
+                            <label for="titolo" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Titolo *</label>
+                            <input type="text" id="titolo" placeholder="Es. Campagna email nuovi contatti Lombardia" required>
                         </div>
                     </div>
-                    <div style="margin-top: 8px;">
-                        <textarea id="descrizione" placeholder="Descrizione (opzionale)" rows="2"></textarea>
+                    <div class="form-group" style="margin-top: 14px;">
+                        <label for="descrizione" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Descrizione</label>
+                        <textarea id="descrizione" placeholder="Dettagli sull'attivita', obiettivi, note..." rows="4"></textarea>
                     </div>
                     <div class="mktg-form-actions">
-                        <button type="submit" class="btn btn-primary">Conferma</button>
+                        <button type="submit" class="btn btn-primary" style="padding: 11px 28px; font-size: 0.95rem;">Conferma</button>
                     </div>
                 </form>
             </section>
 
-            <!-- Riquadro: Attivita' richieste -->
-            <section class="mktg-section">
-                <h2>Attivita' richieste</h2>
-                <div id="richiesteGrid" class="report-cards-grid">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
+            <!-- Riquadri solo admin -->
+            <div id="adminSections">
+                <!-- Riquadro: Attivita' richieste -->
+                <section class="mktg-section">
+                    <h2>Attivita' richieste</h2>
+                    <div id="richiesteGrid" class="report-cards-grid">
+                        <p class="loading">Caricamento...</p>
+                    </div>
+                </section>
 
-            <!-- Riquadro: Attivita' da eseguire -->
-            <section class="mktg-section">
-                <h2>Attivita' da eseguire</h2>
-                <div id="daEseguireGrid" class="report-cards-grid">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
+                <!-- Riquadro: Attivita' da eseguire -->
+                <section class="mktg-section">
+                    <h2>Attivita' da eseguire</h2>
+                    <div id="daEseguireGrid" class="report-cards-grid">
+                        <p class="loading">Caricamento...</p>
+                    </div>
+                </section>
 
-            <!-- Riquadro: Consensi GDPR -->
-            <section class="mktg-section">
-                <h2>Consensi GDPR</h2>
-                <div id="consensiGrid" class="report-cards-grid">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
+                <!-- Riquadro: Consensi GDPR -->
+                <section class="mktg-section">
+                    <h2>Consensi GDPR</h2>
+                    <div id="consensiGrid" class="report-cards-grid">
+                        <p class="loading">Caricamento...</p>
+                    </div>
+                </section>
+            </div>
         </main>
     </div>
 
@@ -171,10 +187,9 @@
             }
         }
 
-        // Se richiedente fisso (Kim/Massimo), nascondi il select e imposta il valore
+        // Se richiedente fisso (Kim/Massimo), nascondi riquadri admin e semplifica form
         if (RICHIEDENTE_FISSO) {
             const sel = document.getElementById('richiedente');
-            // Aggiungi l'opzione se non esiste
             let opt = sel.querySelector(`option[value="${RICHIEDENTE_FISSO}"]`);
             if (!opt) {
                 opt = document.createElement('option');
@@ -184,8 +199,14 @@
             }
             sel.value = RICHIEDENTE_FISSO;
             document.getElementById('richiedenteGroup').style.display = 'none';
-            // Rendi il form a colonna singola
             document.querySelector('.mktg-form-row').style.gridTemplateColumns = '1fr';
+
+            // Nascondi riquadri admin
+            const adminSections = document.getElementById('adminSections');
+            if (adminSections) adminSections.style.display = 'none';
+
+            // Titolo pagina adattato
+            document.querySelector('h1').textContent = 'Proponi attivita\' marketing';
         }
 
         // Form submit
@@ -222,7 +243,7 @@
             }
         });
 
-        caricaTutto();
+        if (IS_ADMIN) caricaTutto();
     });
 
     async function caricaTutto() {
@@ -302,10 +323,10 @@
             </div>
         `).join('');
 
-        // Campagne preparate
+        // Campagne preparate (mailing)
         html += campagne.map(c => `
             <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
+                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Mailing da eseguire</div>
                 <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
             </div>
         `).join('');

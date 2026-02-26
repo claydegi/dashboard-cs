@@ -207,10 +207,10 @@ async function caricaRiepilogoMktg() {
             </div>
         `).join('');
 
-        // Card viola: campagne preparate
+        // Card viola: campagne preparate (mailing)
         html += campagnePreparate.map(c => `
             <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
+                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Mailing da eseguire</div>
                 <div class="report-card-titolo">${escapeHtmlMktg(c.nome)}</div>
             </div>
         `).join('');
