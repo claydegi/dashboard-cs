@@ -120,9 +120,15 @@
                             <input type="text" id="titolo" placeholder="Es. Campagna email nuovi contatti Lombardia" required>
                         </div>
                     </div>
-                    <div class="form-group" style="margin-top: 14px;">
-                        <label for="descrizione" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Descrizione</label>
-                        <textarea id="descrizione" placeholder="Dettagli sull'attivita', obiettivi, note..." rows="4"></textarea>
+                    <div style="display:grid;grid-template-columns:1fr 200px;gap:14px;margin-top:14px;">
+                        <div class="form-group">
+                            <label for="descrizione" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Descrizione</label>
+                            <textarea id="descrizione" placeholder="Dettagli sull'attivita', obiettivi, note..." rows="4"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="dataPrevista" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Data prevista</label>
+                            <input type="date" id="dataPrevista">
+                        </div>
                     </div>
                     <div class="mktg-form-actions">
                         <button type="submit" class="btn btn-primary" style="padding: 11px 28px; font-size: 0.95rem;">Conferma</button>
@@ -210,6 +216,7 @@
             e.preventDefault();
             const titolo = document.getElementById('titolo').value.trim();
             const descrizione = document.getElementById('descrizione').value.trim();
+            const dataPrevista = document.getElementById('dataPrevista').value || null;
             const richiedente = RICHIEDENTE_FISSO || document.getElementById('richiedente').value;
 
             if (!titolo || !richiedente) return;
@@ -218,7 +225,7 @@
                 const resp = await fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ titolo, descrizione: descrizione || null, richiedente })
+                    body: JSON.stringify({ titolo, descrizione: descrizione || null, richiedente, data_prevista: dataPrevista })
                 });
                 if (!resp.ok) throw new Error('Errore');
 
@@ -230,6 +237,7 @@
                 } else {
                     document.getElementById('titolo').value = '';
                     document.getElementById('descrizione').value = '';
+                    document.getElementById('dataPrevista').value = '';
                     document.getElementById('richiedente').value = '';
                     caricaTutto();
                 }
@@ -288,6 +296,7 @@
                 <div class="report-card-tipo" style="color: #f59e0b;">&#9993; Attivita' richiesta</div>
                 <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
                 ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
+                ${a.data_prevista ? `<div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">&#128197; ${formatData(a.data_prevista)}</div>` : ''}
                 <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
                 ${IS_ADMIN ? `
                     <div class="card-actions">
@@ -309,6 +318,10 @@
                 <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
                 <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
                 ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
+                <div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">
+                    &#128197; ${a.data_prevista ? formatData(a.data_prevista) : '<em style="color:var(--gray-400);">Data non definita</em>'}
+                    ${IS_ADMIN ? `<input type="date" value="${a.data_prevista || ''}" onchange="aggiornaData(${a.id}, this.value)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:0.8rem;">` : ''}
+                </div>
                 <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
                 ${IS_ADMIN ? `
                     <div class="card-actions">
@@ -319,11 +332,12 @@
             </div>
         `).join('');
 
-        // Campagne preparate (mailing)
+        // Campagne preparate (mailing) — usano data_prevista dalla tabella crm_campagne
         html += campagne.map(c => `
             <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
                 <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Mailing da eseguire</div>
                 <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
+                ${c.data_prevista ? `<div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">&#128197; ${formatData(c.data_prevista)}</div>` : ''}
             </div>
         `).join('');
 
@@ -398,6 +412,25 @@
         } catch (err) {
             console.error('Errore elimina:', err);
         }
+    }
+
+    async function aggiornaData(id, data) {
+        try {
+            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ data_prevista: data || null })
+            });
+            caricaTutto();
+        } catch (err) {
+            console.error('Errore aggiorna data:', err);
+        }
+    }
+
+    function formatData(dataStr) {
+        if (!dataStr) return '';
+        const d = new Date(dataStr + 'T00:00:00');
+        return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' });
     }
 
     function escapeHtml(text) {

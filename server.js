@@ -368,6 +368,8 @@ async function initDB() {
             )
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_attivita_mktg_stato ON crm_attivita_mktg(stato)`);
+        // Aggiunta colonna data_prevista (26 feb 2026)
+        await client.query(`ALTER TABLE crm_attivita_mktg ADD COLUMN IF NOT EXISTS data_prevista TEXT`);
 
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
@@ -4673,17 +4675,17 @@ app.get('/api/attivita-mktg', requireAdmin, async (req, res) => {
 
 // POST /api/attivita-mktg — crea attivita'
 app.post('/api/attivita-mktg', requireAdmin, async (req, res) => {
-    const { titolo, descrizione, richiedente } = req.body;
+    const { titolo, descrizione, richiedente, data_prevista } = req.body;
     if (!titolo || !richiedente) {
         return res.status(400).json({ error: 'Titolo e richiedente obbligatori' });
     }
 
     try {
         const result = await pool.query(`
-            INSERT INTO crm_attivita_mktg (titolo, descrizione, richiedente)
-            VALUES ($1, $2, $3)
+            INSERT INTO crm_attivita_mktg (titolo, descrizione, richiedente, data_prevista)
+            VALUES ($1, $2, $3, $4)
             RETURNING *
-        `, [titolo.trim(), descrizione ? descrizione.trim() : null, richiedente.trim().toLowerCase()]);
+        `, [titolo.trim(), descrizione ? descrizione.trim() : null, richiedente.trim().toLowerCase(), data_prevista || null]);
         res.json(result.rows[0]);
     } catch (err) {
         console.error('[Attivita MKTG POST]', err);
@@ -4691,21 +4693,43 @@ app.post('/api/attivita-mktg', requireAdmin, async (req, res) => {
     }
 });
 
-// PUT /api/attivita-mktg/:id — aggiorna stato
+// PUT /api/attivita-mktg/:id — aggiorna stato e/o data_prevista
 app.put('/api/attivita-mktg/:id', requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
-    const { stato } = req.body;
-    const statiValidi = ['richiesta', 'da_eseguire', 'eseguita'];
-    if (!statiValidi.includes(stato)) {
-        return res.status(400).json({ error: 'Stato non valido' });
+    const { stato, data_prevista } = req.body;
+
+    // Almeno uno dei due deve essere presente
+    if (!stato && data_prevista === undefined) {
+        return res.status(400).json({ error: 'Specificare stato o data_prevista' });
+    }
+
+    if (stato) {
+        const statiValidi = ['richiesta', 'da_eseguire', 'eseguita'];
+        if (!statiValidi.includes(stato)) {
+            return res.status(400).json({ error: 'Stato non valido' });
+        }
     }
 
     try {
-        const extra = stato === 'da_eseguire' ? ', promossa_at = NOW()' :
-                       stato === 'eseguita' ? ', eseguita_at = NOW()' : '';
+        let setClauses = [];
+        let params = [];
+        let idx = 1;
+
+        if (stato) {
+            setClauses.push(`stato = $${idx++}`);
+            params.push(stato);
+            if (stato === 'da_eseguire') setClauses.push('promossa_at = NOW()');
+            if (stato === 'eseguita') setClauses.push('eseguita_at = NOW()');
+        }
+        if (data_prevista !== undefined) {
+            setClauses.push(`data_prevista = $${idx++}`);
+            params.push(data_prevista || null);
+        }
+
+        params.push(id);
         const result = await pool.query(
-            `UPDATE crm_attivita_mktg SET stato = $1${extra} WHERE id = $2 RETURNING *`,
-            [stato, id]
+            `UPDATE crm_attivita_mktg SET ${setClauses.join(', ')} WHERE id = $${idx} RETURNING *`,
+            params
         );
         if (result.rows.length === 0) {
             return res.status(404).json({ error: 'Attivita non trovata' });
