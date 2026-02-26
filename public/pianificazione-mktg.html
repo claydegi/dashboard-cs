@@ -288,7 +288,7 @@
         }
         grid.innerHTML = richieste.map(a => `
             <div class="report-card" style="border-left-color: #f59e0b; cursor: default;">
-                <div class="report-card-tipo" style="color: #f59e0b;">&#9993; Attivita' richiesta</div>
+                <div class="report-card-tipo" style="color: #f59e0b;">Attivita' richiesta / in costruzione</div>
                 <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
                 ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
                 ${a.data_prevista ? `<div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">&#128197; ${formatData(a.data_prevista)}</div>` : ''}
