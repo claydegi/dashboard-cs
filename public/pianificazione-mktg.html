@@ -130,8 +130,8 @@
                 </form>
             </section>
 
-            <!-- Riquadri solo admin -->
-            <div id="adminSections">
+            <!-- Riquadri attivita' e consensi -->
+            <div id="mktgSections">
                 <!-- Riquadro: Attivita' richieste -->
                 <section class="mktg-section">
                     <h2>Attivita' richieste</h2>
@@ -201,10 +201,6 @@
             document.getElementById('richiedenteGroup').style.display = 'none';
             document.querySelector('.mktg-form-row').style.gridTemplateColumns = '1fr';
 
-            // Nascondi riquadri admin
-            const adminSections = document.getElementById('adminSections');
-            if (adminSections) adminSections.style.display = 'none';
-
             // Titolo pagina adattato
             document.querySelector('h1').textContent = 'Proponi attivita\' marketing';
         }
@@ -243,7 +239,7 @@
             }
         });
 
-        if (IS_ADMIN) caricaTutto();
+        caricaTutto();
     });
 
     async function caricaTutto() {

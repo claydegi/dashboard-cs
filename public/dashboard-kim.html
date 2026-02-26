@@ -29,18 +29,13 @@
             </section>
 
             <section class="reports-section">
-                <h2>Pianificazione Marketing</h2>
-                <div style="margin-bottom: 16px;">
-                    <a href="#" id="link-inserisci-mktg" class="btn btn-primary" style="text-decoration:none;display:inline-block;font-size:0.95rem;">+ Inserisci attivita'</a>
-                </div>
-                <div id="mktg-riepilogo" class="report-cards-grid">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
-
-            <section class="reports-section">
                 <h2>Strumenti</h2>
                 <div class="report-cards-grid">
+                    <div class="report-card" style="border-left-color: #8b5cf6; cursor: pointer;" onclick="window.location.href='pianificazione-mktg.html?key=' + new URLSearchParams(window.location.search).get('key') + '&richiedente=kim&from=kim'">
+                        <div class="report-card-tipo" style="color: #8b5cf6;">Marketing</div>
+                        <div class="report-card-titolo">Pianificazione Marketing</div>
+                        <div class="report-card-data">Proponi attivita', vedi riepilogo</div>
+                    </div>
                     <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=LIGURIA&key=' + new URLSearchParams(window.location.search).get('key')">
                         <div class="report-card-tipo">CRM</div>
                         <div class="report-card-titolo">CRM Liguria</div>

@@ -13,7 +13,6 @@ document.addEventListener('DOMContentLoaded', () => {
     caricaReports();
     caricaFatture();
     caricaAlertOpportunita();
-    caricaRiepilogoMktg();
 });
 
 async function caricaReports() {
@@ -163,70 +162,6 @@ async function caricaAlertOpportunita() {
             }
         } catch (e) { /* Silenzioso */ }
     }
-}
-
-async function caricaRiepilogoMktg() {
-    // Link "Inserisci attivita'"
-    const linkMktg = document.getElementById('link-inserisci-mktg');
-    if (linkMktg) {
-        linkMktg.href = `pianificazione-mktg.html?key=${ADMIN_KEY}&richiedente=${AGENTE}&from=${AGENTE}`;
-    }
-
-    const container = document.getElementById('mktg-riepilogo');
-    if (!container) return;
-
-    try {
-        const [attivitaResp, campagneResp] = await Promise.all([
-            fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
-            fetch(`${API_URL}/campagne?key=${ADMIN_KEY}`)
-        ]);
-
-        const attivita = attivitaResp.ok ? await attivitaResp.json() : [];
-        const campagne = campagneResp.ok ? await campagneResp.json() : [];
-        const campagnePreparate = campagne.filter(c => c.stato === 'preparata');
-
-        const richieste = attivita.filter(a => a.stato === 'richiesta');
-        const daEseguire = attivita.filter(a => a.stato === 'da_eseguire');
-
-        let html = '';
-
-        // Card arancione: attivita' richieste
-        html += richieste.map(a => `
-            <div class="report-card" style="border-left-color: #f59e0b; cursor: default;">
-                <div class="report-card-tipo" style="color: #f59e0b;">&#9993; Attivita' richiesta</div>
-                <div class="report-card-titolo">${escapeHtmlMktg(a.titolo)}</div>
-                <div style="font-size:0.8rem;color:var(--gray-500);margin-top:4px;">Richiesta da: ${escapeHtmlMktg(a.richiedente.charAt(0).toUpperCase() + a.richiedente.slice(1))}</div>
-            </div>
-        `).join('');
-
-        // Card viola: attivita' promosse
-        html += daEseguire.map(a => `
-            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
-                <div class="report-card-titolo">${escapeHtmlMktg(a.titolo)}</div>
-            </div>
-        `).join('');
-
-        // Card viola: campagne preparate (mailing)
-        html += campagnePreparate.map(c => `
-            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Mailing da eseguire</div>
-                <div class="report-card-titolo">${escapeHtmlMktg(c.nome)}</div>
-            </div>
-        `).join('');
-
-        container.innerHTML = html || '<div class="empty-state"><p>Nessuna attivita\' in programma</p></div>';
-    } catch (err) {
-        console.error('Errore riepilogo mktg:', err);
-        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
-    }
-}
-
-function escapeHtmlMktg(text) {
-    if (!text) return '';
-    const div = document.createElement('div');
-    div.textContent = text;
-    return div.innerHTML;
 }
 
 async function caricaFatture() {
