@@ -4393,6 +4393,445 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
     }
 });
 
+// ==================== LANDING PAGE MULTI-VIDEO ====================
+
+// Landing page con 2 video YouTube + tracking tempo complessivo + WhatsApp CTA
+app.get('/video-landing-multi', async (req, res) => {
+    const { email, campagna } = req.query;
+
+    if (!email || !campagna) {
+        return res.status(400).send('<h1>Link non valido</h1><p>Parametri mancanti.</p>');
+    }
+
+    // Video hardcoded per questa campagna (configurabili in futuro)
+    const videos = [
+        { id: 'MPegdcsvJeE', title: 'Blexo — nuovi strumenti per estrazione', label: 'BLEXO' },
+        { id: '8xYO6QQ9gTM', title: 'Elevate — il best seller per il rialzo del seno crestale', label: 'ELEVATE' }
+    ];
+
+    try {
+        const result = await pool.query(
+            `SELECT id, cognome, nome, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1`,
+            [email]
+        );
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        await pool.query(
+            `INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento)
+             VALUES ($1, $2, $3, 'landing_open')`,
+            [contattoId, email, campagna]
+        );
+
+        const cognome = contatto ? contatto.cognome : '';
+        console.log(`[Video Landing Multi] Open: ${email} (${cognome}) -> ${campagna}`);
+    } catch (err) {
+        console.error('[Video Landing Multi] Errore DB:', err);
+    }
+
+    res.send(`<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Magnetic Mallet – Novità Blexo ed Elevate</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #0a0a0a;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background-color: #111611;
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 700px;
+            width: 100%;
+            border: 1px solid #1B5E20;
+        }
+        .header {
+            padding: 30px 25px 15px 25px;
+            text-align: center;
+        }
+        .header .brand {
+            color: #888888;
+            font-size: 14px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            margin-bottom: 5px;
+        }
+        .header .brand strong { color: #2E7D32; }
+        .header h1 {
+            color: #ffffff;
+            font-size: 32px;
+            font-weight: bold;
+            letter-spacing: 3px;
+            font-style: italic;
+        }
+        .sep {
+            border-top: 1px solid #1B5E20;
+            margin: 0 60px 20px 60px;
+        }
+        .intro {
+            padding: 0 25px 20px 25px;
+            color: #cccccc;
+            font-size: 17px;
+            line-height: 1.7;
+            text-align: center;
+        }
+        .video-section {
+            padding: 0 20px 25px 20px;
+        }
+        .video-label {
+            color: #ffffff;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 12px;
+            letter-spacing: 0.5px;
+        }
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            padding-bottom: 56.25%;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #000;
+            border: 2px solid #2E7D32;
+            margin-bottom: 10px;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+        }
+        .video-desc {
+            text-align: center;
+            font-size: 14px;
+            color: #888888;
+            margin-bottom: 5px;
+        }
+        .wa-section {
+            padding: 25px;
+            text-align: center;
+            border-top: 1px solid #1e2e1e;
+        }
+        .wa-section p {
+            color: #ffffff;
+            font-size: 17px;
+            line-height: 1.6;
+            margin-bottom: 18px;
+        }
+        .wa-button {
+            display: inline-block;
+            padding: 15px 40px;
+            background-color: #25D366;
+            color: #ffffff;
+            text-align: center;
+            text-decoration: none;
+            font-size: 16px;
+            font-weight: bold;
+            border-radius: 30px;
+            transition: background-color 0.2s;
+        }
+        .wa-button:hover { background-color: #1da851; }
+        .consent-section {
+            border-top: 1px solid #1e2e1e;
+            padding: 20px 25px;
+            text-align: center;
+        }
+        .consent-section p.intro-consent {
+            color: #aaaaaa;
+            font-size: 13px;
+            line-height: 1.6;
+            margin-bottom: 14px;
+        }
+        .consent-section .btn-consent {
+            display: block;
+            max-width: 340px;
+            margin: 0 auto 8px auto;
+            padding: 11px 20px;
+            border-radius: 6px;
+            text-decoration: none;
+            text-align: center;
+            font-size: 13px;
+            font-weight: bold;
+        }
+        .consent-section .btn-si { background-color: #2E7D32; color: #ffffff; }
+        .consent-section .btn-solo { background-color: #444444; color: #cccccc; font-weight: normal; font-size: 12px; }
+        .consent-section .btn-no { background-color: transparent; color: #666666; text-decoration: underline; font-weight: normal; font-size: 11px; }
+        .consent-section .yt-alt {
+            color: #555555;
+            font-size: 11px;
+            margin-top: 12px;
+        }
+        .consent-section .yt-alt a { color: #CC0000; text-decoration: underline; }
+        .footer {
+            text-align: center;
+            padding: 20px 25px;
+            background-color: #0d120d;
+        }
+        .footer p { font-size: 11px; color: #555555; }
+        @media (max-width: 480px) {
+            body { padding: 10px; }
+            .header h1 { font-size: 26px; }
+            .intro { font-size: 15px; padding: 0 15px 20px 15px; }
+            .video-section { padding: 0 10px 20px 10px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <p class="brand"><strong>OsseoTouch</strong></p>
+            <h1>MAGNETIC MALLET</h1>
+        </div>
+        <div class="sep"></div>
+        <p class="intro">
+            Kim Agnello, Product Specialist Magnetic Mallet, sarà nella Sua zona il <strong style="color: #2E7D32;">25 e 26 marzo</strong>.<br>
+            Ecco un'anteprima delle novità:
+        </p>
+
+        <div class="video-section">
+            <p class="video-label">Blexo — nuovi strumenti per estrazione</p>
+            <div class="video-wrapper">
+                <div id="player0"></div>
+            </div>
+        </div>
+
+        <div class="video-section">
+            <p class="video-label">Elevate — rialzo del seno crestale</p>
+            <div class="video-wrapper">
+                <div id="player1"></div>
+            </div>
+        </div>
+
+        <div class="wa-section">
+            <p>
+                Le piacerebbe un breve aggiornamento di persona?<br>
+                <strong style="color: #2E7D32;">15–20 minuti</strong> bastano. Scriva a Kim per fissare il passaggio:
+            </p>
+            <a href="https://wa.me/393387351260?text=Salve%20Kim%2C%20vorrei%20fissare%20un%20appuntamento%20per%20il%2025-26%20marzo" class="wa-button">
+                💬&nbsp;&nbsp;Scrivimi su WhatsApp
+            </a>
+        </div>
+
+        <div class="consent-section">
+            <p class="intro-consent">
+                Per inviarle contenuti sempre più utili — casi clinici mirati, tutorial su misura, offerte dedicate — ci serve capire cosa le interessa davvero. Ci dia il suo ok e personalizzeremo tutto per lei.
+            </p>
+            <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=si" class="btn-consent btn-si">
+                ✓ Sì, voglio contenuti personalizzati
+            </a>
+            <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=solo_email" class="btn-consent btn-solo">
+                Preferisco solo le email, senza personalizzazione
+            </a>
+            <a href="/consent?email=${encodeURIComponent(email)}&campagna=${encodeURIComponent(campagna)}&risposta=no" class="btn-consent btn-no">
+                Non mi interessa più
+            </a>
+            <p class="yt-alt">
+                Preferisce guardare i video senza personalizzazione? Li trovi su YouTube:
+                <a href="https://youtu.be/MPegdcsvJeE">Blexo</a> |
+                <a href="https://youtu.be/8xYO6QQ9gTM">Elevate</a>
+            </p>
+        </div>
+
+        <div class="footer">
+            <p>Osseotouch – Questa pagina utilizza sistemi di monitoraggio delle interazioni per migliorare il nostro servizio.</p>
+        </div>
+    </div>
+
+    <script>
+        var EMAIL = ${JSON.stringify(email)};
+        var CAMPAGNA = ${JSON.stringify(campagna)};
+
+        // Tracking: tempo cumulativo su TUTTI i video
+        var tempoPerVideo = { 0: 0, 1: 0 };  // secondi visti per ciascun video
+        var players = [];
+        var trackingIntervals = {};
+        var videoIds = ['MPegdcsvJeE', '8xYO6QQ9gTM'];
+
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(tag, firstScript);
+
+        function onYouTubeIframeAPIReady() {
+            for (var i = 0; i < videoIds.length; i++) {
+                (function(idx) {
+                    players[idx] = new YT.Player('player' + idx, {
+                        videoId: videoIds[idx],
+                        playerVars: { rel: 0, modestbranding: 1 },
+                        events: {
+                            'onStateChange': function(event) { onPlayerStateChange(event, idx); }
+                        }
+                    });
+                })(i);
+            }
+        }
+
+        function getTempoCumulativo() {
+            var totale = 0;
+            for (var k in tempoPerVideo) totale += tempoPerVideo[k];
+            return totale;
+        }
+
+        function inviaEvento(evento, videoIdx) {
+            var p = players[videoIdx];
+            var secondi = p && p.getCurrentTime ? Math.floor(p.getCurrentTime()) : 0;
+            var durata = p && p.getDuration ? Math.floor(p.getDuration()) : 0;
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+            var tempoCumulativo = getTempoCumulativo();
+
+            try {
+                fetch('/api/video-tracking-multi', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: EMAIL, campagna: CAMPAGNA, evento: evento,
+                        video_idx: videoIdx, video_id: videoIds[videoIdx],
+                        secondi_visti: secondi, durata_totale: durata, percentuale: pct,
+                        tempo_cumulativo: tempoCumulativo
+                    })
+                });
+            } catch(e) {}
+        }
+
+        function onPlayerStateChange(event, videoIdx) {
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaEvento('play', videoIdx);
+                if (!trackingIntervals[videoIdx]) {
+                    trackingIntervals[videoIdx] = setInterval(function() {
+                        var p = players[videoIdx];
+                        if (p && p.getPlayerState && p.getPlayerState() === YT.PlayerState.PLAYING) {
+                            // Aggiorna tempo per questo video
+                            tempoPerVideo[videoIdx] = Math.floor(p.getCurrentTime());
+                            inviaEvento('progress', videoIdx);
+                        }
+                    }, 5000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                tempoPerVideo[videoIdx] = Math.floor(players[videoIdx].getCurrentTime());
+                inviaEvento('pause', videoIdx);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                var p = players[videoIdx];
+                tempoPerVideo[videoIdx] = Math.floor(p.getDuration());
+                inviaEvento('ended', videoIdx);
+                if (trackingIntervals[videoIdx]) {
+                    clearInterval(trackingIntervals[videoIdx]);
+                    trackingIntervals[videoIdx] = null;
+                }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            var tempoCumulativo = getTempoCumulativo();
+            navigator.sendBeacon('/api/video-tracking-multi', JSON.stringify({
+                email: EMAIL, campagna: CAMPAGNA, evento: 'leave',
+                video_idx: -1, video_id: 'all',
+                secondi_visti: 0, durata_totale: 0, percentuale: 0,
+                tempo_cumulativo: tempoCumulativo
+            }));
+        });
+    </script>
+</body>
+</html>`);
+});
+
+// Endpoint tracking multi-video (PUBBLICO — riceve beacon dal JS della landing multi-video)
+// Score basato su TEMPO CUMULATIVO tra piu' video: 150pt a 3min, +300pt a 10min. Linea GENERICO.
+app.post('/api/video-tracking-multi', express.json(), async (req, res) => {
+    const { email, campagna, evento, video_idx, video_id, secondi_visti, durata_totale, percentuale, tempo_cumulativo } = req.body;
+
+    if (!email || !campagna || !evento) {
+        return res.status(400).json({ error: 'Parametri mancanti' });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT id, tipo FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1',
+            [email]
+        );
+        const contatto = result.rows[0] || null;
+        const contattoId = contatto ? contatto.id : null;
+
+        // Salva evento in crm_video_tracking
+        await pool.query(
+            `INSERT INTO crm_video_tracking
+             (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+             VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+            [contattoId, email, campagna,
+             video_id ? evento + '_' + video_id : evento,
+             secondi_visti || 0, durata_totale || 0, percentuale || 0]
+        );
+
+        // Score multi-video: soglie basate su tempo cumulativo
+        // Linea prodotto: GENERICO (derivata dal tag via tag_to_prodotto con keyword APPUNTAMENTI)
+        const tc = tempo_cumulativo || 0;
+        if (contatto && tc >= 180) { // almeno 3 minuti complessivi
+            const lineaProdotto = 'GENERICO';
+            const oggi = new Date().toISOString().split('T')[0];
+
+            const soglieMulti = [
+                { nome: 'score_multi_3min', minSec: 180, punti: 150, label: 'Multi-video watch >=3min' },
+                { nome: 'score_multi_10min', minSec: 600, punti: 300, label: 'Multi-video watch >=10min' }
+            ];
+
+            for (const soglia of soglieMulti) {
+                if (tc < soglia.minSec) continue;
+
+                // Controlla se questa soglia e' gia' stata assegnata per questa campagna
+                const giaAssegnato = await pool.query(
+                    `SELECT 1 FROM crm_video_tracking
+                     WHERE contatto_id = $1 AND campagna = $2 AND evento = $3 LIMIT 1`,
+                    [contattoId, campagna, soglia.nome]
+                );
+
+                if (giaAssegnato.rows.length === 0) {
+                    // Assegna score
+                    await pool.query(
+                        `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                         VALUES ('add_score', $1, $2)`,
+                        [contattoId, JSON.stringify({
+                            linea_prodotto: lineaProdotto,
+                            tipo_attivita: 'video_watch',
+                            punti: soglia.punti,
+                            label: soglia.label,
+                            data_evento: oggi
+                        })]
+                    );
+
+                    await pool.query(
+                        `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                         VALUES ($1, $2, 'video_watch', $3, $4)`,
+                        [contattoId, lineaProdotto, soglia.punti, oggi]
+                    );
+
+                    // Marca soglia come assegnata
+                    await pool.query(
+                        `INSERT INTO crm_video_tracking
+                         (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                         VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+                        [contattoId, email, campagna, soglia.nome, tc, 0, 0]
+                    );
+
+                    console.log(`[Video Tracking Multi] ${lineaProdotto} +${soglia.punti}pt (${soglia.label}) a ${email} (${campagna})`);
+                }
+            }
+        }
+
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('[Video Tracking Multi]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== LANDING PAGE CONSENSO GDPR ====================
 
 // GET /consent — Landing page pubblica per raccolta consenso email (PUBBLICA, no auth)
