@@ -252,9 +252,8 @@
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, campagneResp, consensiResp] = await Promise.all([
+            const [attivitaResp, consensiResp] = await Promise.all([
                 fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/campagne?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`)
             ]);
 
@@ -263,15 +262,11 @@
             const richieste = attivita.filter(a => a.stato === 'richiesta');
             const daEseguireAtt = attivita.filter(a => a.stato === 'da_eseguire');
 
-            // Campagne preparate
-            const campagne = campagneResp.ok ? await campagneResp.json() : [];
-            const campagnePreparate = campagne.filter(c => c.stato === 'preparata');
-
             // Render richieste
             renderRichieste(richieste);
 
-            // Render da eseguire (attivita' promosse + campagne preparate)
-            renderDaEseguire(daEseguireAtt, campagnePreparate);
+            // Render da eseguire (solo attivita' promosse)
+            renderDaEseguire(daEseguireAtt);
 
             // Consensi
             if (consensiResp.ok) {
@@ -308,7 +303,7 @@
         `).join('');
     }
 
-    function renderDaEseguire(attivita, campagne) {
+    function renderDaEseguire(attivita) {
         const grid = document.getElementById('daEseguireGrid');
         let html = '';
 
@@ -329,15 +324,6 @@
                         <button class="btn-elimina" onclick="elimina(${a.id})">Elimina</button>
                     </div>
                 ` : ''}
-            </div>
-        `).join('');
-
-        // Campagne preparate (mailing) — usano data_prevista dalla tabella crm_campagne
-        html += campagne.map(c => `
-            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Mailing da eseguire</div>
-                <div class="report-card-titolo">${escapeHtml(c.nome)}</div>
-                ${c.data_prevista ? `<div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">&#128197; ${formatData(c.data_prevista)}</div>` : ''}
             </div>
         `).join('');
 
