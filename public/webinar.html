@@ -359,6 +359,48 @@
             line-height: 1.6;
         }
 
+        .zoom-link-box {
+            margin-top: 18px;
+            padding: 16px;
+            background: rgba(0, 180, 216, 0.1);
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            border-radius: 8px;
+        }
+
+        .zoom-link-box .zoom-label {
+            font-size: 11px;
+            color: #78909c;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .btn-zoom {
+            display: inline-block;
+            padding: 12px 28px;
+            background: linear-gradient(135deg, #2d8cff, #0b5cff);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-zoom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(45, 140, 255, 0.35);
+        }
+
+        .zoom-save-note {
+            font-size: 11px;
+            color: #546e7a;
+            margin-top: 8px;
+        }
+
         /* Kit PT1 Section */
         .kit-section {
             max-width: 1060px;
@@ -655,9 +697,14 @@
                         <div class="check-icon">✅</div>
                         <h2>Iscrizione confermata!</h2>
                         <p>
-                            Riceverai a breve un'email con il link per accedere al webinar.
+                            Riceverai a breve un'email di conferma con il link per accedere al webinar.
                             <br>Controlla anche la cartella spam.
                         </p>
+                        <div class="zoom-link-box" id="zoomLinkBox" style="display:none;">
+                            <div class="zoom-label">Il tuo link personale per il webinar</div>
+                            <a href="#" id="zoomJoinLink" class="btn-zoom" target="_blank" rel="noopener">Accedi al Webinar su Zoom</a>
+                            <div class="zoom-save-note">Salva questo link — ti servira' il 9 marzo alle 21:00</div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -728,6 +775,11 @@
                 if (resp.ok) {
                     form.style.display = 'none';
                     successMsg.style.display = 'block';
+                    // Mostra link Zoom se disponibile
+                    if (result.zoom_join_url) {
+                        document.getElementById('zoomJoinLink').href = result.zoom_join_url;
+                        document.getElementById('zoomLinkBox').style.display = 'block';
+                    }
                 } else {
                     errorMsg.textContent = result.error || 'Errore durante l\'iscrizione. Riprova.';
                     errorMsg.style.display = 'block';

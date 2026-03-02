@@ -1944,7 +1944,7 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             'SELECT id FROM crm_contatti WHERE regione = $1', [regione]
         );
         const existingIds = existing.rows.map(r => r.id);
-        const FONTI_PROTETTE = ['dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp', 'migrazione_fatture_preodoo'];
+        const FONTI_PROTETTE = ['dashboard_manual', 'dashboard_promozione', 'regola_R2_dashboard', 'finder_email_whatsapp', 'migrazione_fatture_preodoo', 'webinar_registrazione'];
         if (existingIds.length > 0) {
             // Elimina solo acquisti e prodotti NON protetti (protegge fonti che non devono essere sovrascritte dal sync)
             await client.query(
@@ -4084,6 +4084,119 @@ app.get('/whatsapp-invite', async (req, res) => {
 
 // ==================== WEBINAR LANDING PAGE ====================
 
+// --- Zoom API helpers ---
+const ZOOM_CONFIG = {
+    ACCOUNT_ID: process.env.ZOOM_ACCOUNT_ID,
+    CLIENT_ID: process.env.ZOOM_CLIENT_ID,
+    CLIENT_SECRET: process.env.ZOOM_CLIENT_SECRET
+};
+
+// Cache token Zoom (dura ~1h)
+let zoomTokenCache = { token: null, expires: 0 };
+
+async function getZoomAccessToken() {
+    // Usa cache se valido (con 5 min di margine)
+    if (zoomTokenCache.token && Date.now() < zoomTokenCache.expires - 300000) {
+        return zoomTokenCache.token;
+    }
+
+    return new Promise((resolve, reject) => {
+        const credentials = Buffer.from(`${ZOOM_CONFIG.CLIENT_ID}:${ZOOM_CONFIG.CLIENT_SECRET}`).toString('base64');
+        const postData = `grant_type=account_credentials&account_id=${ZOOM_CONFIG.ACCOUNT_ID}`;
+
+        const options = {
+            hostname: 'zoom.us',
+            path: '/oauth/token',
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${credentials}`,
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (parsed.access_token) {
+                        zoomTokenCache = {
+                            token: parsed.access_token,
+                            expires: Date.now() + (parsed.expires_in * 1000)
+                        };
+                        resolve(parsed.access_token);
+                    } else {
+                        reject(new Error(`Zoom OAuth error: ${data}`));
+                    }
+                } catch (e) {
+                    reject(new Error(`Zoom OAuth parse error: ${e.message}`));
+                }
+            });
+        });
+        req.on('error', reject);
+        req.write(postData);
+        req.end();
+    });
+}
+
+async function registerZoomWebinarParticipant(webinarId, email, nome, cognome) {
+    const token = await getZoomAccessToken();
+    const postData = JSON.stringify({
+        email: email,
+        first_name: nome,
+        last_name: cognome
+    });
+
+    return new Promise((resolve, reject) => {
+        const options = {
+            hostname: 'api.zoom.us',
+            path: `/v2/webinars/${webinarId}/registrants`,
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+                'Content-Length': Buffer.byteLength(postData)
+            }
+        };
+
+        const req = https.request(options, (res) => {
+            let data = '';
+            res.on('data', chunk => data += chunk);
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(data);
+                    if (res.statusCode === 201 && parsed.join_url) {
+                        resolve({
+                            join_url: parsed.join_url,
+                            registrant_id: parsed.registrant_id
+                        });
+                    } else {
+                        // Non blocchiamo la registrazione CRM se Zoom fallisce
+                        console.error(`[Zoom API] Errore registrazione: status=${res.statusCode} body=${data}`);
+                        resolve(null);
+                    }
+                } catch (e) {
+                    console.error(`[Zoom API] Parse error: ${e.message}`);
+                    resolve(null);
+                }
+            });
+        });
+        req.on('error', (e) => {
+            console.error(`[Zoom API] Request error: ${e.message}`);
+            resolve(null); // Non blocchiamo il CRM
+        });
+        req.write(postData);
+        req.end();
+    });
+}
+
+// Mapping webinar tag -> ID Zoom
+const ZOOM_WEBINAR_IDS = {
+    'WEBINAR_MALAVASI_PT1': '89390770164'
+};
+
 // Landing page webinar (PUBBLICA, no auth) — serve il file statico con URL pulito
 app.get('/webinar', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar.html'));
@@ -4154,22 +4267,9 @@ app.post('/api/webinar/register', async (req, res) => {
                 azione = 'esistente_coerente';
 
             } else if (tipo === 'account' && !dichiaraMM) {
-                // Account dice "no non ho MM" -> RETROCEDI a lead
-                // Rimuovi tutti i prodotti
-                const prodottiRes = await client.query(
-                    'SELECT prodotto FROM crm_prodotti WHERE contatto_id = $1', [contattoId]
-                );
-                const prodottiRimossi = prodottiRes.rows.map(r => r.prodotto);
-                await client.query('DELETE FROM crm_prodotti WHERE contatto_id = $1', [contattoId]);
-                await client.query("UPDATE crm_contatti SET tipo = 'lead' WHERE id = $1", [contattoId]);
-
-                // Log per sync bidirezionale
-                await client.query(
-                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
-                     VALUES ('retrocedi', $1, $2)`,
-                    [contattoId, JSON.stringify({ prodotti_rimossi: prodottiRimossi, motivo: 'webinar_registrazione_dichiara_no_mm' })]
-                );
-                azione = 'retrocesso';
+                // Account dice "no non ho MM" -> IGNORA risposta, resta account
+                // Il DB e' la fonte di verita': non retrocediamo un account con fatture
+                azione = 'esistente_coerente';
 
             } else if (tipo === 'lead' && dichiaraMM) {
                 // Lead dice "si ho MM" -> PROMUOVI ad account
@@ -4291,13 +4391,37 @@ app.post('/api/webinar/register', async (req, res) => {
 
         await client.query('COMMIT');
 
-        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | contatto_id=${contattoId}`);
+        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione CRM: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | contatto_id=${contattoId}`);
+
+        // 4. Registra su Zoom e ottieni link univoco
+        let zoomJoinUrl = null;
+        const zoomWebinarId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
+        if (zoomWebinarId) {
+            try {
+                const zoomResult = await registerZoomWebinarParticipant(zoomWebinarId, emailClean, nomeClean, cognomeClean);
+                if (zoomResult && zoomResult.join_url) {
+                    zoomJoinUrl = zoomResult.join_url;
+                    // Salva il link Zoom nella registrazione
+                    await pool.query(
+                        'UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3',
+                        [zoomJoinUrl, WEBINAR_TAG, emailClean]
+                    );
+                    console.log(`[Webinar ${WEBINAR_TAG}] Zoom link generato per ${emailClean}: ${zoomJoinUrl}`);
+                } else {
+                    console.warn(`[Webinar ${WEBINAR_TAG}] Zoom link NON ottenuto per ${emailClean} — registrazione CRM OK`);
+                }
+            } catch (zoomErr) {
+                console.error(`[Webinar ${WEBINAR_TAG}] Errore Zoom API:`, zoomErr.message);
+                // Non blocchiamo: la registrazione CRM e' gia' salvata
+            }
+        }
 
         res.json({
             ok: true,
             azione,
             contatto_id: contattoId,
             score_linea: lineaScore,
+            zoom_join_url: zoomJoinUrl,
             messaggio: 'Iscrizione completata con successo'
         });
 
