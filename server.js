@@ -371,6 +371,26 @@ async function initDB() {
         // Aggiunta colonna data_prevista (26 feb 2026)
         await client.query(`ALTER TABLE crm_attivita_mktg ADD COLUMN IF NOT EXISTS data_prevista TEXT`);
 
+        // Tabella registrazioni webinar (solo PostgreSQL, come crm_video_tracking)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_webinar_registrazioni (
+                id SERIAL PRIMARY KEY,
+                webinar_tag TEXT NOT NULL,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                nome TEXT,
+                cognome TEXT,
+                citta TEXT,
+                ha_mm TEXT,
+                azione TEXT,
+                zoom_link TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_tag ON crm_webinar_registrazioni(webinar_tag)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_email ON crm_webinar_registrazioni(email)`);
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_webinar_reg_unique ON crm_webinar_registrazioni(webinar_tag, email)`);
+
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
         // Anagrafica video del canale
@@ -2205,7 +2225,8 @@ const ATTIVITA_OFFLINE = {
     'richiesta_trial_surgery':  { label: 'Richiesta trial surgery', punti: 50 },
     'richiesta_info_corsi':     { label: 'Richieste informazioni: corsi', punti: 25 },
     'partecipazione_corso':     { label: 'Partecipazione a corso', punti: 100 },
-    'richiesta_offerta':        { label: 'Richiesta di offerta', punti: 50 }
+    'richiesta_offerta':        { label: 'Richiesta di offerta', punti: 50 },
+    'iscrizione_webinar':       { label: 'Iscrizione webinar', punti: 30 }
 };
 
 // Aggiungi prodotto a un contatto
@@ -4059,6 +4080,234 @@ app.get('/whatsapp-invite', async (req, res) => {
     </div>
 </body>
 </html>`);
+});
+
+// ==================== WEBINAR LANDING PAGE ====================
+
+// Landing page webinar (PUBBLICA, no auth) — serve il file statico con URL pulito
+app.get('/webinar', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar.html'));
+});
+
+// Registrazione webinar (PUBBLICA, no auth — chiamata dal form landing page)
+app.post('/api/webinar/register', async (req, res) => {
+    const { nome, cognome, email, citta, ha_mm } = req.body;
+
+    // Validazione campi obbligatori
+    if (!nome || !cognome || !email || !citta || !ha_mm) {
+        return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+    }
+
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cittaClean = citta.trim().toUpperCase(); // R3: citta MAIUSCOLO
+    const dichiaraMM = (ha_mm === 'si');
+
+    // Tag fisso per questo webinar (futuro: parametrizzabile)
+    const WEBINAR_TAG = 'WEBINAR_MALAVASI_PT1';
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 0. Anti-duplicato: verifica se gia' iscritto a questo webinar
+        const giaIscritto = await client.query(
+            'SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2',
+            [WEBINAR_TAG, emailClean]
+        );
+        if (giaIscritto.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.status(409).json({ error: 'Sei gia\' iscritto a questo webinar.' });
+        }
+
+        // 1. Cerca contatto esistente per email
+        const existing = await client.query(
+            'SELECT c.id, c.tipo, c.cognome, c.nome, c.citta FROM crm_contatti c WHERE LOWER(c.email) = $1',
+            [emailClean]
+        );
+
+        let contattoId;
+        let azione; // per log: 'esistente_coerente', 'promosso', 'retrocesso', 'nuovo_account', 'nuovo_lead'
+        const oggi = new Date().toISOString().split('T')[0];
+
+        if (existing.rows.length > 0) {
+            // ========== CONTATTO ESISTENTE ==========
+            const contatto = existing.rows[0];
+            contattoId = contatto.id;
+            const tipo = contatto.tipo || 'lead';
+
+            // Aggiorna citta se mancante
+            if (!contatto.citta && cittaClean) {
+                await client.query('UPDATE crm_contatti SET citta = $1 WHERE id = $2', [cittaClean, contattoId]);
+            }
+
+            // Verifica prodotti MM esistenti
+            const haMMnelDB = await client.query(
+                "SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                [contattoId]
+            );
+            const haMMesistente = haMMnelDB.rows.length > 0;
+
+            if (tipo === 'account' && dichiaraMM) {
+                // Account dice "si ho MM" -> coerente
+                azione = 'esistente_coerente';
+
+            } else if (tipo === 'account' && !dichiaraMM) {
+                // Account dice "no non ho MM" -> RETROCEDI a lead
+                // Rimuovi tutti i prodotti
+                const prodottiRes = await client.query(
+                    'SELECT prodotto FROM crm_prodotti WHERE contatto_id = $1', [contattoId]
+                );
+                const prodottiRimossi = prodottiRes.rows.map(r => r.prodotto);
+                await client.query('DELETE FROM crm_prodotti WHERE contatto_id = $1', [contattoId]);
+                await client.query("UPDATE crm_contatti SET tipo = 'lead' WHERE id = $1", [contattoId]);
+
+                // Log per sync bidirezionale
+                await client.query(
+                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                     VALUES ('retrocedi', $1, $2)`,
+                    [contattoId, JSON.stringify({ prodotti_rimossi: prodottiRimossi, motivo: 'webinar_registrazione_dichiara_no_mm' })]
+                );
+                azione = 'retrocesso';
+
+            } else if (tipo === 'lead' && dichiaraMM) {
+                // Lead dice "si ho MM" -> PROMUOVI ad account
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+
+                // Inserisci prodotto MM se non presente
+                if (!haMMesistente) {
+                    await client.query(
+                        'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                        [contattoId, 'MM', oggi, 'webinar_registrazione']
+                    );
+                }
+
+                // Log promozione per sync bidirezionale
+                await client.query(
+                    'INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)',
+                    [contattoId, 'MM']
+                );
+
+                // Cancella score GENERICO (come nella promozione standard)
+                const delManuali = await client.query(
+                    "DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'",
+                    [contattoId]
+                );
+                const delProdotti = await client.query(
+                    "DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'",
+                    [contattoId]
+                );
+                if ((delManuali.rowCount || 0) + (delProdotti.rowCount || 0) > 0) {
+                    await client.query(
+                        `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('delete_score_generico', $1, $2)`,
+                        [contattoId, JSON.stringify({ motivo: 'promozione_webinar_registrazione' })]
+                    );
+                }
+                azione = 'promosso';
+
+            } else {
+                // Lead dice "no" -> coerente
+                azione = 'esistente_coerente';
+            }
+
+        } else {
+            // ========== CONTATTO NUOVO ==========
+            // Genera prossimo ID negativo (pattern dashboard)
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            const newId = Math.min(minId.rows[0].min_id, 0) - 1;
+            contattoId = newId;
+
+            if (dichiaraMM) {
+                // Dice "si ho MM" -> crea ACCOUNT con prodotto MM
+                await client.query(`
+                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'account', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, 'webinar_registrazione', oggi]);
+
+                await client.query(
+                    'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                    [newId, 'MM', oggi, 'webinar_registrazione']
+                );
+                azione = 'nuovo_account';
+            } else {
+                // Dice "no" -> crea LEAD
+                await client.query(`
+                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'lead', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, 'webinar_registrazione', oggi]);
+                azione = 'nuovo_lead';
+            }
+
+            // Log new_contatto per sync bidirezionale
+            await client.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('new_contatto', $1, $2)`,
+                [newId, JSON.stringify({
+                    cognome: cognomeClean,
+                    nome: nomeClean,
+                    email: emailClean,
+                    citta: cittaClean,
+                    tipo: dichiaraMM ? 'account' : 'lead',
+                    mercato: 'ITALY',
+                    prodotti: dichiaraMM ? ['MM'] : [],
+                    fonte: 'webinar_registrazione'
+                })]
+            );
+        }
+
+        // 2. Score: +30 punti
+        // Account (o appena promosso) -> linea PT1
+        // Lead (o appena retrocesso) -> linea GENERICO
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'PT1' : 'GENERICO';
+
+        const scoreResult = await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [contattoId, lineaScore, 'iscrizione_webinar', 30, oggi]
+        );
+
+        // Log score per sync
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('add_score', $1, $2)`,
+            [contattoId, JSON.stringify({
+                linea_prodotto: lineaScore,
+                tipo_attivita: 'iscrizione_webinar',
+                punti: 30,
+                data_evento: oggi,
+                label: 'Iscrizione webinar',
+                score_manuale_id: scoreResult.rows[0].id
+            })]
+        );
+
+        // 3. Registra iscrizione webinar
+        await client.query(
+            `INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]
+        );
+
+        await client.query('COMMIT');
+
+        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | contatto_id=${contattoId}`);
+
+        res.json({
+            ok: true,
+            azione,
+            contatto_id: contattoId,
+            score_linea: lineaScore,
+            messaggio: 'Iscrizione completata con successo'
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`[Webinar ${WEBINAR_TAG}] Errore registrazione:`, err);
+        res.status(500).json({ error: 'Errore durante l\'iscrizione. Riprova tra qualche istante.' });
+    } finally {
+        client.release();
+    }
 });
 
 // ==================== VIDEO TRACKING LANDING ====================
