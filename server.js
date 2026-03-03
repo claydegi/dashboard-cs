@@ -15,8 +15,100 @@ const CONFIG = {
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '7975162439:AAGB95NY4fAVdhNdgBY5X5QObHDNKHNkNFw',
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '-5130672016',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI',
-    TELEGRAM_CHAT_ID_KIM: process.env.TELEGRAM_CHAT_ID_KIM || '8418876575'
+    TELEGRAM_CHAT_ID_KIM: process.env.TELEGRAM_CHAT_ID_KIM || '8418876575',
+    MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
+    MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN || 'osseotouch.com',
+    MAILGUN_BASE_URL: process.env.MAILGUN_BASE_URL || 'https://api.eu.mailgun.net/v3',
+    MAILGUN_FROM: process.env.MAILGUN_FROM || 'Osseotouch <contact@osseotouch.com>'
 };
+
+// ==================== MAILGUN EMAIL HELPER ====================
+
+// Dati webinar per i template email (futuro: da DB o config)
+const WEBINAR_DATA = {
+    'WEBINAR_MALAVASI_PT1': {
+        nome_webinar: 'Magnetic Mallet in implantologia pterigoidea',
+        data_webinar: '9 marzo 2026',
+        relatore: 'Dr. Alberto Malavasi',
+        subject_conferma: 'Iscrizione confermata — Webinar Dr. Malavasi, 9 marzo ore 21:00',
+        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi'
+    }
+};
+
+/**
+ * Invia email via Mailgun API (fire-and-forget, non blocca la response).
+ * @param {string} to - email destinatario
+ * @param {string} subject - oggetto
+ * @param {string} html - body HTML
+ * @param {string} tag - tag Mailgun per tracking
+ */
+async function sendMailgunEmail(to, subject, html, tag) {
+    if (!CONFIG.MAILGUN_API_KEY) {
+        console.warn('[Mailgun] API key non configurata — email non inviata');
+        return;
+    }
+    try {
+        const url = `${CONFIG.MAILGUN_BASE_URL}/${CONFIG.MAILGUN_DOMAIN}/messages`;
+        const formData = new URLSearchParams();
+        formData.append('from', CONFIG.MAILGUN_FROM);
+        formData.append('to', to);
+        formData.append('subject', subject);
+        formData.append('html', html);
+        formData.append('o:tag', tag);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from('api:' + CONFIG.MAILGUN_API_KEY).toString('base64')
+            },
+            body: formData
+        });
+
+        if (response.ok) {
+            console.log(`[Mailgun] Email inviata a ${to} (tag: ${tag})`);
+        } else {
+            const text = await response.text();
+            console.error(`[Mailgun] Errore ${response.status}: ${text.substring(0, 200)}`);
+        }
+    } catch (err) {
+        console.error(`[Mailgun] Errore invio a ${to}:`, err.message);
+    }
+}
+
+/**
+ * Compila template email webinar sostituendo i placeholder e invia.
+ * @param {string} templateName - 'WEBINAR_CONFERMA' o 'WEBINAR_REMINDER'
+ * @param {string} webinarTag - es. 'WEBINAR_MALAVASI_PT1'
+ * @param {string} to - email destinatario
+ * @param {string} zoomLink - link Zoom personale
+ * @param {string} tag - tag Mailgun
+ */
+async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
+    const data = WEBINAR_DATA[webinarTag];
+    if (!data) {
+        console.warn(`[Mailgun] Dati webinar non trovati per tag ${webinarTag}`);
+        return;
+    }
+
+    const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
+    let html;
+    try {
+        html = fs.readFileSync(templatePath, 'utf-8');
+    } catch (err) {
+        console.error(`[Mailgun] Template non trovato: ${templatePath}`);
+        return;
+    }
+
+    // Sostituisci placeholder
+    html = html.replace(/\{\{nome_webinar\}\}/g, data.nome_webinar);
+    html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
+    html = html.replace(/\{\{relatore\}\}/g, data.relatore);
+    html = html.replace(/\{\{link_zoom\}\}/g, zoomLink || '#');
+
+    const subject = templateName === 'WEBINAR_CONFERMA' ? data.subject_conferma : data.subject_reminder;
+
+    await sendMailgunEmail(to, subject, html, tag);
+}
 
 // Middleware
 app.use(cors());
@@ -4432,6 +4524,10 @@ app.post('/api/webinar/register', async (req, res) => {
                 // Non blocchiamo: la registrazione CRM e' gia' salvata
             }
         }
+
+        // 5. Invio email conferma iscrizione (fire-and-forget, non blocca la response)
+        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
+            .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma:`, err.message));
 
         res.json({
             ok: true,
