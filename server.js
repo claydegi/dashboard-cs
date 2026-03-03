@@ -371,6 +371,23 @@ async function initDB() {
         // Aggiunta colonna data_prevista (26 feb 2026)
         await client.query(`ALTER TABLE crm_attivita_mktg ADD COLUMN IF NOT EXISTS data_prevista TEXT`);
 
+        // Tabella storico mailing aggregato per regione (solo PostgreSQL, alimentata da push_crm_dashboard.py)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_mailing_storico (
+                id SERIAL PRIMARY KEY,
+                tag TEXT NOT NULL,
+                nome TEXT,
+                regione TEXT NOT NULL,
+                data_invio DATE NOT NULL,
+                n_destinatari INTEGER DEFAULT 0,
+                tipo TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(tag, regione, data_invio)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_mailing_storico_data ON crm_mailing_storico(data_invio)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_mailing_storico_regione ON crm_mailing_storico(regione)`);
+
         // Tabella registrazioni webinar (solo PostgreSQL, come crm_video_tracking)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_webinar_registrazioni (
@@ -5597,6 +5614,71 @@ app.delete('/api/attivita-mktg/:id', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[Attivita MKTG DELETE]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== MAILING STORICO API ====================
+
+// GET /api/mailing/storico — storico mailing aggregato per regione + campagne pianificate
+app.get('/api/mailing/storico', requireAdmin, async (req, res) => {
+    try {
+        // Storico invii (da crm_mailing_storico, alimentato da push_crm_dashboard.py)
+        const storicoResult = await pool.query(`
+            SELECT tag, nome, regione, data_invio, n_destinatari, tipo
+            FROM crm_mailing_storico
+            ORDER BY data_invio DESC
+        `);
+
+        // Campagne pianificate (non ancora inviate, con data prevista)
+        const pianificatiResult = await pool.query(`
+            SELECT tag, nome, regioni, data_prevista
+            FROM crm_campagne
+            WHERE stato = 'preparata' AND data_prevista IS NOT NULL
+            ORDER BY data_prevista ASC
+        `);
+
+        res.json({
+            storico: storicoResult.rows,
+            pianificati: pianificatiResult.rows
+        });
+    } catch (err) {
+        console.error('[Mailing Storico GET]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/mailing/storico/sync — riceve dati aggregati da push_crm_dashboard.py
+app.post('/api/mailing/storico/sync', requireReportsKey, async (req, res) => {
+    const { mailing } = req.body;
+    if (!Array.isArray(mailing) || mailing.length === 0) {
+        return res.status(400).json({ error: 'Array mailing richiesto' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        let upserted = 0;
+        for (const row of mailing) {
+            await client.query(`
+                INSERT INTO crm_mailing_storico (tag, nome, regione, data_invio, n_destinatari, tipo)
+                VALUES ($1, $2, $3, $4, $5, $6)
+                ON CONFLICT (tag, regione, data_invio)
+                DO UPDATE SET
+                    n_destinatari = EXCLUDED.n_destinatari,
+                    nome = COALESCE(EXCLUDED.nome, crm_mailing_storico.nome),
+                    tipo = EXCLUDED.tipo
+            `, [row.tag, row.nome || null, row.regione, row.data_invio, row.n_destinatari || 0, row.tipo || null]);
+            upserted++;
+        }
+        await client.query('COMMIT');
+        console.log(`[Mailing Storico Sync] ${upserted} righe upserted`);
+        res.json({ ok: true, upserted });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[Mailing Storico Sync]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
