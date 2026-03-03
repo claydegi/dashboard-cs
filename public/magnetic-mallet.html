@@ -4,120 +4,175 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Magnetic Mallet — Tecnologia Magneto-Dinamica | Osseotouch</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'Segoe UI', Arial, sans-serif; background: #0a0a0a; color: #e0e0e0; }
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background: #061220;
+            overflow-x: hidden;
+        }
+
+        /* Background onde OSSEOTOUCH */
+        .bg-waves {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0;
+            opacity: 0.35;
+        }
+        .bg-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg,
+                rgba(6,18,32,0.2) 0%,
+                rgba(6,18,32,0.55) 30%,
+                rgba(6,18,32,0.85) 100%);
+            z-index: 1;
+        }
+        .page-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            padding: 22px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header img {
+            height: 52px;
+            filter: brightness(0) invert(1);
+        }
 
         /* ===== HERO ===== */
         .hero {
-            position: relative;
-            min-height: 70vh;
-            display: flex;
-            align-items: center;
-            overflow: hidden;
-            background: linear-gradient(135deg, #0a0a0a 50%, #1a1a1a 50%);
-        }
-        .hero-content {
-            position: relative; z-index: 2;
-            max-width: 600px; padding: 60px 40px 60px 60px;
-        }
-        .hero-logo {
-            width: 220px; margin-bottom: 30px;
-            filter: brightness(0) invert(1);
+            max-width: 1060px;
+            margin: 0 auto;
+            padding: 40px 40px 50px;
+            text-align: center;
         }
         .hero-breadcrumb {
             display: inline-block;
-            color: #2E7D32; font-size: 14px; letter-spacing: 3px;
-            text-transform: uppercase; font-weight: 600;
+            color: #00b4d8;
+            font-size: 13px;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            font-weight: 600;
             margin-bottom: 16px;
-            border-left: 3px solid #2E7D32; padding-left: 12px;
         }
         .hero h1 {
-            font-size: 52px; font-weight: 800; color: #fff;
-            line-height: 1.1; letter-spacing: -1px;
+            font-size: 56px;
+            font-weight: 800;
+            color: #ffffff;
+            line-height: 1.1;
+            letter-spacing: -1px;
+            margin-bottom: 18px;
         }
+        .hero h1 .accent { color: #00b4d8; }
         .hero-subtitle {
-            margin-top: 20px; font-size: 18px; color: #aaa;
-            line-height: 1.6;
-        }
-        .hero-image {
-            position: absolute; right: 0; top: 0;
-            width: 55%; height: 100%;
-            background: url('/img/magnetic-mallet-hero.png') center center / contain no-repeat;
-            opacity: 0.9;
+            font-size: 18px;
+            color: #90caf9;
+            line-height: 1.7;
+            max-width: 700px;
+            margin: 0 auto;
         }
 
         /* ===== SECTION COMMON ===== */
-        .section { padding: 80px 40px; max-width: 1200px; margin: 0 auto; }
-        .section-light { background: #ffffff; color: #1a1a1a; }
-        .section-dark { background: #0a0a0a; }
+        .section { padding: 60px 40px; max-width: 1100px; margin: 0 auto; }
+        .section-glass {
+            background: rgba(255, 255, 255, 0.04);
+            border-top: 1px solid rgba(255, 255, 255, 0.06);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+        }
 
         .section-title {
-            text-align: center; font-size: 38px; font-weight: 700;
-            color: inherit; margin-bottom: 10px; line-height: 1.3;
+            text-align: center;
+            font-size: 36px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            line-height: 1.3;
         }
-        .section-title span { color: #2E7D32; }
+        .section-title .accent { color: #00b4d8; }
         .section-subtitle {
-            text-align: center; font-size: 18px; color: #888;
-            max-width: 700px; margin: 0 auto 50px; line-height: 1.6;
+            text-align: center;
+            font-size: 16px;
+            color: #90caf9;
+            max-width: 700px;
+            margin: 0 auto 50px;
+            line-height: 1.7;
         }
 
         /* ===== APPLICATION CARDS ===== */
         .app-card {
-            background: #111; border: 1px solid #1e2e1e;
-            border-radius: 16px; padding: 40px;
-            margin-bottom: 50px;
-        }
-        .section-light .app-card {
-            background: #f8f8f8; border-color: #e0e0e0;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 36px;
+            margin-bottom: 40px;
+            backdrop-filter: blur(6px);
         }
         .app-card-header {
-            display: flex; align-items: flex-start; gap: 30px;
-            margin-bottom: 30px; flex-wrap: wrap;
+            display: flex;
+            align-items: flex-start;
+            gap: 28px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
         }
         .app-card-text { flex: 1; min-width: 280px; }
         .app-card-text h3 {
-            font-size: 28px; font-weight: 700; color: #fff;
+            font-size: 26px;
+            font-weight: 700;
+            color: #ffffff;
             margin-bottom: 12px;
         }
-        .section-light .app-card-text h3 { color: #1a1a1a; }
         .app-card-text p {
-            font-size: 17px; line-height: 1.7; color: #bbb;
+            font-size: 16px;
+            line-height: 1.7;
+            color: #b0c4d8;
         }
-        .section-light .app-card-text p { color: #555; }
         .app-card-img {
-            width: 300px; height: 200px;
-            border-radius: 12px; overflow: hidden;
+            width: 280px;
+            height: 190px;
+            border-radius: 12px;
+            overflow: hidden;
             flex-shrink: 0;
+            border: 1px solid rgba(255, 255, 255, 0.08);
         }
         .app-card-img img {
             width: 100%; height: 100%; object-fit: cover;
         }
-        .app-card-instrument {
-            width: 280px; flex-shrink: 0;
-            display: flex; align-items: center; justify-content: center;
-        }
-        .app-card-instrument img {
-            max-width: 100%; max-height: 180px; object-fit: contain;
-        }
 
         /* ===== VIDEO GRID ===== */
         .video-row {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
-            margin-top: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 16px;
         }
-        .video-block { }
         .video-block h4 {
-            font-size: 15px; font-weight: 600; color: #2E7D32;
-            margin-bottom: 10px; text-transform: uppercase;
+            font-size: 13px;
+            font-weight: 600;
+            color: #00b4d8;
+            margin-bottom: 8px;
+            text-transform: uppercase;
             letter-spacing: 1px;
         }
         .video-wrapper {
-            position: relative; padding-bottom: 56.25%; height: 0;
-            border-radius: 12px; overflow: hidden;
-            background: #1a1a1a; border: 1px solid #222;
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: rgba(0, 180, 216, 0.06);
+            border: 1px solid rgba(0, 180, 216, 0.15);
         }
-        .section-light .video-wrapper { background: #e8e8e8; border-color: #ccc; }
         .video-wrapper iframe {
             position: absolute; top: 0; left: 0;
             width: 100%; height: 100%; border: 0;
@@ -125,257 +180,312 @@
         .video-placeholder {
             position: absolute; top: 0; left: 0; width: 100%; height: 100%;
             display: flex; align-items: center; justify-content: center;
-            color: #555; font-size: 15px;
+            color: #4a6a80;
+            font-size: 14px;
+            font-weight: 500;
         }
 
         /* ===== DIVIDER ===== */
         .divider-label {
-            text-align: center; padding: 30px 20px;
-            font-size: 16px; font-weight: 700;
-            letter-spacing: 3px; text-transform: uppercase;
-            color: #555;
+            text-align: center;
+            padding: 30px 20px;
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            color: #4a6a80;
         }
 
         /* ===== RESEARCH SECTION ===== */
         .research {
-            display: flex; gap: 40px; align-items: center;
+            display: flex;
+            gap: 36px;
+            align-items: center;
             flex-wrap: wrap;
         }
         .research-text { flex: 1; min-width: 280px; }
-        .research-text h3 { font-size: 28px; font-weight: 700; color: #fff; margin-bottom: 16px; }
-        .research-text p { font-size: 17px; line-height: 1.7; color: #bbb; }
-        .research-video { flex: 1; min-width: 320px; }
+        .research-text h3 {
+            font-size: 26px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 14px;
+        }
+        .research-text p {
+            font-size: 16px;
+            line-height: 1.7;
+            color: #b0c4d8;
+        }
+        .research-video { flex: 1; min-width: 300px; }
 
         /* ===== VANTAGGI ===== */
         .vantaggi-grid {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 30px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 24px;
         }
         .vantaggio-card {
-            text-align: center; padding: 30px 20px;
+            text-align: center;
+            padding: 28px 16px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 14px;
+            transition: background 0.2s, border-color 0.2s;
+        }
+        .vantaggio-card:hover {
+            background: rgba(0, 180, 216, 0.08);
+            border-color: rgba(0, 180, 216, 0.2);
         }
         .vantaggio-icon {
-            width: 56px; height: 56px;
-            background: #2E7D32; border-radius: 50%;
+            width: 52px; height: 52px;
+            background: rgba(0, 180, 216, 0.15);
+            border: 1px solid rgba(0, 180, 216, 0.3);
+            border-radius: 50%;
             display: flex; align-items: center; justify-content: center;
-            margin: 0 auto 16px; font-size: 24px; color: #fff;
+            margin: 0 auto 14px;
+            font-size: 22px;
+            color: #00b4d8;
         }
         .vantaggio-card h4 {
-            font-size: 20px; font-weight: 700; margin-bottom: 10px;
+            font-size: 17px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 8px;
         }
-        .section-light .vantaggio-card h4 { color: #1a1a1a; }
         .vantaggio-card p {
-            font-size: 15px; line-height: 1.6; color: #888;
+            font-size: 14px;
+            line-height: 1.6;
+            color: #78909c;
         }
-        .section-light .vantaggio-card p { color: #666; }
 
         /* ===== CTA SECTION ===== */
         .cta-section {
-            background: linear-gradient(135deg, #0d1f0d 0%, #0a0a0a 100%);
-            border-top: 2px solid #2E7D32;
-            padding: 80px 40px;
+            padding: 70px 40px;
             text-align: center;
         }
         .cta-inner {
-            max-width: 700px; margin: 0 auto;
+            max-width: 700px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 50px 40px;
+            backdrop-filter: blur(10px);
         }
         .cta-section h2 {
-            font-size: 32px; font-weight: 700; color: #fff;
-            margin-bottom: 30px; line-height: 1.4;
+            font-size: 30px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 24px;
+            line-height: 1.4;
         }
         .cta-text {
-            font-size: 19px; line-height: 1.8; color: #ccc;
-            margin-bottom: 40px; font-style: italic;
+            font-size: 17px;
+            line-height: 1.8;
+            color: #b0c4d8;
+            margin-bottom: 36px;
+            font-style: italic;
         }
         .cta-whatsapp {
-            display: inline-flex; align-items: center; gap: 14px;
-            background: #25D366; color: #fff;
-            text-decoration: none; padding: 20px 50px;
-            border-radius: 60px; font-size: 22px; font-weight: 700;
-            letter-spacing: 0.5px;
+            display: inline-flex;
+            align-items: center;
+            gap: 14px;
+            background: #25D366;
+            color: #fff;
+            text-decoration: none;
+            padding: 18px 44px;
+            border-radius: 60px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
             transition: transform 0.2s, box-shadow 0.2s;
-            box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+            box-shadow: 0 4px 24px rgba(37, 211, 102, 0.3);
         }
         .cta-whatsapp:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 30px rgba(37, 211, 102, 0.5);
+            box-shadow: 0 8px 36px rgba(37, 211, 102, 0.45);
         }
         .cta-whatsapp svg {
-            width: 30px; height: 30px; fill: #fff;
+            width: 28px; height: 28px; fill: #fff;
         }
 
         /* ===== FOOTER ===== */
         .landing-footer {
-            text-align: center; padding: 30px 20px;
-            color: #444; font-size: 14px;
-            border-top: 1px solid #1a1a1a;
+            text-align: center;
+            padding: 28px 20px;
+            color: #3a5060;
+            font-size: 14px;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
         }
-        .landing-footer strong { color: #666; }
+        .landing-footer strong { color: #78909c; }
 
         /* ===== RESPONSIVE ===== */
         @media (max-width: 900px) {
-            .hero { min-height: auto; flex-direction: column; }
-            .hero-content { padding: 40px 24px; }
-            .hero h1 { font-size: 36px; }
-            .hero-image { position: relative; width: 100%; height: 300px; }
-            .section { padding: 50px 20px; }
+            .hero { padding: 24px 24px 36px; }
+            .hero h1 { font-size: 38px; }
+            .section { padding: 40px 20px; }
             .section-title { font-size: 28px; }
             .app-card { padding: 24px; }
             .app-card-header { flex-direction: column; }
-            .app-card-img { width: 100%; height: 220px; }
-            .app-card-instrument { width: 100%; }
+            .app-card-img { width: 100%; height: 200px; }
             .video-row { grid-template-columns: 1fr; }
             .vantaggi-grid { grid-template-columns: 1fr 1fr; }
             .research { flex-direction: column; }
-            .cta-section { padding: 50px 20px; }
-            .cta-section h2 { font-size: 26px; }
-            .cta-text { font-size: 17px; }
-            .cta-whatsapp { font-size: 19px; padding: 18px 36px; }
+            .cta-inner { padding: 36px 24px; }
+            .cta-section h2 { font-size: 24px; }
+            .cta-text { font-size: 16px; }
+            .cta-whatsapp { font-size: 18px; padding: 16px 32px; }
         }
         @media (max-width: 500px) {
-            .hero h1 { font-size: 28px; }
+            .hero h1 { font-size: 30px; }
             .vantaggi-grid { grid-template-columns: 1fr; }
-            .cta-whatsapp { font-size: 17px; padding: 16px 28px; }
+            .cta-whatsapp { font-size: 16px; padding: 14px 26px; }
         }
     </style>
 </head>
 <body>
 
-    <!-- ===== HERO ===== -->
-    <section class="hero">
-        <div class="hero-content">
-            <img src="/img/osseotouch-logo-white-bg.png" alt="Osseotouch" class="hero-logo">
+    <!-- Background onde OSSEOTOUCH -->
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="page-content">
+
+        <!-- ===== HEADER ===== -->
+        <div class="header">
+            <img src="/img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+
+        <!-- ===== HERO ===== -->
+        <section class="hero">
             <div class="hero-breadcrumb">Tecnologia Magneto-Dinamica</div>
-            <h1>MAGNETIC MALLET</h1>
+            <h1>MAGNETIC <span class="accent">MALLET</span></h1>
             <p class="hero-subtitle">
                 Scopra come la tecnologia magneto-dinamica sta trasformando le procedure chirurgiche odontoiatriche.
             </p>
+        </section>
+
+        <!-- ===== APPLICAZIONI CLINICHE ===== -->
+        <div class="section-glass">
+            <div class="section">
+                <h2 class="section-title">Come il Magnetic Mallet fa la <span class="accent">differenza</span></h2>
+                <p class="section-subtitle">
+                    Il Magnetic Mallet supporta una vasta gamma di procedure chirurgiche.<br>
+                    Di seguito alcune delle principali applicazioni cliniche.
+                </p>
+
+                <!-- ESTRAZIONI COMPLESSE -->
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="app-card-text">
+                            <h3>Estrazioni Complesse</h3>
+                            <p>La tecnologia magneto-dinamica consente di eseguire estrazioni atraumatiche, preservando i tessuti molli.</p>
+                        </div>
+                        <div class="app-card-img">
+                            <img src="/img/app-estrazione.jpg" alt="Estrazione complessa con Magnetic Mallet">
+                        </div>
+                    </div>
+                    <div class="video-row">
+                        <div class="video-block">
+                            <h4>Vedi il caso</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                        <div class="video-block">
+                            <h4>Vuoi approfondire?</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- RIALZO DEL SENO MASCELLARE -->
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="app-card-text">
+                            <h3>Rialzo del Seno Mascellare</h3>
+                            <p>Permette di eseguire rialzi con precisione e senza surriscaldamento dei tessuti.</p>
+                        </div>
+                        <div class="app-card-img">
+                            <img src="/img/app-rialzo-seno.jpg" alt="Rialzo del seno mascellare">
+                        </div>
+                    </div>
+                    <div class="video-row">
+                        <div class="video-block">
+                            <h4>Tutorial step by step</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                        <div class="video-block">
+                            <h4>Vuoi approfondire?</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- ESPANSIONE ORIZZONTALE -->
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="app-card-text">
+                            <h3>Espansione Orizzontale</h3>
+                            <p>La split crest &egrave; gestita in modo progressivo e preciso con strumenti sequenziali.</p>
+                        </div>
+                        <div class="app-card-img">
+                            <img src="/img/app-split-crest.jpg" alt="Espansione orizzontale - Split crest">
+                        </div>
+                    </div>
+                    <div class="video-row">
+                        <div class="video-block">
+                            <h4>Video animazione</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                        <div class="video-block">
+                            <h4>Vuoi approfondire?</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PREPARAZIONE IMPLANTARE POST-ESTRATTIVO -->
+                <div class="app-card">
+                    <div class="app-card-header">
+                        <div class="app-card-text">
+                            <h3>Preparazione Implantare Post-Estrattivo</h3>
+                            <p>Efficace anche nel post-estrattivo, permette di preparare il sito implantare senza fresare.</p>
+                        </div>
+                        <div class="app-card-img">
+                            <img src="/img/app-post-estrattivo.jpg" alt="Preparazione implantare post-estrattivo">
+                        </div>
+                    </div>
+                    <div class="video-row">
+                        <div class="video-block">
+                            <h4>Vedi il caso</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                        <div class="video-block">
+                            <h4>Vuoi approfondire?</h4>
+                            <div class="video-wrapper">
+                                <div class="video-placeholder">Video in arrivo</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <p class="divider-label">E molte altre procedure descritte nel nostro sito</p>
+            </div>
         </div>
-        <div class="hero-image"></div>
-    </section>
 
-    <!-- ===== INTRO + APPLICAZIONI ===== -->
-    <div class="section-light">
-        <div class="section">
-            <h2 class="section-title">Come il Magnetic Mallet fa la <span>differenza</span></h2>
-            <p class="section-subtitle">
-                Il Magnetic Mallet supporta una vasta gamma di procedure chirurgiche.<br>
-                Di seguito alcune delle principali applicazioni cliniche.
-            </p>
-
-            <!-- ESTRAZIONI COMPLESSE -->
-            <div class="app-card">
-                <div class="app-card-header">
-                    <div class="app-card-text">
-                        <h3>Estrazioni Complesse</h3>
-                        <p>La tecnologia magneto-dinamica consente di eseguire estrazioni atraumatiche, preservando i tessuti molli.</p>
-                    </div>
-                    <div class="app-card-img">
-                        <img src="/img/app-estrazione.jpg" alt="Estrazione complessa con Magnetic Mallet">
-                    </div>
-                </div>
-                <div class="video-row">
-                    <div class="video-block">
-                        <h4>Vedi il caso</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                    <div class="video-block">
-                        <h4>Vuoi approfondire?</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- RIALZO DEL SENO MASCELLARE -->
-            <div class="app-card">
-                <div class="app-card-header">
-                    <div class="app-card-text">
-                        <h3>Rialzo del Seno Mascellare</h3>
-                        <p>Permette di eseguire rialzi con precisione e senza surriscaldamento dei tessuti.</p>
-                    </div>
-                    <div class="app-card-img">
-                        <img src="/img/app-rialzo-seno.jpg" alt="Rialzo del seno mascellare">
-                    </div>
-                </div>
-                <div class="video-row">
-                    <div class="video-block">
-                        <h4>Tutorial step by step</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                    <div class="video-block">
-                        <h4>Vuoi approfondire?</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- ESPANSIONE ORIZZONTALE -->
-            <div class="app-card">
-                <div class="app-card-header">
-                    <div class="app-card-text">
-                        <h3>Espansione Orizzontale</h3>
-                        <p>La split crest &egrave; gestita in modo progressivo e preciso con strumenti sequenziali.</p>
-                    </div>
-                    <div class="app-card-img">
-                        <img src="/img/app-split-crest.jpg" alt="Espansione orizzontale - Split crest">
-                    </div>
-                </div>
-                <div class="video-row">
-                    <div class="video-block">
-                        <h4>Video animazione</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                    <div class="video-block">
-                        <h4>Vuoi approfondire?</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- PREPARAZIONE IMPLANTARE POST-ESTRATTIVO -->
-            <div class="app-card">
-                <div class="app-card-header">
-                    <div class="app-card-text">
-                        <h3>Preparazione Implantare Post-Estrattivo</h3>
-                        <p>Efficace anche nel post-estrattivo, permette di preparare il sito implantare senza fresare.</p>
-                    </div>
-                    <div class="app-card-img">
-                        <img src="/img/app-post-estrattivo.jpg" alt="Preparazione implantare post-estrattivo">
-                    </div>
-                </div>
-                <div class="video-row">
-                    <div class="video-block">
-                        <h4>Vedi il caso</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                    <div class="video-block">
-                        <h4>Vuoi approfondire?</h4>
-                        <div class="video-wrapper">
-                            <div class="video-placeholder">Video in arrivo</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <p class="divider-label">E molte altre procedure descritte nel nostro sito</p>
-        </div>
-    </div>
-
-    <!-- ===== RICERCHE SCIENTIFICHE ===== -->
-    <div class="section-dark">
+        <!-- ===== RICERCHE SCIENTIFICHE ===== -->
         <div class="section">
             <div class="research">
                 <div class="research-text">
@@ -383,87 +493,88 @@
                     <p>Se desidera approfondire le ricerche scientifiche condotte da Prof.ssi D. Baldi e G. Schierano, pu&ograve; accedere al seguente webinar.</p>
                 </div>
                 <div class="research-video">
-                    <h4 style="font-size:15px; font-weight:600; color:#2E7D32; margin-bottom:10px; text-transform:uppercase; letter-spacing:1px;">Webinar</h4>
+                    <h4 style="font-size:13px; font-weight:600; color:#00b4d8; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Webinar</h4>
                     <div class="video-wrapper">
                         <div class="video-placeholder">Video in arrivo</div>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- ===== VANTAGGI ===== -->
-    <div class="section-light">
-        <div class="section">
-            <p style="text-align:center; color:#2E7D32; font-size:14px; letter-spacing:3px; text-transform:uppercase; font-weight:600; margin-bottom:8px;">La tecnologia</p>
-            <h2 class="section-title">I vantaggi della <span>magneto dinamica</span></h2>
-            <div style="height:40px;"></div>
+        <!-- ===== VANTAGGI ===== -->
+        <div class="section-glass">
+            <div class="section">
+                <p style="text-align:center; color:#00b4d8; font-size:13px; letter-spacing:3px; text-transform:uppercase; font-weight:600; margin-bottom:8px;">La tecnologia</p>
+                <h2 class="section-title">I vantaggi della <span class="accent">magneto dinamica</span></h2>
+                <div style="height:40px;"></div>
 
-            <div class="vantaggi-grid">
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#9889;</div>
-                    <h4>Velocit&agrave;</h4>
-                    <p>La propulsione magneto dinamica applica pi&ugrave; forza rispetto agli strumenti manuali, consentendo di operare in maniera pi&ugrave; efficace.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#9678;</div>
-                    <h4>Precisione</h4>
-                    <p>Le forze sono focalizzate nell'area trattata limitando al massimo la dispersione alla massa cranio-facciale. Pi&ugrave; comfort e accuratezza.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#8693;</div>
-                    <h4>Direzionalit&agrave;</h4>
-                    <p>L'ergonomia del manipolo permette l'utilizzo con una sola mano. Movimento longitudinale senza rischio di deviazioni.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#128065;</div>
-                    <h4>Visibilit&agrave;</h4>
-                    <p>Non essendo necessario irrigare, aumenta la visibilit&agrave; dell'operatore per controllare la progressiva penetrazione dello strumento.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#9881;</div>
-                    <h4>Controllo</h4>
-                    <p>Le forze sono applicate con grande precisione ed in maniera predicibile, assicurando totale controllo durante la chirurgia.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#10052;</div>
-                    <h4>Freddo</h4>
-                    <p>Riduce sostanzialmente la generazione del calore. Le frizioni meccaniche nell'arco di micro-secondi non aumentano la temperatura dell'osso.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#9670;</div>
-                    <h4>Senza foratura e taglio</h4>
-                    <p>Muove, rimpiazza, riforma, condensa l'osso. Non rimuove mai l'osso, lasciando intatti i tessuti molli.</p>
-                </div>
-                <div class="vantaggio-card">
-                    <div class="vantaggio-icon">&#8854;</div>
-                    <h4>Versatile</h4>
-                    <p>Molteplici funzioni con lo stesso manipolo, sempre la forza necessaria per ogni procedura grazie all'elevatissimo grado di progressivit&agrave;.</p>
+                <div class="vantaggi-grid">
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#9889;</div>
+                        <h4>Velocit&agrave;</h4>
+                        <p>La propulsione magneto dinamica applica pi&ugrave; forza rispetto agli strumenti manuali, consentendo di operare in maniera pi&ugrave; efficace.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#9678;</div>
+                        <h4>Precisione</h4>
+                        <p>Le forze sono focalizzate nell'area trattata limitando al massimo la dispersione alla massa cranio-facciale. Pi&ugrave; comfort e accuratezza.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#8693;</div>
+                        <h4>Direzionalit&agrave;</h4>
+                        <p>L'ergonomia del manipolo permette l'utilizzo con una sola mano. Movimento longitudinale senza rischio di deviazioni.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#128065;</div>
+                        <h4>Visibilit&agrave;</h4>
+                        <p>Non essendo necessario irrigare, aumenta la visibilit&agrave; dell'operatore per controllare la progressiva penetrazione dello strumento.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#9881;</div>
+                        <h4>Controllo</h4>
+                        <p>Le forze sono applicate con grande precisione ed in maniera predicibile, assicurando totale controllo durante la chirurgia.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#10052;</div>
+                        <h4>Freddo</h4>
+                        <p>Riduce sostanzialmente la generazione del calore. Le frizioni meccaniche nell'arco di micro-secondi non aumentano la temperatura dell'osso.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#9670;</div>
+                        <h4>Senza foratura e taglio</h4>
+                        <p>Muove, rimpiazza, riforma, condensa l'osso. Non rimuove mai l'osso, lasciando intatti i tessuti molli.</p>
+                    </div>
+                    <div class="vantaggio-card">
+                        <div class="vantaggio-icon">&#8854;</div>
+                        <h4>Versatile</h4>
+                        <p>Molteplici funzioni con lo stesso manipolo, sempre la forza necessaria per ogni procedura grazie all'elevatissimo grado di progressivit&agrave;.</p>
+                    </div>
                 </div>
             </div>
         </div>
+
+        <!-- ===== CTA WHATSAPP ===== -->
+        <section class="cta-section">
+            <div class="cta-inner">
+                <h2>Interessato alla tecnologia magneto-dinamica?</h2>
+                <p class="cta-text">
+                    Se ritiene interessante l'approccio, pu&ograve; contattarmi direttamente su WhatsApp
+                    per concordare un primo confronto telefonico: sar&ograve; lieta di mettermi a disposizione
+                    nel giorno ed orario a lei pi&ugrave; congeniale.
+                </p>
+                <a href="https://wa.me/393387351260?text=Buongiorno%2C%20ho%20visitato%20la%20pagina%20sul%20Magnetic%20Mallet%20e%20vorrei%20un%20confronto%20telefonico." class="cta-whatsapp" target="_blank" rel="noopener">
+                    <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                    Scrivimi su WhatsApp
+                </a>
+            </div>
+        </section>
+
+        <!-- ===== FOOTER ===== -->
+        <footer class="landing-footer">
+            <p>A presto, <strong>Osseotouch</strong></p>
+        </footer>
+
     </div>
-
-    <!-- ===== CTA WHATSAPP ===== -->
-    <section class="cta-section">
-        <div class="cta-inner">
-            <h2>Interessato alla tecnologia magneto-dinamica?</h2>
-            <p class="cta-text">
-                Se ritiene interessante l'approccio, pu&ograve; contattarmi direttamente su WhatsApp
-                per concordare un primo confronto telefonico: sar&ograve; lieta di mettermi a disposizione
-                nel giorno ed orario a lei pi&ugrave; congeniale.
-            </p>
-            <a href="https://wa.me/393387351260?text=Buongiorno%2C%20ho%20visitato%20la%20pagina%20sul%20Magnetic%20Mallet%20e%20vorrei%20un%20confronto%20telefonico." class="cta-whatsapp" target="_blank" rel="noopener">
-                <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                Scrivimi su WhatsApp
-            </a>
-        </div>
-    </section>
-
-    <!-- ===== FOOTER ===== -->
-    <footer class="landing-footer">
-        <p>A presto, <strong>Osseotouch</strong></p>
-    </footer>
 
 </body>
 </html>
