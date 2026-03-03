@@ -34,7 +34,7 @@ const WEBINAR_DATA = {
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
         link_followup: 'https://dashboard-cs-production.up.railway.app/webinar-followup',
-        subject_invito: 'Webinar gratuito — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
+        subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
         link_webinar: 'https://dashboard-cs-production.up.railway.app/webinar'
     }
 };
