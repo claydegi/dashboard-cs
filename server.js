@@ -4317,6 +4317,14 @@ app.get('/webinar', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar.html'));
 });
 
+app.get('/webinar-followup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-followup.html'));
+});
+
+app.get('/webinar-grazie', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-grazie.html'));
+});
+
 // Registrazione webinar (PUBBLICA, no auth — chiamata dal form landing page)
 app.post('/api/webinar/register', async (req, res) => {
     const { nome, cognome, email, citta, ha_mm } = req.body;
