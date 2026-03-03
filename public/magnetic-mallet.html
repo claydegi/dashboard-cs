@@ -148,6 +148,19 @@
         .app-card-img img {
             width: 100%; height: 100%; object-fit: cover;
         }
+        .app-card-instrument {
+            width: 240px;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .app-card-instrument img {
+            max-width: 100%;
+            max-height: 170px;
+            object-fit: contain;
+            filter: drop-shadow(0 4px 20px rgba(0, 180, 216, 0.15));
+        }
 
         /* ===== VIDEO GRID ===== */
         .video-row {
@@ -307,6 +320,36 @@
         .cta-whatsapp svg {
             width: 28px; height: 28px; fill: #fff;
         }
+        .cta-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            overflow: hidden;
+            margin: 0 auto 8px;
+            border: 3px solid rgba(0, 180, 216, 0.5);
+            background: rgba(0,180,216,0.08);
+        }
+        .cta-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .cta-name {
+            font-size: 16px;
+            font-weight: 600;
+            color: #00b4d8;
+            margin-bottom: 20px;
+        }
+        .hero-device {
+            max-width: 420px;
+            margin: 30px auto 0;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+        .hero-device img {
+            width: 100%;
+            display: block;
+        }
 
         /* ===== FOOTER ===== */
         .landing-footer {
@@ -327,6 +370,7 @@
             .app-card { padding: 24px; }
             .app-card-header { flex-direction: column; }
             .app-card-img { width: 100%; height: 200px; }
+            .app-card-instrument { width: 100%; }
             .video-row { grid-template-columns: 1fr; }
             .vantaggi-grid { grid-template-columns: 1fr 1fr; }
             .research { flex-direction: column; }
@@ -362,6 +406,9 @@
             <p class="hero-subtitle">
                 Scopra come la tecnologia magneto-dinamica sta trasformando le procedure chirurgiche odontoiatriche.
             </p>
+            <div class="hero-device">
+                <img src="/img/magnetic-mallet-hero.jpg" alt="Magnetic Mallet dispositivo">
+            </div>
         </section>
 
         <!-- ===== APPLICAZIONI CLINICHE ===== -->
@@ -383,18 +430,21 @@
                         <div class="app-card-img">
                             <img src="/img/app-estrazione.jpg" alt="Estrazione complessa con Magnetic Mallet">
                         </div>
+                        <div class="app-card-instrument">
+                            <img src="/img/strumento-estrazione.png" alt="Strumento per estrazioni">
+                        </div>
                     </div>
                     <div class="video-row">
                         <div class="video-block">
                             <h4>Vedi il caso</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/DMXbx5t6N8I" title="Estrazioni complesse - Caso clinico" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                         <div class="video-block">
                             <h4>Vuoi approfondire?</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/3V5n_dZ-oEI" title="Estrazioni complesse - Approfondimento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
@@ -410,18 +460,21 @@
                         <div class="app-card-img">
                             <img src="/img/app-rialzo-seno.jpg" alt="Rialzo del seno mascellare">
                         </div>
+                        <div class="app-card-instrument">
+                            <img src="/img/strumento-elevate.png" alt="Strumento Elevate per rialzo seno">
+                        </div>
                     </div>
                     <div class="video-row">
                         <div class="video-block">
                             <h4>Tutorial step by step</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/zlqmjSf3aq8" title="Rialzo seno mascellare - Tutorial" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                         <div class="video-block">
                             <h4>Vuoi approfondire?</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/8xYO6QQ9gTM" title="Rialzo seno mascellare - Approfondimento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
@@ -437,18 +490,21 @@
                         <div class="app-card-img">
                             <img src="/img/app-split-crest.jpg" alt="Espansione orizzontale - Split crest">
                         </div>
+                        <div class="app-card-instrument">
+                            <img src="/img/strumento-genoa.png" alt="Strumento Genoa per split crest">
+                        </div>
                     </div>
                     <div class="video-row">
                         <div class="video-block">
                             <h4>Video animazione</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/oBOiUwC5qdY" title="Espansione orizzontale - Animazione" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                         <div class="video-block">
                             <h4>Vuoi approfondire?</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/pTgMMnm0dyg" title="Espansione orizzontale - Approfondimento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
@@ -464,18 +520,21 @@
                         <div class="app-card-img">
                             <img src="/img/app-post-estrattivo.jpg" alt="Preparazione implantare post-estrattivo">
                         </div>
+                        <div class="app-card-instrument">
+                            <img src="/img/strumento-black-ruby.png" alt="Strumento Black Ruby per post-estrattivo">
+                        </div>
                     </div>
                     <div class="video-row">
                         <div class="video-block">
                             <h4>Vedi il caso</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/ETXwPY3Ixb4" title="Post-estrattivo - Caso clinico" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                         <div class="video-block">
                             <h4>Vuoi approfondire?</h4>
                             <div class="video-wrapper">
-                                <div class="video-placeholder">Video in arrivo</div>
+                                <iframe src="https://www.youtube.com/embed/Rwcs5TGKUPE" title="Post-estrattivo - Approfondimento" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                             </div>
                         </div>
                     </div>
@@ -495,7 +554,7 @@
                 <div class="research-video">
                     <h4 style="font-size:13px; font-weight:600; color:#00b4d8; margin-bottom:8px; text-transform:uppercase; letter-spacing:1px;">Webinar</h4>
                     <div class="video-wrapper">
-                        <div class="video-placeholder">Video in arrivo</div>
+                        <iframe src="https://www.youtube.com/embed/Mjp9ud30YwI" title="Ricerche scientifiche - Webinar" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen loading="lazy"></iframe>
                     </div>
                 </div>
             </div>
@@ -556,6 +615,10 @@
         <!-- ===== CTA WHATSAPP ===== -->
         <section class="cta-section">
             <div class="cta-inner">
+                <div class="cta-avatar">
+                    <img src="/img/kim-agnello.jpg" alt="Kim Agnello">
+                </div>
+                <p class="cta-name">Kim Agnello</p>
                 <h2>Interessato alla tecnologia magneto-dinamica?</h2>
                 <p class="cta-text">
                     Se ritiene interessante l'approccio, pu&ograve; contattarmi direttamente su WhatsApp
