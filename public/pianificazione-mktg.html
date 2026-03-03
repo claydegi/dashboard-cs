@@ -90,6 +90,41 @@
             color: var(--gray-500);
             margin-top: 4px;
         }
+        .webinar-counter {
+            margin-top: 12px;
+            background: var(--gray-50, #f9fafb);
+            border: 1px solid var(--gray-200, #e5e7eb);
+            border-radius: 8px;
+            padding: 10px 14px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+        .webinar-counter .wc-num {
+            display: block;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--gray-900, #111827);
+            line-height: 1.2;
+        }
+        .webinar-counter .wc-label {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--gray-500, #6b7280);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 2px;
+        }
+        .webinar-counter .wc-totale .wc-num { color: #8b5cf6; }
+        .webinar-counter-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-400, #9ca3af);
+            margin-top: 12px;
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
@@ -252,9 +287,10 @@
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, consensiResp] = await Promise.all([
+            const [attivitaResp, consensiResp, webinarResp] = await Promise.all([
                 fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`)
+                fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`)
             ]);
 
             // Attivita'
@@ -262,11 +298,14 @@
             const richieste = attivita.filter(a => a.stato === 'richiesta');
             const daEseguireAtt = attivita.filter(a => a.stato === 'da_eseguire');
 
+            // Webinar stats
+            const webinarStats = webinarResp.ok ? await webinarResp.json() : {};
+
             // Render richieste
             renderRichieste(richieste);
 
             // Render da eseguire (solo attivita' promosse)
-            renderDaEseguire(daEseguireAtt);
+            renderDaEseguire(daEseguireAtt, webinarStats);
 
             // Consensi
             if (consensiResp.ok) {
@@ -303,12 +342,48 @@
         `).join('');
     }
 
-    function renderDaEseguire(attivita) {
+    function findWebinarTag(titolo, webinarStats) {
+        const titoloLower = titolo.toLowerCase();
+        if (!titoloLower.includes('webinar')) return null;
+        const tags = Object.keys(webinarStats);
+        for (const tag of tags) {
+            const parts = tag.toLowerCase().split('_').filter(p => p !== 'webinar');
+            if (parts.some(part => titoloLower.includes(part))) return tag;
+        }
+        return tags.length > 0 ? tags[0] : null;
+    }
+
+    function renderDaEseguire(attivita, webinarStats) {
         const grid = document.getElementById('daEseguireGrid');
         let html = '';
 
         // Attivita' promosse
-        html += attivita.map(a => `
+        html += attivita.map(a => {
+            const tag = findWebinarTag(a.titolo, webinarStats || {});
+            const stats = tag ? webinarStats[tag] : null;
+            const counterHtml = stats ? `
+                <div class="webinar-counter-title">Registrazioni Webinar</div>
+                <div class="webinar-counter">
+                    <div class="wc-item">
+                        <span class="wc-num">${stats.nuovi}</span>
+                        <span class="wc-label">Nuovi</span>
+                    </div>
+                    <div class="wc-item">
+                        <span class="wc-num">${stats.lead_esistenti}</span>
+                        <span class="wc-label">Lead</span>
+                    </div>
+                    <div class="wc-item">
+                        <span class="wc-num">${stats.account_esistenti}</span>
+                        <span class="wc-label">Account</span>
+                    </div>
+                    <div class="wc-item wc-totale">
+                        <span class="wc-num">${stats.totale}</span>
+                        <span class="wc-label">Totale</span>
+                    </div>
+                </div>
+            ` : '';
+
+            return `
             <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
                 <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
                 <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
@@ -318,6 +393,7 @@
                     ${IS_ADMIN ? `<input type="date" value="${a.data_prevista || ''}" onchange="aggiornaData(${a.id}, this.value)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:0.8rem;">` : ''}
                 </div>
                 <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
+                ${counterHtml}
                 ${IS_ADMIN ? `
                     <div class="card-actions">
                         <button class="btn-fatto" onclick="fatto(${a.id})">Fatto</button>
@@ -325,7 +401,8 @@
                     </div>
                 ` : ''}
             </div>
-        `).join('');
+            `;
+        }).join('');
 
         if (!html) {
             grid.innerHTML = '<div class="empty-state"><p>Nessuna attivita\' da eseguire</p></div>';

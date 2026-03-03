@@ -4434,6 +4434,37 @@ app.post('/api/webinar/register', async (req, res) => {
     }
 });
 
+// GET /api/webinar/stats — statistiche registrazioni webinar per counter in pianificazione marketing
+app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                r.webinar_tag,
+                COUNT(*)::int AS totale,
+                COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
+                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND c.tipo = 'lead')::int AS lead_esistenti,
+                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND c.tipo = 'account')::int AS account_esistenti
+            FROM crm_webinar_registrazioni r
+            LEFT JOIN crm_contatti c ON r.contatto_id = c.id
+            GROUP BY r.webinar_tag
+        `);
+
+        const stats = {};
+        for (const row of result.rows) {
+            stats[row.webinar_tag] = {
+                totale: row.totale,
+                nuovi: row.nuovi,
+                lead_esistenti: row.lead_esistenti,
+                account_esistenti: row.account_esistenti
+            };
+        }
+        res.json(stats);
+    } catch (err) {
+        console.error('[Webinar Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== VIDEO TRACKING LANDING ====================
 
 // Landing page video con YouTube IFrame API per tracking visualizzazione
