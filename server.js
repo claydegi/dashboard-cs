@@ -4578,6 +4578,57 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/webinar/send-reminder — invia email reminder a tutti gli iscritti di un webinar
+app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
+    const { webinar_tag } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+
+    if (!WEBINAR_DATA[tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
+    }
+
+    try {
+        // Recupera tutti gli iscritti con il loro link Zoom
+        const result = await pool.query(
+            'SELECT email, nome, cognome, zoom_link FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND zoom_link IS NOT NULL',
+            [tag]
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({ ok: true, inviati: 0, messaggio: 'Nessun iscritto con link Zoom trovato' });
+        }
+
+        let inviati = 0;
+        let errori = 0;
+        for (const row of result.rows) {
+            try {
+                await sendWebinarEmail('WEBINAR_REMINDER', tag, row.email, row.zoom_link, 'WEBINAR_REMINDER_' + tag);
+                inviati++;
+                // Piccola pausa per non saturare Mailgun (rate limiting)
+                if (inviati % 10 === 0) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            } catch (err) {
+                console.error(`[Webinar Reminder] Errore per ${row.email}:`, err.message);
+                errori++;
+            }
+        }
+
+        console.log(`[Webinar Reminder] ${tag}: ${inviati} inviati, ${errori} errori su ${result.rows.length} iscritti`);
+        res.json({
+            ok: true,
+            webinar_tag: tag,
+            totale_iscritti: result.rows.length,
+            inviati,
+            errori,
+            messaggio: `Reminder inviati: ${inviati}/${result.rows.length}`
+        });
+    } catch (err) {
+        console.error('[Webinar Reminder]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== VIDEO TRACKING LANDING ====================
 
 // Landing page video con YouTube IFrame API per tracking visualizzazione
