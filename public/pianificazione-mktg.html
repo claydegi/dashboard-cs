@@ -442,6 +442,7 @@
                 <section class="mktg-section">
                     <h2>Calendario Webinar</h2>
                     <div id="webinarCalendar"></div>
+                    <div id="webinarStatsPanel"></div>
                 </section>
 
                 <!-- Riquadro: Calendario Mailing -->
@@ -574,6 +575,9 @@
             // Calendario webinar
             renderCalendario();
 
+            // Stats registrazioni webinar
+            renderWebinarStats(webinarStats);
+
             // Calendario mailing
             if (mailingResp.ok) {
                 const mailingData = await mailingResp.json();
@@ -615,6 +619,47 @@
                 ` : ''}
             </div>
         `).join('');
+    }
+
+    function renderWebinarStats(webinarStats) {
+        const panel = document.getElementById('webinarStatsPanel');
+        if (!panel) return;
+        const tags = Object.keys(webinarStats || {});
+        if (tags.length === 0) {
+            panel.innerHTML = '';
+            return;
+        }
+        let html = '';
+        for (const tag of tags) {
+            const s = webinarStats[tag];
+            const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
+            html += `
+                <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                        Registrazioni ${escapeHtml(nomeWebinar)}
+                    </div>
+                    <div class="webinar-counter">
+                        <div class="wc-item">
+                            <span class="wc-num">${s.nuovi}</span>
+                            <span class="wc-label">Nuovi</span>
+                        </div>
+                        <div class="wc-item">
+                            <span class="wc-num">${s.lead_esistenti}</span>
+                            <span class="wc-label">Lead</span>
+                        </div>
+                        <div class="wc-item">
+                            <span class="wc-num">${s.account_esistenti}</span>
+                            <span class="wc-label">Account</span>
+                        </div>
+                        <div class="wc-item wc-totale">
+                            <span class="wc-num">${s.totale}</span>
+                            <span class="wc-label">Totale</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        panel.innerHTML = html;
     }
 
     function findWebinarTag(titolo, webinarStats) {
