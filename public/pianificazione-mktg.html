@@ -959,8 +959,8 @@
         const oggi = new Date();
         oggi.setHours(0,0,0,0);
 
-        // Finestra: 30gg indietro, 15gg avanti
-        const DAYS_BACK = 30, DAYS_FORWARD = 15;
+        // Finestra: 6gg indietro (cooldown attivo + contesto), 30gg avanti (pianificazione)
+        const DAYS_BACK = 6, DAYS_FORWARD = 30;
         const startDate = new Date(oggi);
         startDate.setDate(startDate.getDate() - DAYS_BACK);
         const endDate = new Date(oggi);

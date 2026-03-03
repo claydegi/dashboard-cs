@@ -5682,6 +5682,69 @@ app.post('/api/mailing/storico/sync', requireReportsKey, async (req, res) => {
     }
 });
 
+// GET /api/mailing/check-cooldown — verifica conflitti cooldown per un mailing proposto
+// Query params: regioni (comma-separated), data (YYYY-MM-DD)
+app.get('/api/mailing/check-cooldown', requireAdmin, async (req, res) => {
+    try {
+        const { regioni, data } = req.query;
+        if (!data) {
+            return res.status(400).json({ error: 'Parametro data richiesto (YYYY-MM-DD)' });
+        }
+
+        const dataInvio = new Date(data + 'T00:00:00');
+        if (isNaN(dataInvio.getTime())) {
+            return res.status(400).json({ error: 'Data non valida' });
+        }
+
+        // Regioni target: se non specificate, tutte le attive
+        const REGIONI_DEFAULT = ['LIGURIA', 'PIEMONTE', 'LOMBARDIA', 'CAMPANIA', 'LAZIO', "VALLE D'AOSTA"];
+        let targetRegioni = REGIONI_DEFAULT;
+        if (regioni && regioni.trim()) {
+            targetRegioni = regioni.split(',').map(r => r.trim().toUpperCase()).filter(r => r.length > 0);
+        }
+
+        // Cerca mailing negli ultimi 4 giorni per le regioni target
+        const COOLDOWN = 4;
+        const dataInizio = new Date(dataInvio);
+        dataInizio.setDate(dataInizio.getDate() - COOLDOWN);
+
+        const result = await pool.query(`
+            SELECT tag, regione, data_invio, n_destinatari
+            FROM crm_mailing_storico
+            WHERE regione = ANY($1)
+              AND data_invio > $2
+              AND data_invio <= $3
+            ORDER BY data_invio DESC
+        `, [targetRegioni, dataInizio.toISOString().split('T')[0], data]);
+
+        const conflitti = result.rows;
+        const regioniInConflitto = [...new Set(conflitti.map(r => r.regione))];
+
+        const ok = conflitti.length === 0;
+        res.json({
+            ok,
+            data_proposta: data,
+            regioni_target: targetRegioni,
+            cooldown_giorni: COOLDOWN,
+            conflitti: conflitti.map(r => ({
+                tag: r.tag,
+                regione: r.regione,
+                data_invio: r.data_invio,
+                n_destinatari: r.n_destinatari,
+                giorni_distanza: Math.round((dataInvio - new Date(r.data_invio)) / 86400000)
+            })),
+            regioni_in_conflitto: regioniInConflitto,
+            regioni_libere: targetRegioni.filter(r => !regioniInConflitto.includes(r)),
+            messaggio: ok
+                ? `Nessun conflitto: tutte le ${targetRegioni.length} regioni sono libere per il ${data}`
+                : `ATTENZIONE: ${regioniInConflitto.length} regioni in cooldown (${regioniInConflitto.join(', ')}). Ultimo invio entro ${COOLDOWN} giorni.`
+        });
+    } catch (err) {
+        console.error('[Mailing Check Cooldown]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== YOUTUBE ANALYTICS API ====================
 
 // POST /api/youtube/sync — riceve payload metriche da youtube_sync.py
