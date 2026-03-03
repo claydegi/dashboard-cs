@@ -691,8 +691,8 @@
         return new Date(anno, mese, 0).getDate();
     }
 
-    function meseHaWebinar(meseNum, anno) {
-        for (const w of WEBINAR_CALENDAR) {
+    function meseHaWebinar(meseNum, anno, lista) {
+        for (const w of lista) {
             const ps = new Date(w.promo_inizio + 'T00:00:00');
             const fe = new Date(w.followup_fine + 'T00:00:00');
             const meseInizio = new Date(anno, meseNum - 1, 1);
@@ -706,16 +706,28 @@
         const container = document.getElementById('webinarCalendar');
         const anno = 2026;
         const oggi = new Date();
+        oggi.setHours(0, 0, 0, 0);
         const oggiGiorno = oggi.getDate();
         const oggiMese = oggi.getMonth() + 1;
         const oggiAnno = oggi.getFullYear();
+
+        // Filtra: nascondi webinar il cui follow-up è terminato
+        const webinarAttivi = WEBINAR_CALENDAR.filter(w => {
+            const fine = new Date(w.followup_fine + 'T23:59:59');
+            return fine >= oggi;
+        });
+
+        if (webinarAttivi.length === 0) {
+            container.innerHTML = '<div style="text-align:center;color:var(--gray-400);padding:24px;font-size:0.9rem;">Nessun webinar in programma</div>';
+            return;
+        }
 
         let html = '<div class="wcal-timeline">';
 
         for (let i = 0; i < MESI.length; i++) {
             const meseNum = MESI_INDEX[i];
             const giorni = giorniNelMese(meseNum, anno);
-            const expanded = meseHaWebinar(meseNum, anno);
+            const expanded = meseHaWebinar(meseNum, anno, webinarAttivi);
 
             if (!expanded) {
                 // Mese compatto: solo nome
@@ -744,7 +756,7 @@
             html += '</div>';
 
             // Riga per ogni webinar attivo in questo mese
-            for (const w of WEBINAR_CALENDAR) {
+            for (const w of webinarAttivi) {
                 const ps = new Date(w.promo_inizio + 'T00:00:00');
                 const wd = new Date(w.data_webinar + 'T00:00:00');
                 const fs = new Date(w.followup_inizio + 'T00:00:00');
