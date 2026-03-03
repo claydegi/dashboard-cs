@@ -125,6 +125,111 @@
             margin-top: 12px;
             margin-bottom: 4px;
         }
+        /* === Calendario Webinar === */
+        .wcal {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        .wcal-grid {
+            display: grid;
+            grid-template-columns: 200px repeat(10, 1fr);
+            min-width: 900px;
+            gap: 0;
+        }
+        .wcal-header {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--gray-500, #6b7280);
+            text-align: center;
+            padding: 8px 4px;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+        }
+        .wcal-header-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--gray-500, #6b7280);
+            padding: 8px 4px;
+            border-bottom: 2px solid var(--gray-200, #e5e7eb);
+        }
+        .wcal-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--gray-800, #1f2937);
+            padding: 16px 8px 16px 0;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            line-height: 1.3;
+        }
+        .wcal-cell {
+            position: relative;
+            padding: 16px 0;
+            border-bottom: 1px solid var(--gray-100, #f3f4f6);
+            border-left: 1px solid var(--gray-100, #f3f4f6);
+            min-height: 48px;
+        }
+        .wcal-bar {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            height: 10px;
+            border-radius: 5px;
+            z-index: 1;
+        }
+        .wcal-bar-promo {
+            background: #22c55e;
+            opacity: 0.85;
+        }
+        .wcal-bar-followup {
+            background: #f59e0b;
+            opacity: 0.85;
+        }
+        .wcal-marker {
+            position: absolute;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: 18px;
+            height: 18px;
+            background: #8b5cf6;
+            border-radius: 50%;
+            border: 3px solid white;
+            box-shadow: 0 0 0 2px #8b5cf6;
+            z-index: 2;
+        }
+        .wcal-legend {
+            display: flex;
+            gap: 24px;
+            margin-top: 16px;
+            padding-top: 12px;
+            border-top: 1px solid var(--gray-100, #f3f4f6);
+        }
+        .wcal-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.75rem;
+            color: var(--gray-500, #6b7280);
+        }
+        .wcal-legend-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+        .wcal-today {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #ef4444;
+            z-index: 3;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
@@ -187,6 +292,12 @@
                     <div id="daEseguireGrid" class="report-cards-grid">
                         <p class="loading">Caricamento...</p>
                     </div>
+                </section>
+
+                <!-- Riquadro: Calendario Webinar -->
+                <section class="mktg-section">
+                    <h2>Calendario Webinar</h2>
+                    <div id="webinarCalendar"></div>
                 </section>
 
                 <!-- Riquadro: Consensi GDPR -->
@@ -306,6 +417,9 @@
 
             // Render da eseguire (solo attivita' promosse)
             renderDaEseguire(daEseguireAtt, webinarStats);
+
+            // Calendario webinar
+            renderCalendario();
 
             // Consensi
             if (consensiResp.ok) {
@@ -506,6 +620,122 @@
     function capitalizza(str) {
         if (!str) return '';
         return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // === CALENDARIO WEBINAR ===
+    const WEBINAR_CALENDAR = [
+        {
+            nome: 'Dr. Malavasi — Implantologia Pterigoidea',
+            tag: 'WEBINAR_MALAVASI_PT1',
+            promo_inizio: '2026-03-04',
+            data_webinar: '2026-03-09',
+            followup_inizio: '2026-03-10',
+            followup_fine: '2026-03-17'
+        }
+    ];
+
+    const MESI = ['Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'];
+    const MESI_INDEX = [3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // 1-based month numbers
+
+    function giorniNelMese(mese, anno) {
+        return new Date(anno, mese, 0).getDate();
+    }
+
+    function renderCalendario() {
+        const container = document.getElementById('webinarCalendar');
+        const anno = 2026;
+        const oggi = new Date();
+
+        // Header mesi
+        let headerHtml = '<div class="wcal-header-label">Webinar</div>';
+        for (let i = 0; i < MESI.length; i++) {
+            headerHtml += `<div class="wcal-header">${MESI[i]}</div>`;
+        }
+
+        // Righe webinar
+        let rowsHtml = '';
+        for (const w of WEBINAR_CALENDAR) {
+            const promoStart = new Date(w.promo_inizio + 'T00:00:00');
+            const webinarDate = new Date(w.data_webinar + 'T00:00:00');
+            const followStart = new Date(w.followup_inizio + 'T00:00:00');
+            const followEnd = new Date(w.followup_fine + 'T00:00:00');
+
+            // Label
+            rowsHtml += `<div class="wcal-label">${escapeHtml(w.nome)}</div>`;
+
+            // Cella per ogni mese
+            for (let i = 0; i < MESI.length; i++) {
+                const meseNum = MESI_INDEX[i]; // 1-based
+                const giorniMese = giorniNelMese(meseNum, anno);
+                let cellContent = '';
+
+                // Barra promo (verde): da promo_inizio a data_webinar
+                cellContent += renderBar(promoStart, webinarDate, meseNum, anno, giorniMese, 'wcal-bar-promo');
+
+                // Marker webinar (cerchio viola)
+                if (webinarDate.getMonth() + 1 === meseNum && webinarDate.getFullYear() === anno) {
+                    const pct = ((webinarDate.getDate() - 0.5) / giorniMese) * 100;
+                    cellContent += `<div class="wcal-marker" style="left:${pct}%;" title="Webinar: ${formatData(w.data_webinar)}"></div>`;
+                }
+
+                // Barra follow-up (arancione): da followup_inizio a followup_fine
+                cellContent += renderBar(followStart, followEnd, meseNum, anno, giorniMese, 'wcal-bar-followup');
+
+                // Linea "oggi"
+                if (oggi.getMonth() + 1 === meseNum && oggi.getFullYear() === anno) {
+                    const pctOggi = ((oggi.getDate() - 0.5) / giorniMese) * 100;
+                    cellContent += `<div class="wcal-today" style="left:${pctOggi}%;" title="Oggi"></div>`;
+                }
+
+                rowsHtml += `<div class="wcal-cell">${cellContent}</div>`;
+            }
+        }
+
+        // Legenda
+        const legendHtml = `
+            <div class="wcal-legend">
+                <div class="wcal-legend-item">
+                    <div class="wcal-legend-dot" style="background:#22c55e;"></div>
+                    Promo / Signup
+                </div>
+                <div class="wcal-legend-item">
+                    <div class="wcal-legend-dot" style="background:#8b5cf6;"></div>
+                    Webinar
+                </div>
+                <div class="wcal-legend-item">
+                    <div class="wcal-legend-dot" style="background:#f59e0b;"></div>
+                    Follow-up
+                </div>
+                <div class="wcal-legend-item">
+                    <div style="width:2px;height:10px;background:#ef4444;opacity:0.6;flex-shrink:0;"></div>
+                    Oggi
+                </div>
+            </div>
+        `;
+
+        container.innerHTML = `
+            <div class="wcal">
+                <div class="wcal-grid">${headerHtml}${rowsHtml}</div>
+                ${legendHtml}
+            </div>
+        `;
+    }
+
+    function renderBar(startDate, endDate, meseNum, anno, giorniMese, cssClass) {
+        const meseInizio = new Date(anno, meseNum - 1, 1);
+        const meseFine = new Date(anno, meseNum - 1, giorniMese, 23, 59, 59);
+
+        // La barra interseca questo mese?
+        if (startDate > meseFine || endDate < meseInizio) return '';
+
+        // Calcola left e width in percentuale
+        const barStart = startDate < meseInizio ? 1 : startDate.getDate();
+        const barEnd = endDate > meseFine ? giorniMese : endDate.getDate();
+
+        const left = ((barStart - 1) / giorniMese) * 100;
+        const width = ((barEnd - barStart + 1) / giorniMese) * 100;
+
+        return `<div class="wcal-bar ${cssClass}" style="left:${left}%;width:${width}%;"></div>`;
     }
     </script>
 </body>
