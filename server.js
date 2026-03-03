@@ -31,7 +31,9 @@ const WEBINAR_DATA = {
         data_webinar: '9 marzo 2026',
         relatore: 'Dr. Alberto Malavasi',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Malavasi, 9 marzo ore 21:00',
-        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi'
+        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi',
+        subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
+        link_followup: 'https://dashboard-cs-production.up.railway.app/webinar-followup'
     }
 };
 
@@ -104,8 +106,12 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
     html = html.replace(/\{\{relatore\}\}/g, data.relatore);
     html = html.replace(/\{\{link_zoom\}\}/g, zoomLink || '#');
+    html = html.replace(/\{\{link_followup\}\}/g, data.link_followup || '#');
 
-    const subject = templateName === 'WEBINAR_CONFERMA' ? data.subject_conferma : data.subject_reminder;
+    let subject;
+    if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;
+    else if (templateName === 'WEBINAR_FOLLOWUP') subject = data.subject_followup;
+    else subject = data.subject_reminder;
 
     await sendMailgunEmail(to, subject, html, tag);
 }
@@ -4625,6 +4631,55 @@ app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[Webinar Reminder]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti di un webinar
+app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
+    const { webinar_tag } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+
+    if (!WEBINAR_DATA[tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
+    }
+
+    try {
+        const result = await pool.query(
+            'SELECT email, nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1',
+            [tag]
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({ ok: true, inviati: 0, messaggio: 'Nessun iscritto trovato' });
+        }
+
+        let inviati = 0;
+        let errori = 0;
+        for (const row of result.rows) {
+            try {
+                await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, row.email, null, 'WEBINAR_FOLLOWUP_' + tag);
+                inviati++;
+                if (inviati % 10 === 0) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            } catch (err) {
+                console.error(`[Webinar Followup] Errore per ${row.email}:`, err.message);
+                errori++;
+            }
+        }
+
+        console.log(`[Webinar Followup] ${tag}: ${inviati} inviati, ${errori} errori su ${result.rows.length} iscritti`);
+        res.json({
+            ok: true,
+            webinar_tag: tag,
+            totale_iscritti: result.rows.length,
+            inviati,
+            errori,
+            messaggio: `Follow-up inviati: ${inviati}/${result.rows.length}`
+        });
+    } catch (err) {
+        console.error('[Webinar Followup]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

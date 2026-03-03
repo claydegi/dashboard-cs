@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iscrizione confermata — Corso Dr. Malavasi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff; min-height: 100vh;
+            background: #061220; overflow-x: hidden;
+        }
+        .bg-waves {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0; opacity: 0.45;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(6,18,32,0.3) 0%, rgba(6,18,32,0.65) 40%, rgba(6,18,32,0.9) 100%);
+            z-index: 1;
+        }
+        .page-content { position: relative; z-index: 2; }
+        .header {
+            padding: 18px 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header img { height: 52px; filter: brightness(0) invert(1); }
+        .content {
+            max-width: 600px; margin: 60px auto 0;
+            padding: 0 40px; text-align: center;
+        }
+        .check-icon { font-size: 64px; margin-bottom: 20px; }
+        h1 { font-size: 28px; font-weight: 800; margin-bottom: 16px; line-height: 1.3; }
+        h1 .highlight { color: #00b4d8; }
+        .info { font-size: 16px; color: #b0bec5; line-height: 1.7; margin-bottom: 30px; }
+        .details-card {
+            background: rgba(255,255,255,0.04);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px; padding: 24px;
+            text-align: left; margin-bottom: 30px;
+        }
+        .details-card .row {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06);
+        }
+        .details-card .row:last-child { border-bottom: none; }
+        .details-card .label { color: #78909c; font-size: 14px; }
+        .details-card .value { color: #ffffff; font-weight: 600; font-size: 14px; }
+        .note {
+            font-size: 14px; color: #78909c; line-height: 1.6;
+        }
+        .footer {
+            text-align: center; padding: 40px 24px 24px;
+            color: #37474f; font-size: 11px;
+        }
+        @media (max-width: 600px) {
+            .content { padding: 0 20px; margin-top: 40px; }
+            h1 { font-size: 22px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+    <div class="page-content">
+        <div class="header">
+            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+        <div class="content">
+            <div class="check-icon">&#10004;&#65039;</div>
+            <h1>Iscrizione <span class="highlight">confermata</span></h1>
+            <p class="info">
+                Il suo pagamento &egrave; andato a buon fine. L'iscrizione al corso in presenza con il Dr. Malavasi &egrave; confermata.
+                Ricever&agrave; una email di conferma con tutti i dettagli.
+            </p>
+            <div class="details-card">
+                <div class="row">
+                    <span class="label">Corso</span>
+                    <span class="value">Magnetic Mallet in implantologia pterigoidea</span>
+                </div>
+                <div class="row">
+                    <span class="label">Relatore</span>
+                    <span class="value">Dr. Alberto Malavasi</span>
+                </div>
+                <div class="row">
+                    <span class="label">Data</span>
+                    <span class="value">31 maggio 2026</span>
+                </div>
+                <div class="row">
+                    <span class="label">Luogo</span>
+                    <span class="value">Brescia &mdash; Studio Dr. Malavasi</span>
+                </div>
+                <div class="row">
+                    <span class="label">Importo</span>
+                    <span class="value">&euro; 430 (IVA inclusa)</span>
+                </div>
+            </div>
+            <p class="note">
+                Per qualsiasi domanda, ci scriva a
+                <a href="mailto:contact@osseotouch.com" style="color: #00b4d8; text-decoration: none;">contact@osseotouch.com</a>
+                oppure su WhatsApp al
+                <a href="https://wa.me/393277947530" style="color: #25D366; text-decoration: none;">327 794 7530</a>.
+            </p>
+        </div>
+        <div class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </div>
+    </div>
+</body>
+</html>
