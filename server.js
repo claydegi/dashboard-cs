@@ -33,7 +33,9 @@ const WEBINAR_DATA = {
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Malavasi, 9 marzo ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
-        link_followup: 'https://dashboard-cs-production.up.railway.app/webinar-followup'
+        link_followup: 'https://dashboard-cs-production.up.railway.app/webinar-followup',
+        subject_invito: 'Webinar gratuito — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
+        link_webinar: 'https://dashboard-cs-production.up.railway.app/webinar'
     }
 };
 
@@ -107,10 +109,12 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     html = html.replace(/\{\{relatore\}\}/g, data.relatore);
     html = html.replace(/\{\{link_zoom\}\}/g, zoomLink || '#');
     html = html.replace(/\{\{link_followup\}\}/g, data.link_followup || '#');
+    html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
 
     let subject;
     if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;
     else if (templateName === 'WEBINAR_FOLLOWUP') subject = data.subject_followup;
+    else if (templateName === 'WEBINAR_INVITO') subject = data.subject_invito;
     else subject = data.subject_reminder;
 
     await sendMailgunEmail(to, subject, html, tag);
@@ -4692,6 +4696,26 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[Webinar Followup]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/send-invito-test — invia email di test invito webinar a un indirizzo
+app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
+    const { webinar_tag, email } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    const to = email || 'cdegiglio@osseotouch.com';
+
+    if (!WEBINAR_DATA[tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
+    }
+
+    try {
+        await sendWebinarEmail('WEBINAR_INVITO', tag, to, null, 'WEBINAR_INVITO_TEST');
+        console.log(`[Webinar Invito Test] Email di test inviata a ${to}`);
+        res.json({ ok: true, email: to, messaggio: `Email invito test inviata a ${to}` });
+    } catch (err) {
+        console.error('[Webinar Invito Test]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
