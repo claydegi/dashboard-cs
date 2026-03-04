@@ -164,6 +164,30 @@
             background: rgba(255,255,255,0.12);
         }
 
+        .btn-download {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 14px 28px;
+            background: rgba(0, 180, 216, 0.10);
+            border: 1px solid rgba(0, 180, 216, 0.35);
+            color: #00b4d8; border-radius: 8px;
+            font-size: 15px; font-weight: 700;
+            text-decoration: none; transition: transform 0.2s, background 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-download:hover {
+            transform: translateY(-2px);
+            background: rgba(0, 180, 216, 0.18);
+            box-shadow: 0 8px 30px rgba(0, 180, 216, 0.2);
+        }
+
+        .download-section {
+            text-align: center;
+            padding: 16px 0;
+        }
+        .download-section p {
+            font-size: 14px; color: #78909c; margin-bottom: 14px;
+        }
+
         .or-text {
             font-size: 13px; color: #546e7a; font-weight: 500;
         }
@@ -331,6 +355,14 @@
                         </a>
                     </div>
                 </div>
+            </div>
+
+            <!-- Download locandina -->
+            <div class="download-section">
+                <p>Scarichi la locandina del corso con tutti i dettagli</p>
+                <a href="docs/locandina_corso_malavasi.pdf" class="btn-download" download>
+                    &#128196;&nbsp; Scarica la locandina (PDF)
+                </a>
             </div>
 
             <div class="section-divider">&mdash; &mdash; &mdash;</div>
