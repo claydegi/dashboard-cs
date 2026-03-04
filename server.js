@@ -4337,6 +4337,10 @@ app.get('/magnetic-mallet', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'magnetic-mallet.html'));
 });
 
+app.get('/privacy-policy', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
+});
+
 // Registrazione webinar (PUBBLICA, no auth — chiamata dal form landing page)
 app.post('/api/webinar/register', async (req, res) => {
     const { nome, cognome, email, citta, ha_mm } = req.body;
