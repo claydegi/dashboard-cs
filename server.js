@@ -47,9 +47,9 @@ const WEBINAR_DATA = {
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Malavasi, 9 marzo ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
-        link_followup: 'https://dashboard-cs-production.up.railway.app/webinar-followup',
+        link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
-        link_webinar: 'https://dashboard-cs-production.up.railway.app/webinar'
+        link_webinar: 'https://app.osseotouch.com/webinar'
     }
 };
 
