@@ -4611,11 +4611,10 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 COUNT(*)::int AS totale,
                 COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
                 COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead')
-                    AND COALESCE(c.tipo, (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) LIMIT 1)) = 'lead')::int AS lead_esistenti,
+                    AND (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead_esistenti,
                 COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead')
-                    AND COALESCE(c.tipo, (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) LIMIT 1)) = 'account')::int AS account_esistenti
+                    AND (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account_esistenti
             FROM crm_webinar_registrazioni r
-            LEFT JOIN crm_contatti c ON r.contatto_id = c.id
             GROUP BY r.webinar_tag
         `);
 
@@ -4642,13 +4641,12 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Parametro tag obbligatorio' });
     }
     try {
-        // JOIN per ID, fallback per email (i nuovi hanno ID negativo rimappato dopo sync)
+        // Lookup via email (robusto: funziona anche dopo remap ID negativo->positivo)
         const result = await pool.query(`
             SELECT r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
-                   COALESCE(c.regione, (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) LIMIT 1)) AS regione,
-                   COALESCE(c.tipo, (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) LIMIT 1)) AS tipo
+                   (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
+                   (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo
             FROM crm_webinar_registrazioni r
-            LEFT JOIN crm_contatti c ON r.contatto_id = c.id
             WHERE r.webinar_tag = $1
             ORDER BY r.created_at DESC
         `, [tag]);
