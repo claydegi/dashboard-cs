@@ -658,7 +658,6 @@
                             <span class="wc-label">Totale</span>
                         </div>
                     </div>
-                    ${IS_ADMIN ? `
                     <div style="margin-top:10px; text-align:center;">
                         <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
                             style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
@@ -666,7 +665,6 @@
                         </button>
                     </div>
                     <div id="${listId}" style="display:none; margin-top:10px;"></div>
-                    ` : ''}
                 </div>
             `;
         }
