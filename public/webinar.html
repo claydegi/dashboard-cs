@@ -4,6 +4,14 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Webinar OSSEOTOUCH - Dr. A. Malavasi</title>
+    <!-- Google Tag (gtag.js) - Google Ads Conversion Tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-708493969"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'AW-708493969');
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -775,6 +783,14 @@
                 if (resp.ok) {
                     form.style.display = 'none';
                     successMsg.style.display = 'block';
+                    // Google Ads — traccia conversione registrazione webinar
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'conversion', {
+                            'send_to': 'AW-708493969/fLPdCJfs8IIcEJGF69EC',
+                            'value': 1.0,
+                            'currency': 'EUR'
+                        });
+                    }
                     // Mostra link Zoom se disponibile
                     if (result.zoom_join_url) {
                         document.getElementById('zoomJoinLink').href = result.zoom_join_url;
