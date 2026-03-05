@@ -4610,10 +4610,11 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 r.webinar_tag,
                 COUNT(*)::int AS totale,
                 COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
-                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND c.tipo = 'lead')::int AS lead_esistenti,
-                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND c.tipo = 'account')::int AS account_esistenti
+                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND COALESCE(c.tipo, c2.tipo) = 'lead')::int AS lead_esistenti,
+                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead') AND COALESCE(c.tipo, c2.tipo) = 'account')::int AS account_esistenti
             FROM crm_webinar_registrazioni r
             LEFT JOIN crm_contatti c ON r.contatto_id = c.id
+            LEFT JOIN crm_contatti c2 ON LOWER(c2.email) = LOWER(r.email) AND c.id IS NULL
             GROUP BY r.webinar_tag
         `);
 
@@ -4640,11 +4641,14 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Parametro tag obbligatorio' });
     }
     try {
+        // JOIN per ID, fallback per email (i nuovi hanno ID negativo rimappato dopo sync)
         const result = await pool.query(`
             SELECT r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
-                   c.regione, c.tipo
+                   COALESCE(c.regione, c2.regione) AS regione,
+                   COALESCE(c.tipo, c2.tipo) AS tipo
             FROM crm_webinar_registrazioni r
             LEFT JOIN crm_contatti c ON r.contatto_id = c.id
+            LEFT JOIN crm_contatti c2 ON LOWER(c2.email) = LOWER(r.email) AND c.id IS NULL
             WHERE r.webinar_tag = $1
             ORDER BY r.created_at DESC
         `, [tag]);
