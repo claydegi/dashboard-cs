@@ -633,6 +633,8 @@
         for (const tag of tags) {
             const s = webinarStats[tag];
             const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
+            const toggleId = 'toggle_' + tag;
+            const listId = 'list_' + tag;
             html += `
                 <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                     <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
@@ -656,10 +658,86 @@
                             <span class="wc-label">Totale</span>
                         </div>
                     </div>
+                    ${IS_ADMIN ? `
+                    <div style="margin-top:10px; text-align:center;">
+                        <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
+                            style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
+                            &#9660; Mostra iscritti
+                        </button>
+                    </div>
+                    <div id="${listId}" style="display:none; margin-top:10px;"></div>
+                    ` : ''}
                 </div>
             `;
         }
         panel.innerHTML = html;
+    }
+
+    async function toggleRegistrants(tag, listId, toggleId) {
+        const listDiv = document.getElementById(listId);
+        const btn = document.getElementById(toggleId);
+        if (!listDiv || !btn) return;
+
+        if (listDiv.style.display !== 'none') {
+            listDiv.style.display = 'none';
+            btn.innerHTML = '&#9660; Mostra iscritti';
+            return;
+        }
+
+        // Lazy load: fetch solo al primo click
+        if (!listDiv.dataset.loaded) {
+            btn.innerHTML = 'Caricamento...';
+            btn.disabled = true;
+            try {
+                const resp = await fetch(`${API_URL}/webinar/registrants?key=${ADMIN_KEY}&tag=${encodeURIComponent(tag)}`);
+                if (!resp.ok) throw new Error('Errore server');
+                const data = await resp.json();
+                const registrants = data.registrants || [];
+
+                const nuovi = registrants.filter(r => r.azione === 'nuovo_account' || r.azione === 'nuovo_lead');
+                const lead = registrants.filter(r => r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'lead');
+                const account = registrants.filter(r => r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'account');
+
+                let tableHtml = '';
+                const renderGroup = (title, items, color) => {
+                    if (items.length === 0) return '';
+                    let h = `<div style="font-size:0.75rem; font-weight:600; color:${color}; margin:8px 0 4px; text-transform:uppercase;">${title} (${items.length})</div>`;
+                    h += `<table style="width:100%; font-size:0.75rem; border-collapse:collapse;">
+                        <thead><tr style="background:var(--gray-100, #f3f4f6);">
+                            <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Cognome</th>
+                            <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Nome</th>
+                            <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Email</th>
+                            <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Citta</th>
+                            <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Regione</th>
+                        </tr></thead><tbody>`;
+                    for (const r of items) {
+                        h += `<tr style="border-bottom:1px solid var(--gray-100, #f3f4f6);">
+                            <td style="padding:3px 6px;">${escapeHtml(r.cognome || '')}</td>
+                            <td style="padding:3px 6px;">${escapeHtml(r.nome || '')}</td>
+                            <td style="padding:3px 6px;">${escapeHtml(r.email || '')}</td>
+                            <td style="padding:3px 6px;">${escapeHtml(r.citta || '')}</td>
+                            <td style="padding:3px 6px;">${escapeHtml(r.regione || '-')}</td>
+                        </tr>`;
+                    }
+                    h += '</tbody></table>';
+                    return h;
+                };
+
+                tableHtml += renderGroup('Nuovi', nuovi, '#d97706');
+                tableHtml += renderGroup('Lead esistenti', lead, '#6b7280');
+                tableHtml += renderGroup('Account esistenti', account, '#059669');
+
+                listDiv.innerHTML = `<div style="max-height:300px; overflow-y:auto;">${tableHtml}</div>`;
+                listDiv.dataset.loaded = 'true';
+            } catch (err) {
+                listDiv.innerHTML = `<div style="color:#ef4444; font-size:0.78rem;">Errore nel caricamento iscritti</div>`;
+                console.error('Errore caricamento registrants:', err);
+            }
+            btn.disabled = false;
+        }
+
+        listDiv.style.display = 'block';
+        btn.innerHTML = '&#9650; Nascondi iscritti';
     }
 
     function findWebinarTag(titolo, webinarStats) {

@@ -22,6 +22,20 @@ const CONFIG = {
     MAILGUN_FROM: process.env.MAILGUN_FROM || 'Osseotouch <contact@osseotouch.com>'
 };
 
+// ==================== ISTAT LOOKUP: citta -> regione ====================
+let COMUNI_REGIONI = {};
+try {
+    COMUNI_REGIONI = JSON.parse(fs.readFileSync(path.join(__dirname, 'data', 'comuni_regioni.json'), 'utf-8'));
+    console.log(`[ISTAT] Caricati ${Object.keys(COMUNI_REGIONI).length} comuni`);
+} catch (e) {
+    console.warn('[ISTAT] comuni_regioni.json non trovato, lookup regione disabilitato');
+}
+
+function lookupRegione(citta) {
+    if (!citta) return null;
+    return COMUNI_REGIONI[citta.toUpperCase()] || null;
+}
+
 // ==================== MAILGUN EMAIL HELPER ====================
 
 // Dati webinar per i template email (futuro: da DB o config)
@@ -4389,9 +4403,16 @@ app.post('/api/webinar/register', async (req, res) => {
             contattoId = contatto.id;
             const tipo = contatto.tipo || 'lead';
 
-            // Aggiorna citta se mancante
+            // Aggiorna citta e regione se mancanti
             if (!contatto.citta && cittaClean) {
-                await client.query('UPDATE crm_contatti SET citta = $1 WHERE id = $2', [cittaClean, contattoId]);
+                const regioneLookup = lookupRegione(cittaClean);
+                await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, regioneLookup, contattoId]);
+            } else if (cittaClean) {
+                // Contatto con citta ma senza regione: assegna regione via ISTAT
+                const regioneLookup = lookupRegione(cittaClean);
+                if (regioneLookup) {
+                    await client.query('UPDATE crm_contatti SET regione = $1 WHERE id = $2 AND regione IS NULL', [regioneLookup, contattoId]);
+                }
             }
 
             // Verifica prodotti MM esistenti
@@ -4457,12 +4478,15 @@ app.post('/api/webinar/register', async (req, res) => {
             const newId = Math.min(minId.rows[0].min_id, 0) - 1;
             contattoId = newId;
 
+            // Lookup regione da ISTAT
+            const regione = lookupRegione(cittaClean);
+
             if (dichiaraMM) {
                 // Dice "si ho MM" -> crea ACCOUNT con prodotto MM
                 await client.query(`
-                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, fonte_sync, data_inserimento, score, tipo, mercato)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'account', 'ITALY')
-                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, 'webinar_registrazione', oggi]);
+                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'account', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, regione, 'webinar_registrazione', oggi]);
 
                 await client.query(
                     'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
@@ -4472,9 +4496,9 @@ app.post('/api/webinar/register', async (req, res) => {
             } else {
                 // Dice "no" -> crea LEAD
                 await client.query(`
-                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, fonte_sync, data_inserimento, score, tipo, mercato)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, 0, 'lead', 'ITALY')
-                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, 'webinar_registrazione', oggi]);
+                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'lead', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, regione, 'webinar_registrazione', oggi]);
                 azione = 'nuovo_lead';
             }
 
@@ -4487,6 +4511,7 @@ app.post('/api/webinar/register', async (req, res) => {
                     nome: nomeClean,
                     email: emailClean,
                     citta: cittaClean,
+                    regione: regione,
                     tipo: dichiaraMM ? 'account' : 'lead',
                     mercato: 'ITALY',
                     prodotti: dichiaraMM ? ['MM'] : [],
@@ -4604,6 +4629,28 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
         res.json(stats);
     } catch (err) {
         console.error('[Webinar Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/webinar/registrants — lista iscritti webinar per tendina espandibile dashboard
+app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
+    const tag = req.query.tag;
+    if (!tag) {
+        return res.status(400).json({ error: 'Parametro tag obbligatorio' });
+    }
+    try {
+        const result = await pool.query(`
+            SELECT r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+                   c.regione, c.tipo
+            FROM crm_webinar_registrazioni r
+            LEFT JOIN crm_contatti c ON r.contatto_id = c.id
+            WHERE r.webinar_tag = $1
+            ORDER BY r.created_at DESC
+        `, [tag]);
+        res.json({ registrants: result.rows });
+    } catch (err) {
+        console.error('[Webinar Registrants]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
