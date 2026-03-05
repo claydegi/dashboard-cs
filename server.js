@@ -4602,6 +4602,23 @@ app.post('/api/webinar/register', async (req, res) => {
     }
 });
 
+// PUT /api/webinar/registrations/fix-action — aggiorna azione registrazioni webinar (per merge duplicati)
+app.put('/api/webinar/registrations/fix-action', requireAdmin, async (req, res) => {
+    const { emails, nuova_azione, webinar_tag } = req.body;
+    if (!emails || !nuova_azione || !webinar_tag) {
+        return res.status(400).json({ error: 'emails, nuova_azione, webinar_tag richiesti' });
+    }
+    try {
+        const result = await pool.query(
+            `UPDATE crm_webinar_registrazioni SET azione = $1 WHERE webinar_tag = $2 AND LOWER(email) = ANY($3::text[])`,
+            [nuova_azione, webinar_tag, emails.map(e => e.toLowerCase())]
+        );
+        res.json({ ok: true, updated: result.rowCount });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/webinar/stats — statistiche registrazioni webinar per counter in pianificazione marketing
 app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
     try {
