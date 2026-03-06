@@ -4674,6 +4674,29 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     }
 });
 
+// DELETE /api/webinar/registrants/:email — rimuove una registrazione webinar per email
+app.delete('/api/webinar/registrants/:email', requireAdmin, async (req, res) => {
+    const email = decodeURIComponent(req.params.email).toLowerCase().trim();
+    const tag = req.query.tag;
+    if (!tag) {
+        return res.status(400).json({ error: 'Parametro tag obbligatorio' });
+    }
+    try {
+        const result = await pool.query(
+            'DELETE FROM crm_webinar_registrazioni WHERE LOWER(email) = $1 AND webinar_tag = $2',
+            [email, tag]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registrazione non trovata' });
+        }
+        console.log(`[Webinar] Rimossa registrazione: ${email} da ${tag}`);
+        res.json({ ok: true, messaggio: `Registrazione ${email} rimossa da ${tag}` });
+    } catch (err) {
+        console.error('[Webinar Delete]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // POST /api/webinar/send-reminder — invia email reminder a tutti gli iscritti di un webinar
 app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
