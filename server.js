@@ -4674,12 +4674,12 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     }
 });
 
-// DELETE /api/webinar/registrants/:email — rimuove una registrazione webinar per email
-app.delete('/api/webinar/registrants/:email', requireAdmin, async (req, res) => {
-    const email = decodeURIComponent(req.params.email).toLowerCase().trim();
-    const tag = req.query.tag;
-    if (!tag) {
-        return res.status(400).json({ error: 'Parametro tag obbligatorio' });
+// POST /api/webinar/registrants/delete — rimuove una registrazione webinar per email
+app.post('/api/webinar/registrants/delete', requireAdmin, async (req, res) => {
+    const email = (req.body.email || '').toLowerCase().trim();
+    const tag = req.body.tag || req.query.tag;
+    if (!email || !tag) {
+        return res.status(400).json({ error: 'Parametri email e tag obbligatori' });
     }
     try {
         const result = await pool.query(
