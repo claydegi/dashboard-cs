@@ -572,8 +572,8 @@
             // Render da eseguire (solo attivita' promosse)
             renderDaEseguire(daEseguireAtt, webinarStats);
 
-            // Calendario webinar
-            renderCalendario();
+            // Calendario webinar (passa attivita' promosse per generare entries dinamiche)
+            renderCalendario(daEseguireAtt);
 
             // Stats registrazioni webinar
             renderWebinarStats(webinarStats);
@@ -746,7 +746,7 @@
             const parts = tag.toLowerCase().split('_').filter(p => p !== 'webinar');
             if (parts.some(part => titoloLower.includes(part))) return tag;
         }
-        return tags.length > 0 ? tags[0] : null;
+        return null; // nessun fallback: se non matcha, non mostra counter
     }
 
     function renderDaEseguire(attivita, webinarStats) {
@@ -935,7 +935,7 @@
         return false;
     }
 
-    function renderCalendario() {
+    function renderCalendario(attivitaPromosse) {
         const container = document.getElementById('webinarCalendar');
         const anno = 2026;
         const oggi = new Date();
@@ -944,8 +944,47 @@
         const oggiMese = oggi.getMonth() + 1;
         const oggiAnno = oggi.getFullYear();
 
+        // Genera entries dinamiche da attivita' promosse con "WEBINAR" nel titolo
+        const tagsHardcoded = new Set(WEBINAR_CALENDAR.map(w => (w.tag || '').toUpperCase()));
+        const dinamiche = (attivitaPromosse || [])
+            .filter(a => a.titolo && a.titolo.toUpperCase().includes('WEBINAR') && a.data_prevista)
+            .filter(a => {
+                // Evita duplicati: se esiste gia' un hardcoded con tag corrispondente, salta
+                const titoloUp = a.titolo.toUpperCase();
+                for (const tag of tagsHardcoded) {
+                    const parts = tag.split('_').filter(p => p !== 'WEBINAR');
+                    if (parts.some(p => titoloUp.includes(p))) return false;
+                }
+                return true;
+            })
+            .map(a => {
+                const dataWebinar = new Date(a.data_prevista + 'T00:00:00');
+                // Promo: 1 mese prima del webinar
+                const promoInizio = new Date(dataWebinar);
+                promoInizio.setMonth(promoInizio.getMonth() - 1);
+                // Follow-up: dal giorno dopo fino a 1 settimana dopo il webinar
+                const followupInizio = new Date(dataWebinar);
+                followupInizio.setDate(followupInizio.getDate() + 1);
+                const followupFine = new Date(dataWebinar);
+                followupFine.setDate(followupFine.getDate() + 7);
+
+                const pad = (n) => String(n).padStart(2, '0');
+                const toStr = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+
+                return {
+                    nome: a.titolo,
+                    tag: null,
+                    promo_inizio: toStr(promoInizio),
+                    data_webinar: toStr(dataWebinar),
+                    followup_inizio: toStr(followupInizio),
+                    followup_fine: toStr(followupFine)
+                };
+            });
+
+        const tuttiWebinar = [...WEBINAR_CALENDAR, ...dinamiche];
+
         // Filtra: nascondi webinar il cui follow-up è terminato
-        const webinarAttivi = WEBINAR_CALENDAR.filter(w => {
+        const webinarAttivi = tuttiWebinar.filter(w => {
             const fine = new Date(w.followup_fine + 'T23:59:59');
             return fine >= oggi;
         });
