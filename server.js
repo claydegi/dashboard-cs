@@ -2124,10 +2124,10 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
         const syncIds = contatti.map(c => c.id);
         const orfani = existingIds.filter(eid => !syncIds.includes(eid));
         if (orfani.length > 0) {
-            // Elimina solo se NON creati manualmente dalla dashboard
+            // Elimina solo se NON creati da fonti protette (dashboard, finder, webinar, ecc.)
             const orfResult = await client.query(
-                "SELECT id FROM crm_contatti WHERE id = ANY($1::int[]) AND (fonte_sync IS NULL OR fonte_sync NOT IN ('dashboard_manual'))",
-                [orfani]
+                "SELECT id FROM crm_contatti WHERE id = ANY($1::int[]) AND (fonte_sync IS NULL OR fonte_sync != ALL($2::text[]))",
+                [orfani, FONTI_PROTETTE]
             );
             const idsToDelete = orfResult.rows.map(r => r.id);
             if (idsToDelete.length > 0) {
@@ -2323,6 +2323,7 @@ app.post('/api/crm/contatti/reassign-ids', requireReportsKey, async (req, res) =
             await client.query('UPDATE crm_note SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_opportunita SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_score_prodotti SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
+            await client.query('UPDATE crm_webinar_registrazioni SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
 
             // Sostituisci il contatto (DELETE vecchio + INSERT con nuovo ID)
             await client.query('DELETE FROM crm_contatti WHERE id = $1', [oldId]);
@@ -2690,7 +2691,7 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
             const fkTables = [
                 'crm_prodotti', 'crm_acquisti', 'crm_note', 'crm_opportunita',
                 'crm_score_prodotti', 'crm_audit_log', 'crm_cestino',
-                'crm_modifiche_log', 'crm_promozioni_log'
+                'crm_modifiche_log', 'crm_promozioni_log', 'crm_webinar_registrazioni'
             ];
             for (const table of fkTables) {
                 await client.query(`UPDATE ${table} SET contatto_id = $1 WHERE contatto_id = $2`, [new_id, old_id]);
@@ -2725,6 +2726,9 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
             await client.query('UPDATE crm_cestino SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
             await client.query('UPDATE crm_modifiche_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
             await client.query('UPDATE crm_promozioni_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Webinar registrazioni: migra (contatto_id cambia, email resta uguale)
+            await client.query('UPDATE crm_webinar_registrazioni SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
 
             // Cancella il vecchio contatto orfano
             await client.query('DELETE FROM crm_contatti WHERE id = $1', [old_id]);
@@ -3637,7 +3641,7 @@ app.delete('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
         // 5. DELETE — ON DELETE CASCADE rimuove automaticamente:
         // crm_prodotti, crm_acquisti, crm_note, crm_opportunita,
         // crm_score_prodotti, crm_score_manuali, crm_promozioni_log,
-        // crm_video_tracking, crm_whatsapp_clicks
+        // crm_video_tracking, crm_whatsapp_clicks, crm_webinar_registrazioni
         await client.query('DELETE FROM crm_contatti WHERE id = $1', [contattoId]);
 
         await client.query('COMMIT');
@@ -4694,6 +4698,100 @@ app.post('/api/webinar/registrants/delete', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[Webinar Delete]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/registrants/recover — recupera iscrizioni perse (admin only, no Zoom, no email)
+app.post('/api/webinar/registrants/recover', requireAdmin, async (req, res) => {
+    const { registrants } = req.body; // [{email, nome, cognome, citta, ha_mm, zoom_link}]
+    const tag = req.body.tag || 'WEBINAR_MALAVASI_PT1';
+
+    if (!registrants || !Array.isArray(registrants) || registrants.length === 0) {
+        return res.status(400).json({ error: 'Parametro registrants (array) obbligatorio' });
+    }
+
+    const client = await pool.connect();
+    const results = [];
+    try {
+        for (const reg of registrants) {
+            const emailClean = (reg.email || '').trim().toLowerCase();
+            const nomeClean = (reg.nome || '').trim();
+            const cognomeClean = (reg.cognome || '').trim();
+            const cittaClean = (reg.citta || '').trim().toUpperCase();
+            const dichiaraMM = (reg.ha_mm === 'si');
+            const zoomLink = reg.zoom_link || null;
+
+            if (!emailClean) { results.push({ email: reg.email, error: 'email mancante' }); continue; }
+
+            // Skip se gia' presente
+            const exists = await client.query(
+                'SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2',
+                [tag, emailClean]
+            );
+            if (exists.rows.length > 0) { results.push({ email: emailClean, status: 'gia_presente' }); continue; }
+
+            await client.query('BEGIN');
+            try {
+                const oggi = new Date().toISOString().split('T')[0];
+
+                // Trova o crea contatto
+                const existing = await client.query(
+                    'SELECT id, tipo FROM crm_contatti WHERE LOWER(email) = $1', [emailClean]
+                );
+                let contattoId;
+                let azione;
+
+                if (existing.rows.length > 0) {
+                    contattoId = existing.rows[0].id;
+                    azione = 'esistente_recovery';
+                } else {
+                    const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+                    contattoId = Math.min(minId.rows[0].min_id, 0) - 1;
+                    const regione = lookupRegione(cittaClean);
+                    const tipo = dichiaraMM ? 'account' : 'lead';
+                    await client.query(`
+                        INSERT INTO crm_contatti (id, cognome, nome, email, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
+                        VALUES ($1, $2, $3, $4, $5, $6, 'webinar_registrazione', $7, 0, $8, 'ITALY')
+                    `, [contattoId, cognomeClean, nomeClean, emailClean, cittaClean, regione, oggi, tipo]);
+                    if (dichiaraMM) {
+                        await client.query(
+                            'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                            [contattoId, 'MM', oggi, 'webinar_registrazione']
+                        );
+                    }
+                    azione = dichiaraMM ? 'nuovo_account_recovery' : 'nuovo_lead_recovery';
+                }
+
+                // Score +30
+                const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+                const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'PT1' : 'GENERICO';
+                await client.query(
+                    `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento) VALUES ($1, $2, 'iscrizione_webinar', 30, $3)`,
+                    [contattoId, lineaScore, oggi]
+                );
+
+                // Inserisci registrazione con zoom_link
+                await client.query(
+                    `INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione, zoom_link)
+                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+                    [tag, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, reg.ha_mm || 'no', azione, zoomLink]
+                );
+
+                await client.query('COMMIT');
+                console.log(`[Webinar Recovery] ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | contatto_id=${contattoId}`);
+                results.push({ email: emailClean, status: 'recuperato', azione, contatto_id: contattoId });
+            } catch (innerErr) {
+                await client.query('ROLLBACK');
+                console.error(`[Webinar Recovery] Errore per ${emailClean}:`, innerErr.message);
+                results.push({ email: emailClean, error: innerErr.message });
+            }
+        }
+        res.json({ ok: true, results });
+    } catch (err) {
+        console.error('[Webinar Recovery]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
