@@ -4355,6 +4355,10 @@ app.get('/magnetic-mallet', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'magnetic-mallet.html'));
 });
 
+app.get('/cadaver-lab-verona', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'cadaver-lab-verona.html'));
+});
+
 app.get('/privacy-policy', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'privacy-policy.html'));
 });
