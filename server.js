@@ -4635,10 +4635,10 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 r.webinar_tag,
                 COUNT(*)::int AS totale,
                 COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
-                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead')
-                    AND (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead_esistenti,
-                COUNT(*) FILTER (WHERE r.azione NOT IN ('nuovo_account', 'nuovo_lead')
-                    AND (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account_esistenti
+                COUNT(*) FILTER (WHERE
+                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead,
+                COUNT(*) FILTER (WHERE
+                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account
             FROM crm_webinar_registrazioni r
             GROUP BY r.webinar_tag
         `);
@@ -4648,8 +4648,8 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
             stats[row.webinar_tag] = {
                 totale: row.totale,
                 nuovi: row.nuovi,
-                lead_esistenti: row.lead_esistenti,
-                account_esistenti: row.account_esistenti
+                lead: row.lead,
+                account: row.account
             };
         }
         res.json(stats);
