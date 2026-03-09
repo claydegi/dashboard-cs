@@ -37,7 +37,7 @@
 
         /* Hero */
         .hero {
-            max-width: 800px;
+            max-width: 900px;
             margin: 20px auto 0;
             padding: 0 40px;
             text-align: center;
@@ -51,14 +51,24 @@
             font-size: 16px; color: #b0bec5; line-height: 1.7;
         }
 
-        /* Sections container */
+        /* Sections container — two-column layout */
         .sections {
-            max-width: 900px;
+            max-width: 1280px;
             margin: 40px auto 0;
             padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 36px;
+            align-items: start;
+        }
+        .col-left {
             display: flex;
             flex-direction: column;
-            gap: 36px;
+            gap: 28px;
+        }
+        .col-right {
+            position: sticky;
+            top: 24px;
         }
 
         /* Card section */
@@ -389,6 +399,13 @@
         }
 
         /* Responsive */
+        @media (max-width: 960px) {
+            .sections {
+                grid-template-columns: 1fr;
+                max-width: 700px;
+            }
+            .col-right { position: static; }
+        }
         @media (max-width: 700px) {
             .hero { padding: 0 20px; }
             .hero h1 { font-size: 24px; }
@@ -429,8 +446,11 @@
             </p>
         </div>
 
-        <!-- Sections -->
+        <!-- Sections — two columns -->
         <div class="sections">
+
+            <!-- COLONNA SINISTRA: Offerte -->
+            <div class="col-left">
 
             <!-- BLOCCO 1: Corso in presenza -->
             <div class="offer-card corso-accent">
@@ -487,9 +507,7 @@
                 </a>
             </div>
 
-            <div class="section-divider">&mdash; &mdash; &mdash;</div>
-
-            <!-- BLOCCO 2: Kit PT1 (spostato sopra al forum) -->
+            <!-- BLOCCO 2: Kit PT1 -->
             <div class="offer-card kit-accent" style="padding: 0; overflow: hidden;">
                 <div class="kit-card-layout" style="width: 100%;">
                     <div class="kit-image">
@@ -528,11 +546,12 @@
                 </div>
             </div>
 
-            <!-- BLOCCO 3: Forum Q&A -->
-            <div class="section-divider">&mdash; &mdash; &mdash;</div>
+            </div><!-- /col-left -->
 
+            <!-- COLONNA DESTRA: Forum Q&A -->
+            <div class="col-right">
             <div class="offer-card forum-section" style="flex-direction: column; align-items: stretch;">
-                <div class="forum-title">Domande al Dr. Malavasi</div>
+                <div class="forum-title">Forum impianti pterigoidei con magnetodinamica</div>
                 <div class="forum-subtitle">
                     Ha dubbi sulle tecniche viste nel webinar? Ponga le sue domande al Dr. Malavasi.
                     Le risposte saranno visibili a tutti i partecipanti.
@@ -542,6 +561,7 @@
                     <div class="forum-empty">Caricamento...</div>
                 </div>
             </div>
+            </div><!-- /col-right -->
 
         </div>
 
