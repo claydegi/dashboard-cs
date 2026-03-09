@@ -689,8 +689,6 @@
                 html += createImageUpload('topicImg');
                 html += '<button class="btn-submit-forum" id="btnSubmitTopic" onclick="submitTopic()">Invia domanda</button>';
                 html += '</div>';
-            } else if (!canPost) {
-                html += '<div class="forum-readonly-msg">Per aprire una discussione o rispondere, utilizzare il link personalizzato ricevuto via email dopo il webinar.</div>';
             }
 
             if (topics.length === 0) {
