@@ -266,6 +266,128 @@
             font-size: 13px; color: #78909c; margin-left: 4px;
         }
 
+        /* Forum Q&A */
+        .forum-section { margin-top: 16px; }
+        .forum-title {
+            font-size: 22px; font-weight: 800; margin-bottom: 6px;
+        }
+        .forum-subtitle {
+            font-size: 14px; color: #b0bec5; margin-bottom: 24px; line-height: 1.6;
+        }
+        .forum-readonly-msg {
+            text-align: center; color: #78909c; font-size: 14px;
+            padding: 16px; background: rgba(255,255,255,0.04); border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .btn-new-topic {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 12px 24px; background: rgba(0,180,216,0.12);
+            border: 1px solid rgba(0,180,216,0.35); color: #00b4d8;
+            border-radius: 8px; font-size: 14px; font-weight: 700;
+            cursor: pointer; transition: background 0.2s; margin-bottom: 20px;
+        }
+        .btn-new-topic:hover { background: rgba(0,180,216,0.2); }
+
+        .forum-form {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 12px; padding: 24px; margin-bottom: 24px; display: none;
+        }
+        .forum-form.visible { display: block; }
+        .forum-input, .forum-textarea {
+            width: 100%; padding: 12px 14px; background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+            color: #fff; font-family: inherit; font-size: 14px;
+            margin-bottom: 12px; outline: none; transition: border 0.2s;
+        }
+        .forum-input:focus, .forum-textarea:focus { border-color: #00b4d8; }
+        .forum-textarea { min-height: 100px; resize: vertical; }
+        .forum-input::placeholder, .forum-textarea::placeholder { color: #546e7a; }
+
+        .forum-img-upload {
+            border: 2px dashed rgba(255,255,255,0.15); border-radius: 8px;
+            padding: 16px; text-align: center; cursor: pointer;
+            color: #78909c; font-size: 13px; margin-bottom: 12px;
+            transition: border-color 0.2s;
+        }
+        .forum-img-upload:hover { border-color: rgba(0,180,216,0.5); }
+        .forum-img-upload.has-file { border-color: #00b4d8; color: #00b4d8; }
+        .forum-img-preview {
+            max-width: 200px; max-height: 150px; border-radius: 6px; margin-top: 8px;
+        }
+        .forum-img-upload input[type="file"] { display: none; }
+
+        .btn-submit-forum {
+            padding: 12px 28px; background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: #fff; border: none; border-radius: 8px;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-submit-forum:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,180,216,0.3); }
+        .btn-submit-forum:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .topic-card {
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 12px; padding: 20px 24px; margin-bottom: 12px;
+            cursor: pointer; transition: background 0.2s, border-color 0.2s;
+        }
+        .topic-card:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); }
+        .topic-card-title { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+        .topic-card-meta { font-size: 12px; color: #78909c; margin-bottom: 8px; }
+        .topic-card-preview { font-size: 14px; color: #b0bec5; line-height: 1.6; margin-bottom: 10px; }
+        .topic-card-footer { display: flex; align-items: center; gap: 14px; font-size: 12px; color: #546e7a; }
+        .badge-relatore {
+            display: inline-block; padding: 2px 8px; background: rgba(0,180,216,0.15);
+            border: 1px solid rgba(0,180,216,0.3); border-radius: 4px;
+            font-size: 11px; font-weight: 700; color: #00b4d8;
+        }
+        .badge-img { font-size: 14px; }
+
+        .topic-detail-back {
+            display: inline-flex; align-items: center; gap: 6px;
+            color: #00b4d8; font-size: 13px; font-weight: 600; cursor: pointer;
+            margin-bottom: 16px; background: none; border: none; padding: 0;
+        }
+        .topic-detail-back:hover { text-decoration: underline; }
+
+        .topic-detail-title { font-size: 20px; font-weight: 800; margin-bottom: 6px; }
+        .topic-detail-meta { font-size: 12px; color: #78909c; margin-bottom: 14px; }
+        .topic-detail-corpo { font-size: 15px; color: #e0e0e0; line-height: 1.7; margin-bottom: 16px; white-space: pre-wrap; }
+        .topic-detail-image { max-width: 100%; border-radius: 8px; margin-bottom: 16px; }
+
+        .replies-divider { border: none; border-top: 1px solid rgba(255,255,255,0.1); margin: 20px 0; }
+
+        .reply-card {
+            padding: 16px 20px; margin-bottom: 10px; border-radius: 10px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06);
+            position: relative;
+        }
+        .reply-card.relatore {
+            background: rgba(0,180,216,0.06); border-left: 3px solid #00b4d8;
+        }
+        .reply-meta { font-size: 12px; color: #78909c; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+        .reply-corpo { font-size: 14px; color: #e0e0e0; line-height: 1.7; white-space: pre-wrap; }
+        .reply-image { max-width: 100%; max-height: 400px; border-radius: 8px; margin-top: 10px; }
+
+        .btn-delete-forum {
+            position: absolute; top: 10px; right: 10px;
+            background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3);
+            color: #ef4444; border-radius: 6px; padding: 4px 8px;
+            font-size: 12px; cursor: pointer; transition: background 0.2s;
+        }
+        .btn-delete-forum:hover { background: rgba(239,68,68,0.25); }
+
+        .forum-empty {
+            text-align: center; color: #546e7a; font-size: 14px;
+            padding: 32px 16px;
+        }
+
+        .relatore-indicator {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(0,180,216,0.1); border: 1px solid rgba(0,180,216,0.25);
+            border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #00b4d8;
+            font-weight: 600; margin-bottom: 16px;
+        }
+
         /* Responsive */
         @media (max-width: 700px) {
             .hero { padding: 0 20px; }
@@ -367,7 +489,7 @@
 
             <div class="section-divider">&mdash; &mdash; &mdash;</div>
 
-            <!-- BLOCCO 2: Kit PT1 -->
+            <!-- BLOCCO 2: Kit PT1 (spostato sopra al forum) -->
             <div class="offer-card kit-accent" style="padding: 0; overflow: hidden;">
                 <div class="kit-card-layout" style="width: 100%;">
                     <div class="kit-image">
@@ -406,6 +528,21 @@
                 </div>
             </div>
 
+            <!-- BLOCCO 3: Forum Q&A -->
+            <div class="section-divider">&mdash; &mdash; &mdash;</div>
+
+            <div class="offer-card forum-section" style="flex-direction: column; align-items: stretch;">
+                <div class="forum-title">Domande al Dr. Malavasi</div>
+                <div class="forum-subtitle">
+                    Ha dubbi sulle tecniche viste nel webinar? Ponga le sue domande al Dr. Malavasi.
+                    Le risposte saranno visibili a tutti i partecipanti.
+                </div>
+
+                <div id="forumContainer">
+                    <div class="forum-empty">Caricamento...</div>
+                </div>
+            </div>
+
         </div>
 
         <!-- Footer -->
@@ -417,18 +554,311 @@
 
     <script>
     (function() {
+        // === WhatsApp links ===
         var params = new URLSearchParams(window.location.search);
         var regione = (params.get('r') || '').toLowerCase();
         var numero = regione === 'lombardia' ? '393349049883' : '393387351260';
-
         var corsoMsg = encodeURIComponent('Buongiorno, ho partecipato al webinar del Dr. Malavasi e vorrei informazioni sul corso in presenza del 30 maggio.');
         var kitMsg = encodeURIComponent('Buongiorno, ho partecipato al webinar del Dr. Malavasi e vorrei informazioni sul Kit PT1 per Magnetic Mallet.');
-
         var waCorso = document.getElementById('wa-corso');
         if (waCorso) waCorso.href = 'https://wa.me/' + numero + '?text=' + corsoMsg;
-
         var waKit = document.getElementById('wa-kit');
         if (waKit) waKit.href = 'https://wa.me/' + numero + '?text=' + kitMsg;
+
+        // === Forum Q&A ===
+        var API = window.location.origin;
+        var WEBINAR_TAG = 'WEBINAR_MALAVASI_PT1';
+        var userEmail = null;
+        var adminKey = params.get('key') || null;
+        var relatoreKey = params.get('relatore_key') || null;
+        var canPost = false;
+        var canDelete = !!(adminKey || relatoreKey);
+
+        // Decode email from base64 param
+        try {
+            var eParam = params.get('e');
+            if (eParam) userEmail = atob(eParam).trim().toLowerCase();
+        } catch(e) {}
+
+        canPost = !!userEmail || !!relatoreKey;
+
+        var container = document.getElementById('forumContainer');
+
+        // === Helpers ===
+        function esc(text) {
+            var d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
+        }
+        function formatDate(iso) {
+            var d = new Date(iso);
+            return d.toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+        function shortName(nome, cognome) {
+            return esc((nome || '') + ' ' + (cognome || '').charAt(0) + '.').trim();
+        }
+
+        // Image resize helper (max 1920px, returns base64)
+        function resizeImage(file, maxW, cb) {
+            var reader = new FileReader();
+            reader.onload = function(ev) {
+                var img = new Image();
+                img.onload = function() {
+                    var w = img.width, h = img.height;
+                    if (w > maxW) { h = Math.round(h * maxW / w); w = maxW; }
+                    var canvas = document.createElement('canvas');
+                    canvas.width = w; canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+                    var dataUrl = canvas.toDataURL(file.type === 'image/png' ? 'image/png' : 'image/jpeg', 0.85);
+                    var base64 = dataUrl.split(',')[1];
+                    var tipo = dataUrl.split(';')[0].split(':')[1];
+                    cb(base64, tipo);
+                };
+                img.src = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        // Image upload widget
+        function createImageUpload(id) {
+            return '<div class="forum-img-upload" id="' + id + '-zone" onclick="document.getElementById(\'' + id + '\').click()">' +
+                '<input type="file" id="' + id + '" accept="image/jpeg,image/png,image/webp">' +
+                '<div id="' + id + '-label">Clicca o trascina per allegare un\'immagine (opzionale)</div>' +
+                '<img id="' + id + '-preview" class="forum-img-preview" style="display:none">' +
+                '</div>';
+        }
+
+        function setupImageUpload(id) {
+            var input = document.getElementById(id);
+            if (!input) return;
+            input.addEventListener('change', function() {
+                var file = input.files[0];
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) { alert('Immagine troppo grande (max 5 MB)'); input.value = ''; return; }
+                var preview = document.getElementById(id + '-preview');
+                var label = document.getElementById(id + '-label');
+                var zone = document.getElementById(id + '-zone');
+                resizeImage(file, 1920, function(b64, tipo) {
+                    input.dataset.base64 = b64;
+                    input.dataset.tipo = tipo;
+                    preview.src = 'data:' + tipo + ';base64,' + b64;
+                    preview.style.display = 'block';
+                    label.textContent = file.name;
+                    zone.classList.add('has-file');
+                });
+            });
+        }
+
+        // Delete auth params for API calls
+        function deleteParams() {
+            if (adminKey) return '?key=' + encodeURIComponent(adminKey);
+            if (relatoreKey) return '?relatore_key=' + encodeURIComponent(relatoreKey);
+            return '';
+        }
+
+        // === Render topic list ===
+        function renderTopicList(topics) {
+            var html = '';
+
+            if (canPost && !relatoreKey) {
+                html += '<button class="btn-new-topic" onclick="toggleNewTopicForm()">+ Fai una domanda</button>';
+                html += '<div class="forum-form" id="newTopicForm">';
+                html += '<input class="forum-input" id="topicTitolo" placeholder="Oggetto della domanda" maxlength="200">';
+                html += '<textarea class="forum-textarea" id="topicCorpo" placeholder="Descriva la sua domanda in dettaglio..." maxlength="5000"></textarea>';
+                html += createImageUpload('topicImg');
+                html += '<button class="btn-submit-forum" id="btnSubmitTopic" onclick="submitTopic()">Invia domanda</button>';
+                html += '</div>';
+            } else if (!canPost) {
+                html += '<div class="forum-readonly-msg">Per partecipare alla discussione, acceda tramite il link ricevuto via email.</div>';
+            }
+
+            if (topics.length === 0) {
+                html += '<div class="forum-empty">Nessuna domanda ancora. Sia il primo a chiedere!</div>';
+            } else {
+                topics.forEach(function(t) {
+                    var preview = t.corpo.length > 180 ? t.corpo.substring(0, 180) + '...' : t.corpo;
+                    html += '<div class="topic-card" onclick="loadTopic(' + t.id + ')">';
+                    html += '<div class="topic-card-title">' + esc(t.titolo) + '</div>';
+                    html += '<div class="topic-card-meta">' + shortName(t.nome, t.cognome) + ' &mdash; ' + formatDate(t.created_at) + '</div>';
+                    html += '<div class="topic-card-preview">' + esc(preview) + '</div>';
+                    html += '<div class="topic-card-footer">';
+                    html += '<span>' + t.reply_count + ' rispost' + (t.reply_count == 1 ? 'a' : 'e') + '</span>';
+                    if (t.has_relatore_reply) html += '<span class="badge-relatore">Risposta del relatore</span>';
+                    if (t.has_image) html += '<span class="badge-img">&#128247;</span>';
+                    html += '</div></div>';
+                });
+            }
+            container.innerHTML = html;
+            setupImageUpload('topicImg');
+        }
+
+        // === Render single topic ===
+        function renderTopicDetail(topic, replies) {
+            var html = '';
+            html += '<button class="topic-detail-back" onclick="loadTopics()">&larr; Torna alle domande</button>';
+            html += '<div class="topic-detail-title">' + esc(topic.titolo) + '</div>';
+            html += '<div class="topic-detail-meta">' + shortName(topic.nome, topic.cognome) + ' &mdash; ' + formatDate(topic.created_at) + '</div>';
+            html += '<div class="topic-detail-corpo">' + esc(topic.corpo) + '</div>';
+            if (topic.immagine_base64) {
+                html += '<img class="topic-detail-image" src="data:' + esc(topic.immagine_tipo) + ';base64,' + topic.immagine_base64 + '">';
+            }
+            if (canDelete) {
+                html += '<button class="btn-delete-forum" style="position:relative;top:0;right:0;margin-bottom:10px" onclick="deleteTopic(' + topic.id + ')">Elimina domanda</button>';
+            }
+
+            html += '<hr class="replies-divider">';
+
+            if (replies.length === 0) {
+                html += '<div class="forum-empty" style="padding:16px">Nessuna risposta ancora.</div>';
+            } else {
+                replies.forEach(function(r) {
+                    var cls = r.is_relatore ? 'reply-card relatore' : 'reply-card';
+                    html += '<div class="' + cls + '" style="position:relative">';
+                    html += '<div class="reply-meta">';
+                    if (r.is_relatore) html += '<span class="badge-relatore">&#127891; Relatore</span>';
+                    html += '<span>' + (r.is_relatore ? 'Dr. ' : '') + shortName(r.nome, r.cognome) + ' &mdash; ' + formatDate(r.created_at) + '</span>';
+                    html += '</div>';
+                    html += '<div class="reply-corpo">' + esc(r.corpo) + '</div>';
+                    if (r.immagine_base64) {
+                        html += '<img class="reply-image" src="data:' + esc(r.immagine_tipo) + ';base64,' + r.immagine_base64 + '">';
+                    }
+                    if (canDelete) {
+                        html += '<button class="btn-delete-forum" onclick="event.stopPropagation();deleteReply(' + r.id + ',' + topic.id + ')">Elimina</button>';
+                    }
+                    html += '</div>';
+                });
+            }
+
+            // Reply form
+            if (canPost) {
+                html += '<div style="margin-top:20px">';
+                if (relatoreKey) {
+                    html += '<div class="relatore-indicator">&#127891; Stai rispondendo come Dr. Malavasi</div>';
+                }
+                html += '<textarea class="forum-textarea" id="replyCorpo" placeholder="Scrivi una risposta..." maxlength="5000"></textarea>';
+                html += createImageUpload('replyImg');
+                html += '<button class="btn-submit-forum" id="btnSubmitReply" onclick="submitReply(' + topic.id + ')">Invia risposta</button>';
+                html += '</div>';
+            }
+
+            container.innerHTML = html;
+            setupImageUpload('replyImg');
+
+            // Scroll to topic if hash
+            container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        // === API calls ===
+        window.loadTopics = function() {
+            fetch(API + '/api/webinar/forum/topics?webinar_tag=' + WEBINAR_TAG)
+                .then(function(r) { return r.json(); })
+                .then(function(data) { renderTopicList(data.topics || []); })
+                .catch(function() { container.innerHTML = '<div class="forum-empty">Errore caricamento forum.</div>'; });
+        };
+
+        window.loadTopic = function(id) {
+            fetch(API + '/api/webinar/forum/topics/' + id)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    renderTopicDetail(data.topic, data.replies || []);
+                })
+                .catch(function() { alert('Errore caricamento domanda.'); });
+        };
+
+        window.toggleNewTopicForm = function() {
+            var form = document.getElementById('newTopicForm');
+            if (form) form.classList.toggle('visible');
+        };
+
+        window.submitTopic = function() {
+            var titolo = document.getElementById('topicTitolo').value.trim();
+            var corpo = document.getElementById('topicCorpo').value.trim();
+            if (!titolo || !corpo) { alert('Inserisca oggetto e testo della domanda.'); return; }
+            var btn = document.getElementById('btnSubmitTopic');
+            btn.disabled = true; btn.textContent = 'Invio...';
+
+            var body = { webinar_tag: WEBINAR_TAG, email: userEmail, titolo: titolo, corpo: corpo };
+            var imgInput = document.getElementById('topicImg');
+            if (imgInput && imgInput.dataset.base64) {
+                body.immagine_base64 = imgInput.dataset.base64;
+                body.immagine_tipo = imgInput.dataset.tipo;
+            }
+
+            fetch(API + '/api/webinar/forum/topics', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Invia domanda'; return; }
+                loadTopics();
+            })
+            .catch(function() { alert('Errore invio. Riprovi.'); btn.disabled = false; btn.textContent = 'Invia domanda'; });
+        };
+
+        window.submitReply = function(topicId) {
+            var corpo = document.getElementById('replyCorpo').value.trim();
+            if (!corpo) { alert('Scriva una risposta.'); return; }
+            var btn = document.getElementById('btnSubmitReply');
+            btn.disabled = true; btn.textContent = 'Invio...';
+
+            var body = { topic_id: topicId, corpo: corpo };
+            if (relatoreKey) {
+                body.relatore_key = relatoreKey;
+                body.email = 'relatore';
+            } else {
+                body.email = userEmail;
+            }
+            var imgInput = document.getElementById('replyImg');
+            if (imgInput && imgInput.dataset.base64) {
+                body.immagine_base64 = imgInput.dataset.base64;
+                body.immagine_tipo = imgInput.dataset.tipo;
+            }
+
+            fetch(API + '/api/webinar/forum/replies', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body)
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.error) { alert(data.error); btn.disabled = false; btn.textContent = 'Invia risposta'; return; }
+                loadTopic(topicId);
+            })
+            .catch(function() { alert('Errore invio. Riprovi.'); btn.disabled = false; btn.textContent = 'Invia risposta'; });
+        };
+
+        window.deleteTopic = function(id) {
+            if (!confirm('Eliminare questa domanda?')) return;
+            fetch(API + '/api/webinar/forum/topics/' + id + deleteParams(), { method: 'DELETE' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    loadTopics();
+                })
+                .catch(function() { alert('Errore eliminazione.'); });
+        };
+
+        window.deleteReply = function(replyId, topicId) {
+            if (!confirm('Eliminare questa risposta?')) return;
+            fetch(API + '/api/webinar/forum/replies/' + replyId + deleteParams(), { method: 'DELETE' })
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    if (data.error) { alert(data.error); return; }
+                    loadTopic(topicId);
+                })
+                .catch(function() { alert('Errore eliminazione.'); });
+        };
+
+        // === Init: check hash for direct topic link ===
+        var hash = window.location.hash;
+        if (hash && hash.startsWith('#topic-')) {
+            var topicId = parseInt(hash.replace('#topic-', ''));
+            if (topicId) { loadTopic(topicId); return; }
+        }
+        loadTopics();
     })();
     </script>
 </body>

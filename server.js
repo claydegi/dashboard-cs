@@ -19,7 +19,11 @@ const CONFIG = {
     MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
     MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN || 'osseotouch.com',
     MAILGUN_BASE_URL: process.env.MAILGUN_BASE_URL || 'https://api.eu.mailgun.net/v3',
-    MAILGUN_FROM: process.env.MAILGUN_FROM || 'Osseotouch <contact@osseotouch.com>'
+    MAILGUN_FROM: process.env.MAILGUN_FROM || 'Osseotouch <contact@osseotouch.com>',
+    RELATORE_KEY: process.env.RELATORE_KEY || 'chiave-relatore-default',
+    RELATORE_NOME: 'Alberto',
+    RELATORE_COGNOME: 'Malavasi',
+    TELEGRAM_CHAT_ID_RELATORE: process.env.TELEGRAM_CHAT_ID_RELATORE || ''
 };
 
 // ==================== ISTAT LOOKUP: citta -> regione ====================
@@ -550,6 +554,50 @@ async function initDB() {
             END $$;
         `);
 
+        // ==================== TABELLE FORUM Q&A WEBINAR ====================
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS forum_topics (
+                id SERIAL PRIMARY KEY,
+                webinar_tag TEXT NOT NULL,
+                email TEXT NOT NULL,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE SET NULL,
+                nome TEXT NOT NULL,
+                cognome TEXT NOT NULL,
+                titolo TEXT NOT NULL,
+                corpo TEXT NOT NULL,
+                immagine_base64 TEXT,
+                immagine_tipo TEXT,
+                is_deleted BOOLEAN DEFAULT false,
+                deleted_by TEXT,
+                deleted_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_forum_topics_webinar ON forum_topics(webinar_tag)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_forum_topics_created ON forum_topics(created_at DESC)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS forum_replies (
+                id SERIAL PRIMARY KEY,
+                topic_id INTEGER NOT NULL REFERENCES forum_topics(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE SET NULL,
+                nome TEXT NOT NULL,
+                cognome TEXT NOT NULL,
+                corpo TEXT NOT NULL,
+                immagine_base64 TEXT,
+                immagine_tipo TEXT,
+                is_relatore BOOLEAN DEFAULT false,
+                is_deleted BOOLEAN DEFAULT false,
+                deleted_by TEXT,
+                deleted_at TIMESTAMPTZ,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_forum_replies_topic ON forum_replies(topic_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_forum_replies_created ON forum_replies(created_at)`);
+
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
         // Anagrafica video del canale
@@ -937,6 +985,36 @@ function requireReportsKey(req, res, next) {
         return res.status(401).json({ error: 'API key non valida' });
     }
     next();
+}
+
+// Middleware forum: admin o relatore
+function requireForumAuth(req, res, next) {
+    const adminKey = req.query.key || req.headers['x-admin-key'];
+    const relatoreKey = req.query.relatore_key || req.headers['x-relatore-key'];
+    if (adminKey === CONFIG.ADMIN_KEY) {
+        req.forumRole = 'admin';
+        return next();
+    }
+    if (relatoreKey === CONFIG.RELATORE_KEY) {
+        req.forumRole = 'relatore';
+        return next();
+    }
+    return res.status(401).json({ error: 'Accesso non autorizzato' });
+}
+
+// Rate limiting forum (in-memory)
+const forumRateLimits = new Map();
+function checkForumRateLimit(email, type) {
+    const now = Date.now();
+    const key = email.toLowerCase();
+    if (!forumRateLimits.has(key)) forumRateLimits.set(key, { topics: [], replies: [] });
+    const limits = forumRateLimits.get(key);
+    const HOUR = 3600000;
+    limits[type] = limits[type].filter(t => now - t < HOUR);
+    const max = type === 'topics' ? 3 : 10;
+    if (limits[type].length >= max) return false;
+    limits[type].push(now);
+    return true;
 }
 
 // Ultimi report (uno per tipo) - esclusi report Kim e Massimo che hanno tab dedicati
@@ -6538,6 +6616,244 @@ app.get('/api/youtube/promossi', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[YouTube Promossi]', err);
         res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== WEBINAR FORUM Q&A ====================
+
+// GET /api/webinar/forum/topics — lista topic per webinar
+app.get('/api/webinar/forum/topics', async (req, res) => {
+    const tag = req.query.webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    try {
+        const result = await pool.query(`
+            SELECT t.id, t.titolo, t.corpo, t.nome, t.cognome,
+                   t.immagine_base64 IS NOT NULL AS has_image,
+                   t.created_at,
+                   (SELECT COUNT(*) FROM forum_replies r WHERE r.topic_id = t.id AND r.is_deleted = false) AS reply_count,
+                   EXISTS(SELECT 1 FROM forum_replies r WHERE r.topic_id = t.id AND r.is_relatore = true AND r.is_deleted = false) AS has_relatore_reply
+            FROM forum_topics t
+            WHERE t.webinar_tag = $1 AND t.is_deleted = false
+            ORDER BY t.created_at DESC
+        `, [tag]);
+        res.json({ topics: result.rows });
+    } catch (err) {
+        console.error('[Forum] Errore lista topics:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/webinar/forum/topics/:id — singolo topic con replies
+app.get('/api/webinar/forum/topics/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const topicRes = await pool.query(`
+            SELECT id, titolo, corpo, nome, cognome, immagine_base64, immagine_tipo, created_at
+            FROM forum_topics WHERE id = $1 AND is_deleted = false
+        `, [id]);
+        if (topicRes.rows.length === 0) return res.status(404).json({ error: 'Topic non trovato' });
+
+        const repliesRes = await pool.query(`
+            SELECT id, corpo, nome, cognome, immagine_base64, immagine_tipo, is_relatore, created_at
+            FROM forum_replies WHERE topic_id = $1 AND is_deleted = false
+            ORDER BY created_at ASC
+        `, [id]);
+
+        res.json({ topic: topicRes.rows[0], replies: repliesRes.rows });
+    } catch (err) {
+        console.error('[Forum] Errore topic detail:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/forum/topics — crea nuovo topic
+app.post('/api/webinar/forum/topics', async (req, res) => {
+    const { webinar_tag, email, titolo, corpo, immagine_base64, immagine_tipo } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    const emailClean = (email || '').trim().toLowerCase();
+
+    if (!emailClean || !titolo || !corpo) {
+        return res.status(400).json({ error: 'email, titolo e corpo sono obbligatori' });
+    }
+    if (titolo.length > 200) return res.status(400).json({ error: 'Titolo troppo lungo (max 200 caratteri)' });
+    if (corpo.length > 5000) return res.status(400).json({ error: 'Testo troppo lungo (max 5000 caratteri)' });
+
+    // Valida email contro registrazioni webinar
+    const reg = await pool.query(
+        'SELECT nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2',
+        [tag, emailClean]
+    );
+    if (reg.rows.length === 0) return res.status(403).json({ error: 'Email non registrata per questo webinar' });
+
+    // Rate limit
+    if (!checkForumRateLimit(emailClean, 'topics')) {
+        return res.status(429).json({ error: 'Troppe domande. Riprova tra qualche minuto.' });
+    }
+
+    // Valida immagine
+    if (immagine_base64) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(immagine_tipo)) return res.status(400).json({ error: 'Tipo immagine non supportato' });
+        if (Buffer.byteLength(immagine_base64, 'base64') > 5 * 1024 * 1024) {
+            return res.status(400).json({ error: 'Immagine troppo grande (max 5 MB)' });
+        }
+    }
+
+    try {
+        // Cerca contatto CRM
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE LOWER(email) = $1 LIMIT 1', [emailClean]);
+        const contattoId = contatto.rows.length > 0 ? contatto.rows[0].id : null;
+
+        const result = await pool.query(`
+            INSERT INTO forum_topics (webinar_tag, email, contatto_id, nome, cognome, titolo, corpo, immagine_base64, immagine_tipo)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, titolo, created_at
+        `, [tag, emailClean, contattoId, reg.rows[0].nome || '', reg.rows[0].cognome || '', titolo, corpo, immagine_base64 || null, immagine_tipo || null]);
+
+        const topic = result.rows[0];
+        console.log(`[Forum] Nuovo topic #${topic.id}: "${titolo}" da ${emailClean}`);
+
+        // Notifica Telegram admin
+        const telegramMsg = `📋 *Forum Webinar — Nuova domanda*\n\nAutore: ${reg.rows[0].nome || ''} ${reg.rows[0].cognome || ''}\nTitolo: ${titolo}\n\nhttps://app.osseotouch.com/webinar-followup#topic-${topic.id}`;
+        sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, telegramMsg);
+
+        // Notifica Telegram relatore
+        if (CONFIG.TELEGRAM_CHAT_ID_RELATORE) {
+            const relatoreMsg = `📋 *Nuova domanda sul webinar*\n\nDa: ${reg.rows[0].nome || ''} ${reg.rows[0].cognome || ''}\nTitolo: ${titolo}\n\n${corpo.substring(0, 200)}${corpo.length > 200 ? '...' : ''}\n\n👉 Rispondi: https://app.osseotouch.com/webinar-followup?relatore_key=${CONFIG.RELATORE_KEY}#topic-${topic.id}`;
+            sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_RELATORE, relatoreMsg);
+        }
+
+        res.status(201).json({ ok: true, topic });
+    } catch (err) {
+        console.error('[Forum] Errore creazione topic:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/forum/replies — crea risposta a topic
+app.post('/api/webinar/forum/replies', async (req, res) => {
+    const { topic_id, email, corpo, immagine_base64, immagine_tipo, relatore_key } = req.body;
+
+    if (!topic_id || !corpo) return res.status(400).json({ error: 'topic_id e corpo sono obbligatori' });
+    if (corpo.length > 5000) return res.status(400).json({ error: 'Testo troppo lungo (max 5000 caratteri)' });
+
+    // Verifica topic esiste
+    const topicCheck = await pool.query('SELECT id, webinar_tag, titolo FROM forum_topics WHERE id = $1 AND is_deleted = false', [topic_id]);
+    if (topicCheck.rows.length === 0) return res.status(404).json({ error: 'Topic non trovato' });
+    const topicRow = topicCheck.rows[0];
+
+    let nome, cognome, emailClean, contattoId = null, isRelatore = false;
+
+    // Relatore?
+    if (relatore_key === CONFIG.RELATORE_KEY) {
+        isRelatore = true;
+        nome = CONFIG.RELATORE_NOME;
+        cognome = CONFIG.RELATORE_COGNOME;
+        emailClean = 'relatore';
+    } else {
+        emailClean = (email || '').trim().toLowerCase();
+        if (!emailClean) return res.status(400).json({ error: 'email obbligatoria' });
+
+        const reg = await pool.query(
+            'SELECT nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2',
+            [topicRow.webinar_tag, emailClean]
+        );
+        if (reg.rows.length === 0) return res.status(403).json({ error: 'Email non registrata per questo webinar' });
+        nome = reg.rows[0].nome || '';
+        cognome = reg.rows[0].cognome || '';
+
+        if (!checkForumRateLimit(emailClean, 'replies')) {
+            return res.status(429).json({ error: 'Troppe risposte. Riprova tra qualche minuto.' });
+        }
+
+        const contatto = await pool.query('SELECT id FROM crm_contatti WHERE LOWER(email) = $1 LIMIT 1', [emailClean]);
+        contattoId = contatto.rows.length > 0 ? contatto.rows[0].id : null;
+    }
+
+    // Valida immagine
+    if (immagine_base64) {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!allowedTypes.includes(immagine_tipo)) return res.status(400).json({ error: 'Tipo immagine non supportato' });
+        if (Buffer.byteLength(immagine_base64, 'base64') > 5 * 1024 * 1024) {
+            return res.status(400).json({ error: 'Immagine troppo grande (max 5 MB)' });
+        }
+    }
+
+    try {
+        const result = await pool.query(`
+            INSERT INTO forum_replies (topic_id, email, contatto_id, nome, cognome, corpo, immagine_base64, immagine_tipo, is_relatore)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+            RETURNING id, created_at
+        `, [topic_id, emailClean, contattoId, nome, cognome, corpo, immagine_base64 || null, immagine_tipo || null, isRelatore]);
+
+        const reply = result.rows[0];
+        console.log(`[Forum] Nuova risposta #${reply.id} al topic #${topic_id} da ${isRelatore ? 'RELATORE' : emailClean}`);
+
+        // Notifica Telegram admin per risposte dei partecipanti (non del relatore)
+        if (!isRelatore) {
+            const msg = `💬 *Forum Webinar — Nuova risposta*\n\nDa: ${nome} ${cognome}\nSu: "${topicRow.titolo}"\n\nhttps://app.osseotouch.com/webinar-followup#topic-${topic_id}`;
+            sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, msg);
+            if (CONFIG.TELEGRAM_CHAT_ID_RELATORE) {
+                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_RELATORE, msg);
+            }
+        }
+
+        res.status(201).json({ ok: true, reply });
+    } catch (err) {
+        console.error('[Forum] Errore creazione reply:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// DELETE /api/webinar/forum/topics/:id — soft-delete topic (admin o relatore)
+app.delete('/api/webinar/forum/topics/:id', requireForumAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            UPDATE forum_topics SET is_deleted = true, deleted_by = $1, deleted_at = NOW()
+            WHERE id = $2 AND is_deleted = false RETURNING id
+        `, [req.forumRole, id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Topic non trovato' });
+        console.log(`[Forum] Topic #${id} eliminato da ${req.forumRole}`);
+        res.json({ ok: true, id: parseInt(id) });
+    } catch (err) {
+        console.error('[Forum] Errore delete topic:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// DELETE /api/webinar/forum/replies/:id — soft-delete reply (admin o relatore)
+app.delete('/api/webinar/forum/replies/:id', requireForumAuth, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const result = await pool.query(`
+            UPDATE forum_replies SET is_deleted = true, deleted_by = $1, deleted_at = NOW()
+            WHERE id = $2 AND is_deleted = false RETURNING id
+        `, [req.forumRole, id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Risposta non trovata' });
+        console.log(`[Forum] Reply #${id} eliminata da ${req.forumRole}`);
+        res.json({ ok: true, id: parseInt(id) });
+    } catch (err) {
+        console.error('[Forum] Errore delete reply:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/webinar/forum/stats — statistiche forum (admin)
+app.get('/api/webinar/forum/stats', requireAdmin, async (req, res) => {
+    const tag = req.query.webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    try {
+        const stats = await pool.query(`
+            SELECT
+                (SELECT COUNT(*) FROM forum_topics WHERE webinar_tag = $1 AND is_deleted = false) AS totale_domande,
+                (SELECT COUNT(*) FROM forum_replies r JOIN forum_topics t ON r.topic_id = t.id WHERE t.webinar_tag = $1 AND r.is_deleted = false AND t.is_deleted = false) AS totale_risposte,
+                (SELECT COUNT(DISTINCT t.id) FROM forum_topics t WHERE t.webinar_tag = $1 AND t.is_deleted = false AND EXISTS(SELECT 1 FROM forum_replies r WHERE r.topic_id = t.id AND r.is_relatore = true AND r.is_deleted = false)) AS con_risposta_relatore,
+                (SELECT COUNT(DISTINCT t.id) FROM forum_topics t WHERE t.webinar_tag = $1 AND t.is_deleted = false AND NOT EXISTS(SELECT 1 FROM forum_replies r WHERE r.topic_id = t.id AND r.is_relatore = true AND r.is_deleted = false)) AS senza_risposta,
+                (SELECT COUNT(DISTINCT email) FROM (SELECT email FROM forum_topics WHERE webinar_tag = $1 AND is_deleted = false UNION SELECT email FROM forum_replies r JOIN forum_topics t ON r.topic_id = t.id WHERE t.webinar_tag = $1 AND r.is_deleted = false AND t.is_deleted = false) sub) AS partecipanti_attivi
+        `, [tag]);
+        res.json({ webinar_tag: tag, ...stats.rows[0] });
+    } catch (err) {
+        console.error('[Forum] Errore stats:', err.message);
+        res.status(500).json({ error: 'Errore server' });
     }
 });
 
