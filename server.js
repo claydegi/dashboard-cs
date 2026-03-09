@@ -563,6 +563,27 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato_at TIMESTAMPTZ`);
 
+        // ==================== TABELLA PARTECIPANTI ZOOM ====================
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_webinar_partecipanti (
+                id SERIAL PRIMARY KEY,
+                webinar_tag TEXT NOT NULL,
+                email TEXT NOT NULL,
+                nome TEXT,
+                cognome TEXT,
+                join_time TIMESTAMPTZ,
+                leave_time TIMESTAMPTZ,
+                durata_minuti INTEGER DEFAULT 0,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE SET NULL,
+                score_assegnato BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(webinar_tag, email)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_part_tag ON crm_webinar_partecipanti(webinar_tag)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_part_email ON crm_webinar_partecipanti(email)`);
+
         // ==================== TABELLE FORUM Q&A WEBINAR ====================
 
         await client.query(`
@@ -4450,6 +4471,135 @@ async function registerZoomWebinarParticipant(webinarId, email, nome, cognome) {
 const ZOOM_WEBINAR_IDS = {
     'WEBINAR_MALAVASI_PT1': '89390770164'
 };
+
+// POST /api/webinar/sync-zoom-participants — scarica partecipanti da Zoom e salva nel DB con scoring
+app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) => {
+    const { webinar_tag } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    const webinarId = ZOOM_WEBINAR_IDS[tag];
+
+    if (!webinarId) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto o senza ID Zoom: ${tag}` });
+    }
+
+    try {
+        const token = await getZoomAccessToken();
+
+        // Scarica partecipanti da Zoom (paginato)
+        let allParticipants = [];
+        let nextPageToken = '';
+        do {
+            const url = `https://api.zoom.us/v2/past_webinars/${webinarId}/participants?page_size=300${nextPageToken ? '&next_page_token=' + nextPageToken : ''}`;
+            const response = await fetch(url, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) {
+                const errText = await response.text();
+                return res.status(response.status).json({ error: `Zoom API ${response.status}: ${errText}` });
+            }
+
+            const data = await response.json();
+            allParticipants = allParticipants.concat(data.participants || []);
+            nextPageToken = data.next_page_token || '';
+        } while (nextPageToken);
+
+        if (allParticipants.length === 0) {
+            return res.json({ ok: true, messaggio: 'Nessun partecipante trovato su Zoom', totale: 0 });
+        }
+
+        // Aggrega per email: somma durate, prendi primo join e ultimo leave
+        const aggregated = {};
+        for (const p of allParticipants) {
+            const email = (p.user_email || '').toLowerCase().trim();
+            if (!email) continue;
+
+            if (!aggregated[email]) {
+                aggregated[email] = {
+                    email,
+                    nome: p.first_name || p.name || '',
+                    cognome: p.last_name || '',
+                    join_time: p.join_time,
+                    leave_time: p.leave_time,
+                    durata_minuti: 0
+                };
+            }
+
+            // Somma durata (Zoom la da in secondi)
+            aggregated[email].durata_minuti += Math.round((p.duration || 0) / 60);
+
+            // Primo join
+            if (p.join_time && (!aggregated[email].join_time || p.join_time < aggregated[email].join_time)) {
+                aggregated[email].join_time = p.join_time;
+            }
+            // Ultimo leave
+            if (p.leave_time && (!aggregated[email].leave_time || p.leave_time > aggregated[email].leave_time)) {
+                aggregated[email].leave_time = p.leave_time;
+            }
+        }
+
+        const participants = Object.values(aggregated);
+        let inseriti = 0;
+        let aggiornati = 0;
+        let scoreAssegnati = 0;
+
+        for (const p of participants) {
+            // Cerca contatto CRM per email
+            const contatto = await pool.query(
+                'SELECT id FROM crm_contatti WHERE LOWER(email) = $1',
+                [p.email]
+            );
+            const contattoId = contatto.rows.length > 0 ? contatto.rows[0].id : null;
+
+            // Upsert partecipante (UNIQUE su webinar_tag + email)
+            const upsert = await pool.query(`
+                INSERT INTO crm_webinar_partecipanti (webinar_tag, email, nome, cognome, join_time, leave_time, durata_minuti, contatto_id)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+                ON CONFLICT (webinar_tag, email) DO UPDATE SET
+                    nome = EXCLUDED.nome,
+                    cognome = EXCLUDED.cognome,
+                    join_time = EXCLUDED.join_time,
+                    leave_time = EXCLUDED.leave_time,
+                    durata_minuti = EXCLUDED.durata_minuti,
+                    contatto_id = EXCLUDED.contatto_id
+                RETURNING (xmax = 0) AS is_new, id, score_assegnato
+            `, [tag, p.email, p.nome, p.cognome, p.join_time, p.leave_time, p.durata_minuti, contattoId]);
+
+            if (upsert.rows[0].is_new) inseriti++;
+            else aggiornati++;
+
+            // Scoring: +200 per ogni soglia (>=10min, >=25min, >=40min) — max +600
+            if (contattoId && !upsert.rows[0].score_assegnato) {
+                let punti = 0;
+                if (p.durata_minuti >= 10) punti += 200;
+                if (p.durata_minuti >= 25) punti += 200;
+                if (p.durata_minuti >= 40) punti += 200;
+
+                if (punti > 0) {
+                    await pool.query('UPDATE crm_contatti SET score = COALESCE(score, 0) + $1 WHERE id = $2', [punti, contattoId]);
+                    await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = TRUE WHERE id = $1', [upsert.rows[0].id]);
+                    scoreAssegnati++;
+                    console.log(`[Zoom Sync] ${p.email}: ${p.durata_minuti}min, +${punti} punti`);
+                }
+            }
+        }
+
+        console.log(`[Zoom Sync] ${tag}: ${participants.length} partecipanti, ${inseriti} nuovi, ${aggiornati} aggiornati, ${scoreAssegnati} score assegnati`);
+        res.json({
+            ok: true,
+            webinar_tag: tag,
+            zoom_raw: allParticipants.length,
+            partecipanti_unici: participants.length,
+            inseriti,
+            aggiornati,
+            score_assegnati: scoreAssegnati,
+            messaggio: `Sync completato: ${participants.length} partecipanti`
+        });
+    } catch (err) {
+        console.error('[Zoom Sync]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // Landing page webinar (PUBBLICA, no auth) — serve il file statico con URL pulito
 app.get('/webinar', (req, res) => {
