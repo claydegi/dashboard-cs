@@ -4619,6 +4619,41 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
     }
 });
 
+// POST /api/webinar/reset-zoom-scores — resetta score_assegnato e rimuove punti, poi rilancia sync
+app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
+    const { webinar_tag } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+
+    try {
+        // Trova tutti i partecipanti con score assegnato e rimuovi i punti dal contatto
+        const scored = await pool.query(
+            'SELECT contatto_id, durata_minuti FROM crm_webinar_partecipanti WHERE webinar_tag = $1 AND score_assegnato = TRUE AND contatto_id IS NOT NULL',
+            [tag]
+        );
+
+        let rimossi = 0;
+        for (const row of scored.rows) {
+            let punti = 0;
+            if (row.durata_minuti >= 10) punti += 200;
+            if (row.durata_minuti >= 25) punti += 200;
+            if (row.durata_minuti >= 40) punti += 200;
+            if (punti > 0) {
+                await pool.query('UPDATE crm_contatti SET score = GREATEST(COALESCE(score, 0) - $1, 0) WHERE id = $2', [punti, row.contatto_id]);
+                rimossi++;
+            }
+        }
+
+        // Reset flag
+        await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = FALSE, contatto_id = NULL WHERE webinar_tag = $1', [tag]);
+
+        console.log(`[Zoom Reset] ${tag}: ${rimossi} score rimossi, pronti per re-sync`);
+        res.json({ ok: true, score_rimossi: rimossi, messaggio: 'Score resettati. Esegui sync-zoom-participants per riassegnare.' });
+    } catch (err) {
+        console.error('[Zoom Reset]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // Landing page webinar (PUBBLICA, no auth) — serve il file statico con URL pulito
 app.get('/webinar', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar.html'));
