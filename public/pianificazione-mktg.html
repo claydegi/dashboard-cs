@@ -642,10 +642,6 @@
                     </div>
                     <div class="webinar-counter">
                         <div class="wc-item">
-                            <span class="wc-num">${s.nuovi}</span>
-                            <span class="wc-label">Nuovi</span>
-                        </div>
-                        <div class="wc-item">
                             <span class="wc-num">${s.lead}</span>
                             <span class="wc-label">Lead</span>
                         </div>
@@ -658,6 +654,7 @@
                             <span class="wc-label">Totale</span>
                         </div>
                     </div>
+                    <div style="text-align:center; font-size:0.75rem; color:var(--gray-500, #6b7280); margin-top:6px;">di cui ${s.nuovi} nuovi</div>
                     <div style="margin-top:10px; text-align:center;">
                         <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
                             style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
@@ -761,10 +758,6 @@
                 <div class="webinar-counter-title">Registrazioni Webinar</div>
                 <div class="webinar-counter">
                     <div class="wc-item">
-                        <span class="wc-num">${stats.nuovi}</span>
-                        <span class="wc-label">Nuovi</span>
-                    </div>
-                    <div class="wc-item">
                         <span class="wc-num">${stats.lead}</span>
                         <span class="wc-label">Lead</span>
                     </div>
@@ -777,6 +770,7 @@
                         <span class="wc-label">Totale</span>
                     </div>
                 </div>
+                <div style="text-align:center; font-size:0.75rem; color:var(--gray-500, #6b7280); margin-top:6px;">di cui ${stats.nuovi} nuovi</div>
             ` : '';
 
             return `
