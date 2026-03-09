@@ -2778,7 +2778,7 @@ app.put('/api/crm/contatti/:id/whatsapp', requireAdmin, async (req, res) => {
 // Aggiorna campi contatto (email, telefono, cellulare, citta, regione)
 app.put('/api/crm/contatti/:id', requireAdmin, async (req, res) => {
     const contattoId = parseInt(req.params.id);
-    const CAMPI_EDITABILI = ['email', 'telefono', 'cellulare', 'citta', 'regione'];
+    const CAMPI_EDITABILI = ['nome', 'cognome', 'email', 'telefono', 'cellulare', 'citta', 'regione'];
     const { campo, valore } = req.body;
 
     if (!campo || !CAMPI_EDITABILI.includes(campo)) {
