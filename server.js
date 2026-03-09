@@ -23,6 +23,7 @@ const CONFIG = {
     RELATORE_KEY: process.env.RELATORE_KEY || 'chiave-relatore-default',
     RELATORE_NOME: 'Alberto',
     RELATORE_COGNOME: 'Malavasi',
+    RELATORE_EMAIL: process.env.RELATORE_EMAIL || 'dottmalavasi@gmail.com',
     TELEGRAM_CHAT_ID_RELATORE: process.env.TELEGRAM_CHAT_ID_RELATORE || ''
 };
 
@@ -6722,6 +6723,24 @@ app.post('/api/webinar/forum/topics', async (req, res) => {
             sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_RELATORE, relatoreMsg);
         }
 
+        // Notifica email relatore (nuovo thread)
+        if (CONFIG.RELATORE_EMAIL) {
+            const emailHtml = `
+                <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;">
+                    <h2 style="color:#00b4d8;">Nuova domanda sul webinar</h2>
+                    <p><strong>Da:</strong> ${reg.rows[0].nome || ''} ${reg.rows[0].cognome || ''}</p>
+                    <p><strong>Oggetto:</strong> ${titolo}</p>
+                    <div style="background:#f5f5f5;padding:16px;border-radius:8px;margin:16px 0;">
+                        <p style="white-space:pre-wrap;">${corpo.substring(0, 500)}${corpo.length > 500 ? '...' : ''}</p>
+                    </div>
+                    <a href="https://app.osseotouch.com/webinar-followup?relatore_key=${CONFIG.RELATORE_KEY}#topic-${topic.id}"
+                       style="display:inline-block;padding:14px 28px;background:#00b4d8;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold;">
+                       Rispondi alla domanda
+                    </a>
+                </div>`;
+            sendMailgunEmail(CONFIG.RELATORE_EMAIL, `[Webinar Q&A] ${titolo}`, emailHtml, 'FORUM_QA_NOTIFICA');
+        }
+
         res.status(201).json({ ok: true, topic });
     } catch (err) {
         console.error('[Forum] Errore creazione topic:', err.message);
@@ -6788,13 +6807,10 @@ app.post('/api/webinar/forum/replies', async (req, res) => {
         const reply = result.rows[0];
         console.log(`[Forum] Nuova risposta #${reply.id} al topic #${topic_id} da ${isRelatore ? 'RELATORE' : emailClean}`);
 
-        // Notifica Telegram admin per risposte dei partecipanti (non del relatore)
+        // Notifica Telegram solo admin per risposte dei partecipanti (relatore riceve solo notifica nuovo thread)
         if (!isRelatore) {
             const msg = `💬 *Forum Webinar — Nuova risposta*\n\nDa: ${nome} ${cognome}\nSu: "${topicRow.titolo}"\n\nhttps://app.osseotouch.com/webinar-followup#topic-${topic_id}`;
             sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, msg);
-            if (CONFIG.TELEGRAM_CHAT_ID_RELATORE) {
-                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_RELATORE, msg);
-            }
         }
 
         res.status(201).json({ ok: true, reply });
