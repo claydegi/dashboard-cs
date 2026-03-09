@@ -654,7 +654,7 @@
                             <span class="wc-label">Totale</span>
                         </div>
                     </div>
-                    <div style="text-align:center; font-size:0.75rem; color:var(--gray-500, #6b7280); margin-top:6px;">di cui ${s.nuovi} nuovi</div>
+                    <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${s.nuovi_lead} nuovi lead e ${s.nuovi_account} nuovi account</div>
                     <div style="margin-top:10px; text-align:center;">
                         <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
                             style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
@@ -770,7 +770,7 @@
                         <span class="wc-label">Totale</span>
                     </div>
                 </div>
-                <div style="text-align:center; font-size:0.75rem; color:var(--gray-500, #6b7280); margin-top:6px;">di cui ${stats.nuovi} nuovi</div>
+                <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${stats.nuovi_lead} nuovi lead e ${stats.nuovi_account} nuovi account</div>
             ` : '';
 
             return `

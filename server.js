@@ -4635,6 +4635,8 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 r.webinar_tag,
                 COUNT(*)::int AS totale,
                 COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
+                COUNT(*) FILTER (WHERE r.azione = 'nuovo_lead')::int AS nuovi_lead,
+                COUNT(*) FILTER (WHERE r.azione = 'nuovo_account')::int AS nuovi_account,
                 COUNT(*) FILTER (WHERE
                     (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead,
                 COUNT(*) FILTER (WHERE
@@ -4648,6 +4650,8 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
             stats[row.webinar_tag] = {
                 totale: row.totale,
                 nuovi: row.nuovi,
+                nuovi_lead: row.nuovi_lead,
+                nuovi_account: row.nuovi_account,
                 lead: row.lead,
                 account: row.account
             };
