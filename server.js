@@ -5045,7 +5045,7 @@ app.post('/api/webinar/send-followup-test', requireAdmin, async (req, res) => {
     }
 
     try {
-        await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, to, null, 'WEBINAR_FOLLOWUP_TEST');
+        await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, to, null, 'WEBINAR_FOLLOWUP_' + tag);
         console.log(`[Webinar Followup Test] Email di test inviata a ${to}`);
         res.json({ ok: true, email: to, messaggio: `Email follow-up test inviata a ${to}` });
     } catch (err) {
