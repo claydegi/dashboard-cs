@@ -127,7 +127,9 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
     html = html.replace(/\{\{relatore\}\}/g, data.relatore);
     html = html.replace(/\{\{link_zoom\}\}/g, zoomLink || '#');
-    html = html.replace(/\{\{link_followup\}\}/g, data.link_followup || '#');
+    // Per follow-up: aggiungi ?e=base64(email) per autenticazione forum
+    const followupUrl = (data.link_followup || '#') + (to ? '?e=' + Buffer.from(to.toLowerCase()).toString('base64') : '');
+    html = html.replace(/\{\{link_followup\}\}/g, followupUrl);
     html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
 
     let subject;
@@ -5028,6 +5030,26 @@ app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
         res.json({ ok: true, email: to, messaggio: `Email invito test inviata a ${to}` });
     } catch (err) {
         console.error('[Webinar Invito Test]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/send-followup-test — invia email follow-up di test a un singolo indirizzo
+app.post('/api/webinar/send-followup-test', requireAdmin, async (req, res) => {
+    const { webinar_tag, email } = req.body;
+    const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    const to = email || 'cdegiglio@osseotouch.com';
+
+    if (!WEBINAR_DATA[tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
+    }
+
+    try {
+        await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, to, null, 'WEBINAR_FOLLOWUP_TEST');
+        console.log(`[Webinar Followup Test] Email di test inviata a ${to}`);
+        res.json({ ok: true, email: to, messaggio: `Email follow-up test inviata a ${to}` });
+    } catch (err) {
+        console.error('[Webinar Followup Test]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
