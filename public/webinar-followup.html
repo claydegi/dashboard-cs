@@ -690,11 +690,11 @@
                 html += '<button class="btn-submit-forum" id="btnSubmitTopic" onclick="submitTopic()">Invia domanda</button>';
                 html += '</div>';
             } else if (!canPost) {
-                html += '<div class="forum-readonly-msg">Per partecipare alla discussione, acceda tramite il link ricevuto via email.</div>';
+                html += '<div class="forum-readonly-msg">Per aprire una discussione o rispondere, utilizzare il link personalizzato ricevuto via email dopo il webinar.</div>';
             }
 
             if (topics.length === 0) {
-                html += '<div class="forum-empty">Nessuna domanda ancora. Sia il primo a chiedere!</div>';
+                html += '<div class="forum-empty">Nessuna domanda ancora. La prima domanda potrebbe essere la tua!</div>';
             } else {
                 topics.forEach(function(t) {
                     var preview = t.corpo.length > 180 ? t.corpo.substring(0, 180) + '...' : t.corpo;
