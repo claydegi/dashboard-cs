@@ -4575,7 +4575,11 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
                     join_time = EXCLUDED.join_time,
                     leave_time = EXCLUDED.leave_time,
                     durata_minuti = EXCLUDED.durata_minuti,
-                    contatto_id = EXCLUDED.contatto_id
+                    contatto_id = EXCLUDED.contatto_id,
+                    score_assegnato = CASE
+                        WHEN crm_webinar_partecipanti.contatto_id IS NULL AND EXCLUDED.contatto_id IS NOT NULL THEN FALSE
+                        ELSE crm_webinar_partecipanti.score_assegnato
+                    END
                 RETURNING (xmax = 0) AS is_new, id, score_assegnato
             `, [tag, p.email, p.nome, p.cognome, p.join_time, p.leave_time, p.durata_minuti, contattoId]);
 
