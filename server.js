@@ -1873,14 +1873,18 @@ function getSogliaHot(regione) {
 
 // Lista contatti CRM con prodotti e score
 app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
-    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    const regione = req.query.regione ? req.query.regione.toUpperCase() : null;
     const tipoFiltro = req.query.tipo; // 'lead' o 'account' (opzionale)
     try {
-        let queryStr = `SELECT * FROM crm_contatti WHERE regione = $1`;
-        const params = [regione];
+        let queryStr = `SELECT * FROM crm_contatti`;
+        const params = [];
+        if (regione) {
+            params.push(regione);
+            queryStr += ` WHERE regione = $1`;
+        }
         if (tipoFiltro && ['lead', 'account'].includes(tipoFiltro.toLowerCase())) {
             params.push(tipoFiltro.toLowerCase());
-            queryStr += ` AND tipo = $${params.length}`;
+            queryStr += (params.length === 1 ? ` WHERE` : ` AND`) + ` tipo = $${params.length}`;
         }
         queryStr += ` ORDER BY COALESCE(NULLIF(cognome, ''), nome_azienda) ASC, nome ASC`;
         const contatti = await pool.query(queryStr, params);
@@ -4544,12 +4548,22 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
         let scoreAssegnati = 0;
 
         for (const p of participants) {
-            // Cerca contatto CRM per email
+            // Cerca contatto CRM per email (prima in crm_contatti, poi in registrazioni webinar)
+            let contattoId = null;
             const contatto = await pool.query(
                 'SELECT id FROM crm_contatti WHERE LOWER(email) = $1',
                 [p.email]
             );
-            const contattoId = contatto.rows.length > 0 ? contatto.rows[0].id : null;
+            if (contatto.rows.length > 0) {
+                contattoId = contatto.rows[0].id;
+            } else {
+                // Fallback: cerca nella tabella registrazioni webinar (email Zoom potrebbe differire)
+                const reg = await pool.query(
+                    'SELECT contatto_id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2 AND contatto_id IS NOT NULL',
+                    [tag, p.email]
+                );
+                if (reg.rows.length > 0) contattoId = reg.rows[0].contatto_id;
+            }
 
             // Upsert partecipante (UNIQUE su webinar_tag + email)
             const upsert = await pool.query(`
