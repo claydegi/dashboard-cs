@@ -5034,23 +5034,59 @@ app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
     }
 });
 
-// POST /api/webinar/send-followup-test — invia email follow-up di test a un singolo indirizzo
+// POST /api/webinar/send-followup-test — invia email follow-up di test con risposta Mailgun completa
 app.post('/api/webinar/send-followup-test', requireAdmin, async (req, res) => {
     const { webinar_tag, email } = req.body;
     const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
     const to = email || 'cdegiglio@osseotouch.com';
+    const data = WEBINAR_DATA[tag];
 
-    if (!WEBINAR_DATA[tag]) {
+    if (!data) {
         return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
     }
 
     try {
-        await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, to, null, 'WEBINAR_FOLLOWUP_' + tag);
-        console.log(`[Webinar Followup Test] Email di test inviata a ${to}`);
-        res.json({ ok: true, email: to, messaggio: `Email follow-up test inviata a ${to}` });
+        // Carica template
+        const templatePath = path.join(__dirname, 'templates', 'WEBINAR_FOLLOWUP.html');
+        let html = fs.readFileSync(templatePath, 'utf-8');
+
+        // Sostituisci placeholder
+        html = html.replace(/\{\{nome_webinar\}\}/g, data.nome_webinar);
+        html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
+        html = html.replace(/\{\{relatore\}\}/g, data.relatore);
+        html = html.replace(/\{\{link_zoom\}\}/g, '#');
+        const followupUrl = (data.link_followup || '#') + '?e=' + Buffer.from(to.toLowerCase()).toString('base64');
+        html = html.replace(/\{\{link_followup\}\}/g, followupUrl);
+        html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
+
+        // Invio diretto Mailgun con risposta completa
+        const url = `${CONFIG.MAILGUN_BASE_URL}/${CONFIG.MAILGUN_DOMAIN}/messages`;
+        const formData = new URLSearchParams();
+        formData.append('from', CONFIG.MAILGUN_FROM);
+        formData.append('to', to);
+        formData.append('subject', data.subject_followup);
+        formData.append('html', html);
+        formData.append('o:tag', 'WEBINAR_FOLLOWUP_' + tag);
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Basic ' + Buffer.from('api:' + CONFIG.MAILGUN_API_KEY).toString('base64')
+            },
+            body: formData
+        });
+
+        const responseText = await response.text();
+        console.log(`[Webinar Followup Test] Mailgun status=${response.status}, response=${responseText}`);
+
+        if (response.ok) {
+            res.json({ ok: true, email: to, mailgun_status: response.status, mailgun_response: responseText });
+        } else {
+            res.json({ ok: false, email: to, mailgun_status: response.status, mailgun_response: responseText });
+        }
     } catch (err) {
         console.error('[Webinar Followup Test]', err);
-        res.status(500).json({ error: 'Errore server' });
+        res.status(500).json({ error: err.message });
     }
 });
 
