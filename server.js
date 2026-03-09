@@ -1740,12 +1740,16 @@ function getSogliaHot(regione) {
 // Lista contatti CRM con prodotti e score
 app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
     const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    const tipoFiltro = req.query.tipo; // 'lead' o 'account' (opzionale)
     try {
-        const contatti = await pool.query(
-            `SELECT * FROM crm_contatti WHERE regione = $1
-             ORDER BY COALESCE(NULLIF(cognome, ''), nome_azienda) ASC, nome ASC`,
-            [regione]
-        );
+        let queryStr = `SELECT * FROM crm_contatti WHERE regione = $1`;
+        const params = [regione];
+        if (tipoFiltro && ['lead', 'account'].includes(tipoFiltro.toLowerCase())) {
+            params.push(tipoFiltro.toLowerCase());
+            queryStr += ` AND tipo = $${params.length}`;
+        }
+        queryStr += ` ORDER BY COALESCE(NULLIF(cognome, ''), nome_azienda) ASC, nome ASC`;
+        const contatti = await pool.query(queryStr, params);
         const ids = contatti.rows.map(c => c.id);
         let prodotti = { rows: [] };
         if (ids.length > 0) {
