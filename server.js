@@ -509,7 +509,7 @@ async function initDB() {
             CREATE TABLE IF NOT EXISTS crm_webinar_registrazioni (
                 id SERIAL PRIMARY KEY,
                 webinar_tag TEXT NOT NULL,
-                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                contatto_id INTEGER REFERENCES crm_contatti(id) ON DELETE SET NULL,
                 email TEXT NOT NULL,
                 nome TEXT,
                 cognome TEXT,
@@ -523,6 +523,32 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_tag ON crm_webinar_registrazioni(webinar_tag)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_email ON crm_webinar_registrazioni(email)`);
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_webinar_reg_unique ON crm_webinar_registrazioni(webinar_tag, email)`);
+
+        // Migrazione: cambia FK da CASCADE a SET NULL per proteggere registrazioni webinar dalla cancellazione contatti
+        await client.query(`
+            DO $$
+            BEGIN
+                IF EXISTS (
+                    SELECT 1 FROM information_schema.table_constraints
+                    WHERE constraint_name = 'crm_webinar_registrazioni_contatto_id_fkey'
+                    AND table_name = 'crm_webinar_registrazioni'
+                ) THEN
+                    -- Verifica se la FK attuale e' CASCADE (da cambiare in SET NULL)
+                    IF EXISTS (
+                        SELECT 1 FROM information_schema.referential_constraints
+                        WHERE constraint_name = 'crm_webinar_registrazioni_contatto_id_fkey'
+                        AND delete_rule = 'CASCADE'
+                    ) THEN
+                        ALTER TABLE crm_webinar_registrazioni
+                            DROP CONSTRAINT crm_webinar_registrazioni_contatto_id_fkey;
+                        ALTER TABLE crm_webinar_registrazioni
+                            ADD CONSTRAINT crm_webinar_registrazioni_contatto_id_fkey
+                            FOREIGN KEY (contatto_id) REFERENCES crm_contatti(id) ON DELETE SET NULL;
+                        RAISE NOTICE 'FK crm_webinar_registrazioni.contatto_id migrata da CASCADE a SET NULL';
+                    END IF;
+                END IF;
+            END $$;
+        `);
 
         // ==================== TABELLE YOUTUBE ANALYTICS ====================
 
