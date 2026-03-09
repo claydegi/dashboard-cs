@@ -560,6 +560,8 @@ async function initDB() {
         // Migrazione: aggiunge colonne tracking invio reminder e followup
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS reminder_inviato BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_inviato BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato_at TIMESTAMPTZ`);
 
         // ==================== TABELLE FORUM Q&A WEBINAR ====================
 
@@ -5035,7 +5037,7 @@ app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
     }
 });
 
-// POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti di un webinar
+// POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti (salta chi ha gia' ricevuto)
 app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
     const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
@@ -5046,12 +5048,12 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
 
     try {
         const result = await pool.query(
-            'SELECT email, nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1',
+            'SELECT id, email, nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND (followup_inviato IS NULL OR followup_inviato = FALSE)',
             [tag]
         );
 
         if (result.rows.length === 0) {
-            return res.json({ ok: true, inviati: 0, messaggio: 'Nessun iscritto trovato' });
+            return res.json({ ok: true, inviati: 0, messaggio: 'Tutti gli iscritti hanno gia\' ricevuto il follow-up' });
         }
 
         let inviati = 0;
@@ -5059,6 +5061,7 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
         for (const row of result.rows) {
             try {
                 await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, row.email, null, 'WEBINAR_FOLLOWUP_' + tag);
+                await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE id = $1', [row.id]);
                 inviati++;
                 if (inviati % 10 === 0) {
                     await new Promise(r => setTimeout(r, 1000));
@@ -5069,17 +5072,65 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
             }
         }
 
-        console.log(`[Webinar Followup] ${tag}: ${inviati} inviati, ${errori} errori su ${result.rows.length} iscritti`);
+        console.log(`[Webinar Followup] ${tag}: ${inviati} inviati, ${errori} errori su ${result.rows.length} da inviare`);
         res.json({
             ok: true,
             webinar_tag: tag,
-            totale_iscritti: result.rows.length,
+            da_inviare: result.rows.length,
             inviati,
             errori,
             messaggio: `Follow-up inviati: ${inviati}/${result.rows.length}`
         });
     } catch (err) {
         console.error('[Webinar Followup]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/track-followup-click — traccia visita landing follow-up e aggiunge 20 punti score
+app.post('/api/webinar/track-followup-click', async (req, res) => {
+    const { email, webinar_tag } = req.body;
+    if (!email || !webinar_tag) {
+        return res.status(400).json({ error: 'email e webinar_tag obbligatori' });
+    }
+
+    try {
+        // Controlla se gia' tracciato per evitare punti duplicati
+        const reg = await pool.query(
+            'SELECT id, followup_cliccato FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2',
+            [webinar_tag, email.toLowerCase()]
+        );
+
+        if (reg.rows.length === 0) {
+            return res.json({ ok: false, motivo: 'Non iscritto' });
+        }
+
+        if (reg.rows[0].followup_cliccato) {
+            return res.json({ ok: true, gia_tracciato: true });
+        }
+
+        // Marca come cliccato
+        await pool.query(
+            'UPDATE crm_webinar_registrazioni SET followup_cliccato = TRUE, followup_cliccato_at = NOW() WHERE id = $1',
+            [reg.rows[0].id]
+        );
+
+        // Aggiungi 20 punti score al contatto
+        const contatto = await pool.query(
+            'SELECT contatto_id FROM crm_webinar_registrazioni WHERE id = $1',
+            [reg.rows[0].id]
+        );
+        if (contatto.rows[0]?.contatto_id) {
+            await pool.query(
+                'UPDATE crm_contatti SET score = COALESCE(score, 0) + 20 WHERE id = $1',
+                [contatto.rows[0].contatto_id]
+            );
+            console.log(`[Followup Click] ${email} — +20 punti a contatto ${contatto.rows[0].contatto_id}`);
+        }
+
+        res.json({ ok: true, email, punti_aggiunti: 20 });
+    } catch (err) {
+        console.error('[Followup Click]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });

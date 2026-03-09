@@ -603,6 +603,15 @@
 
         canPost = !!userEmail || !!relatoreKey;
 
+        // Track click-through: registra visita landing + 20 punti score
+        if (userEmail) {
+            fetch('/api/webinar/track-followup-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: userEmail, webinar_tag: 'WEBINAR_MALAVASI_PT1' })
+            }).catch(function(){});
+        }
+
         var container = document.getElementById('forumContainer');
 
         // === Helpers ===
