@@ -4594,10 +4594,32 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
                 if (p.durata_minuti >= 40) punti += 200;
 
                 if (punti > 0) {
-                    await pool.query('UPDATE crm_contatti SET score = COALESCE(score, 0) + $1 WHERE id = $2', [punti, contattoId]);
+                    const oggi = new Date().toISOString().split('T')[0];
+                    // 1. Bridge table per display immediato in dashboard
+                    const scoreInsert = await pool.query(
+                        `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                         VALUES ($1, 'GENERICO', 'webinar_partecipazione', $2, $3) RETURNING id`,
+                        [contattoId, punti, oggi]
+                    );
+                    const scoreManualId = scoreInsert.rows[0].id;
+
+                    // 2. Log per sync verso SQLite score_eventi (sopravvive al push)
+                    await pool.query(
+                        `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                         VALUES ('add_score', $1, $2)`,
+                        [contattoId, JSON.stringify({
+                            linea_prodotto: 'GENERICO',
+                            tipo_attivita: 'webinar_partecipazione',
+                            punti: punti,
+                            label: `Partecipazione webinar ${tag} (${p.durata_minuti}min)`,
+                            data_evento: oggi,
+                            score_manuale_id: scoreManualId
+                        })]
+                    );
+
                     await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = TRUE WHERE id = $1', [upsert.rows[0].id]);
                     scoreAssegnati++;
-                    console.log(`[Zoom Sync] ${p.email}: ${p.durata_minuti}min, +${punti} punti`);
+                    console.log(`[Zoom Sync] ${p.email}: ${p.durata_minuti}min, +${punti} punti (score_manuali ID ${scoreManualId})`);
                 }
             }
         }
@@ -4625,28 +4647,50 @@ app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
     const tag = webinar_tag || 'WEBINAR_MALAVASI_PT1';
 
     try {
-        // Trova tutti i partecipanti con score assegnato e rimuovi i punti dal contatto
+        // Trova tutti i partecipanti con score assegnato
         const scored = await pool.query(
             'SELECT contatto_id, durata_minuti FROM crm_webinar_partecipanti WHERE webinar_tag = $1 AND score_assegnato = TRUE AND contatto_id IS NOT NULL',
             [tag]
         );
 
         let rimossi = 0;
-        for (const row of scored.rows) {
-            let punti = 0;
-            if (row.durata_minuti >= 10) punti += 200;
-            if (row.durata_minuti >= 25) punti += 200;
-            if (row.durata_minuti >= 40) punti += 200;
-            if (punti > 0) {
-                await pool.query('UPDATE crm_contatti SET score = GREATEST(COALESCE(score, 0) - $1, 0) WHERE id = $2', [punti, row.contatto_id]);
-                rimossi++;
+        const contattoIds = scored.rows.map(r => r.contatto_id).filter(Boolean);
+
+        if (contattoIds.length > 0) {
+            // Trova e rimuovi le entry da crm_score_manuali per questi contatti (tipo webinar_partecipazione)
+            const manuali = await pool.query(
+                `SELECT id, contatto_id, punti, data_evento FROM crm_score_manuali
+                 WHERE contatto_id = ANY($1::int[]) AND tipo_attivita = 'webinar_partecipazione' AND sincronizzata = false`,
+                [contattoIds]
+            );
+
+            // Logga delete per sync verso SQLite
+            for (const sm of manuali.rows) {
+                await pool.query(
+                    `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                     VALUES ('delete_score_manuale', $1, $2)`,
+                    [sm.contatto_id, JSON.stringify({
+                        linea_prodotto: 'GENERICO',
+                        tipo_attivita: 'webinar_partecipazione',
+                        punti: sm.punti,
+                        data_evento: sm.data_evento,
+                        score_manuale_id: sm.id
+                    })]
+                );
             }
+
+            // Rimuovi da bridge table
+            await pool.query(
+                `DELETE FROM crm_score_manuali WHERE contatto_id = ANY($1::int[]) AND tipo_attivita = 'webinar_partecipazione'`,
+                [contattoIds]
+            );
+            rimossi = manuali.rows.length;
         }
 
         // Reset flag
         await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = FALSE, contatto_id = NULL WHERE webinar_tag = $1', [tag]);
 
-        console.log(`[Zoom Reset] ${tag}: ${rimossi} score rimossi, pronti per re-sync`);
+        console.log(`[Zoom Reset] ${tag}: ${rimossi} score rimossi da crm_score_manuali, pronti per re-sync`);
         res.json({ ok: true, score_rimossi: rimossi, messaggio: 'Score resettati. Esegui sync-zoom-participants per riassegnare.' });
     } catch (err) {
         console.error('[Zoom Reset]', err);
@@ -5324,11 +5368,28 @@ app.post('/api/webinar/track-followup-click', async (req, res) => {
             [reg.rows[0].id]
         );
         if (contatto.rows[0]?.contatto_id) {
-            await pool.query(
-                'UPDATE crm_contatti SET score = COALESCE(score, 0) + 20 WHERE id = $1',
-                [contatto.rows[0].contatto_id]
+            const cId = contatto.rows[0].contatto_id;
+            const oggi = new Date().toISOString().split('T')[0];
+            // Bridge table per display immediato
+            const scoreInsert = await pool.query(
+                `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                 VALUES ($1, 'GENERICO', 'followup_click', 20, $2) RETURNING id`,
+                [cId, oggi]
             );
-            console.log(`[Followup Click] ${email} — +20 punti a contatto ${contatto.rows[0].contatto_id}`);
+            // Log per sync verso SQLite score_eventi
+            await pool.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                 VALUES ('add_score', $1, $2)`,
+                [cId, JSON.stringify({
+                    linea_prodotto: 'GENERICO',
+                    tipo_attivita: 'followup_click',
+                    punti: 20,
+                    label: 'Click email follow-up webinar',
+                    data_evento: oggi,
+                    score_manuale_id: scoreInsert.rows[0].id
+                })]
+            );
+            console.log(`[Followup Click] ${email} — +20 punti a contatto ${cId} (score_manuali ID ${scoreInsert.rows[0].id})`);
         }
 
         res.json({ ok: true, email, punti_aggiunti: 20 });
