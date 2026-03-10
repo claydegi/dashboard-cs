@@ -2832,8 +2832,9 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
             // Caso semplice: new_id non esiste, rinomina tutto
             const fkTables = [
                 'crm_prodotti', 'crm_acquisti', 'crm_note', 'crm_opportunita',
-                'crm_score_prodotti', 'crm_audit_log', 'crm_cestino',
-                'crm_modifiche_log', 'crm_promozioni_log', 'crm_webinar_registrazioni'
+                'crm_score_prodotti', 'crm_score_manuali', 'crm_audit_log', 'crm_cestino',
+                'crm_modifiche_log', 'crm_promozioni_log', 'crm_webinar_registrazioni',
+                'crm_webinar_partecipanti', 'crm_video_tracking', 'crm_consensi_log'
             ];
             for (const table of fkTables) {
                 await client.query(`UPDATE ${table} SET contatto_id = $1 WHERE contatto_id = $2`, [new_id, old_id]);
@@ -2869,8 +2870,16 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
             await client.query('UPDATE crm_modifiche_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
             await client.query('UPDATE crm_promozioni_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
 
-            // Webinar registrazioni: migra (contatto_id cambia, email resta uguale)
+            // Webinar registrazioni e partecipanti: migra
             await client.query('UPDATE crm_webinar_registrazioni SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_webinar_partecipanti SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Score manuali: migra (bridge table per display immediato)
+            await client.query('UPDATE crm_score_manuali SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // Video tracking e consensi: migra
+            await client.query('UPDATE crm_video_tracking SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE crm_consensi_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
 
             // Cancella il vecchio contatto orfano
             await client.query('DELETE FROM crm_contatti WHERE id = $1', [old_id]);
@@ -4678,10 +4687,11 @@ app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
         const contattoIds = scored.rows.map(r => r.contatto_id).filter(Boolean);
 
         if (contattoIds.length > 0) {
-            // Trova e rimuovi le entry da crm_score_manuali per questi contatti (tipo webinar_partecipazione)
+            // Trova e rimuovi TUTTE le entry da crm_score_manuali per questi contatti (tipo webinar_partecipazione)
+            // Includi sia sincronizzata=false che true, cosi' il log copre anche le entry gia' in SQLite
             const manuali = await pool.query(
-                `SELECT id, contatto_id, punti, data_evento FROM crm_score_manuali
-                 WHERE contatto_id = ANY($1::int[]) AND tipo_attivita = 'webinar_partecipazione' AND sincronizzata = false`,
+                `SELECT id, contatto_id, punti, data_evento, sincronizzata FROM crm_score_manuali
+                 WHERE contatto_id = ANY($1::int[]) AND tipo_attivita = 'webinar_partecipazione'`,
                 [contattoIds]
             );
 
