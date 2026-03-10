@@ -4596,6 +4596,7 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
             else aggiornati++;
 
             // Scoring: +200 per ogni soglia (>=10min, >=25min, >=40min) — max +600
+            // Linea prodotto: estratta dal tag webinar (es. WEBINAR_MALAVASI_PT1 -> PT1)
             if (contattoId && !upsert.rows[0].score_assegnato) {
                 let punti = 0;
                 if (p.durata_minuti >= 10) punti += 200;
@@ -4604,11 +4605,14 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
 
                 if (punti > 0) {
                     const oggi = new Date().toISOString().split('T')[0];
+                    // Linea prodotto dal tag: WEBINAR_MALAVASI_PT1 -> PT1, WEBINAR_X_ELEVATE -> ELEVATE
+                    const lineaProdotto = tag.split('_').pop() || 'GENERICO';
+
                     // 1. Bridge table per display immediato in dashboard
                     const scoreInsert = await pool.query(
                         `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
-                         VALUES ($1, 'GENERICO', 'webinar_partecipazione', $2, $3) RETURNING id`,
-                        [contattoId, punti, oggi]
+                         VALUES ($1, $2, 'webinar_partecipazione', $3, $4) RETURNING id`,
+                        [contattoId, lineaProdotto, punti, oggi]
                     );
                     const scoreManualId = scoreInsert.rows[0].id;
 
@@ -4617,7 +4621,7 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
                         `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
                          VALUES ('add_score', $1, $2)`,
                         [contattoId, JSON.stringify({
-                            linea_prodotto: 'GENERICO',
+                            linea_prodotto: lineaProdotto,
                             tipo_attivita: 'webinar_partecipazione',
                             punti: punti,
                             label: `Partecipazione webinar ${tag} (${p.durata_minuti}min)`,
