@@ -78,6 +78,9 @@ async function sendMailgunEmail(to, subject, html, tag) {
         formData.append('subject', subject);
         formData.append('html', html);
         formData.append('o:tag', tag);
+        formData.append('o:tracking', 'yes');
+        formData.append('o:tracking-opens', 'yes');
+        formData.append('o:tracking-clicks', 'yes');
 
         const response = await fetch(url, {
             method: 'POST',
