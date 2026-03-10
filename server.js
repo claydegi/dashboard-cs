@@ -4641,6 +4641,27 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
     }
 });
 
+// GET /api/webinar/partecipanti — lista partecipanti Zoom per un webinar
+app.get('/api/webinar/partecipanti', requireAdmin, async (req, res) => {
+    const tag = req.query.webinar_tag || 'WEBINAR_MALAVASI_PT1';
+    try {
+        const result = await pool.query(
+            `SELECT p.email, p.nome, p.cognome, p.durata_minuti, p.join_time, p.leave_time,
+                    p.contatto_id, p.score_assegnato,
+                    c.cognome AS crm_cognome, c.nome AS crm_nome, c.regione
+             FROM crm_webinar_partecipanti p
+             LEFT JOIN crm_contatti c ON c.id = p.contatto_id
+             WHERE p.webinar_tag = $1
+             ORDER BY p.durata_minuti DESC`,
+            [tag]
+        );
+        res.json({ ok: true, webinar_tag: tag, totale: result.rows.length, partecipanti: result.rows });
+    } catch (err) {
+        console.error('[Partecipanti]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/webinar/reset-zoom-scores — resetta score_assegnato e rimuove punti, poi rilancia sync
 app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
