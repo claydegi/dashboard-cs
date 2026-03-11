@@ -5019,7 +5019,7 @@ app.post('/api/webinar/register', async (req, res) => {
 });
 
 // PUT /api/webinar/registrations/fix-contatto-id — ricollegare registrazioni con contatto_id NULL al contatto giusto (per email)
-app.put('/api/webinar/registrations/fix-contatto-id', requireAdmin, async (req, res) => {
+app.put('/api/webinar/registrations/fix-contatto-id', requireReportsKey, async (req, res) => {
     const { webinar_tag } = req.body;
     if (!webinar_tag) {
         return res.status(400).json({ error: 'webinar_tag richiesto' });
