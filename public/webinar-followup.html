@@ -51,24 +51,42 @@
             font-size: 16px; color: #b0bec5; line-height: 1.7;
         }
 
-        /* Sections container — two-column layout */
+        /* Sections container — 2x2 grid layout */
         .sections {
             max-width: 1280px;
             margin: 40px auto 0;
             padding: 0 40px;
             display: grid;
             grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
             gap: 36px;
             align-items: start;
         }
-        .col-left {
+
+        /* Video card */
+        .video-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 28px;
             display: flex;
             flex-direction: column;
-            gap: 28px;
+            gap: 16px;
         }
-        .col-right {
-            position: sticky;
-            top: 24px;
+        .video-card .card-label { color: #00b4d8; }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            border-radius: 10px;
         }
 
         /* Card section */
@@ -404,7 +422,6 @@
                 grid-template-columns: 1fr;
                 max-width: 700px;
             }
-            .col-right { position: static; order: -1; }
         }
         @media (max-width: 700px) {
             .hero { padding: 0 20px; }
@@ -446,13 +463,36 @@
             </p>
         </div>
 
-        <!-- Sections — two columns -->
+        <!-- Sections — 2x2 grid -->
         <div class="sections">
 
-            <!-- COLONNA SINISTRA: Offerte -->
-            <div class="col-left">
+            <!-- TOP-LEFT: Video del webinar -->
+            <div class="video-card">
+                <div class="card-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;">Rivedi il webinar</div>
+                <div class="card-title" style="font-size:20px;font-weight:800;line-height:1.3;">Impianti Pterigoidei con Magnetic Mallet</div>
+                <div class="video-wrapper">
+                    <iframe src="https://www.youtube.com/embed/5XDL-o6Uekw" title="Webinar Dr. Malavasi — Impianti Pterigoidei" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                </div>
+                <p style="font-size:14px;color:#b0bec5;line-height:1.6;margin:0;">
+                    Il Dr. Andrea Malavasi illustra la tecnica degli impianti pterigoidei con approccio magnetodinamico mini-invasivo per casi di atrofia mascellare severa.
+                </p>
+            </div>
 
-            <!-- BLOCCO 1: Corso in presenza -->
+            <!-- TOP-RIGHT: Forum Q&A -->
+            <div class="offer-card forum-section" style="flex-direction: column; align-items: stretch;">
+                <div class="forum-title">Forum impianti pterigoidei con magnetodinamica</div>
+                <div class="forum-subtitle">
+                    Per approfondire un argomento del webinar, &egrave; possibile aprire una discussione
+                    e porre la domanda direttamente al Dr. Malavasi. Si pu&ograve; anche seguire
+                    e partecipare alle domande degli altri.
+                </div>
+
+                <div id="forumContainer">
+                    <div class="forum-empty">Caricamento...</div>
+                </div>
+            </div>
+
+            <!-- BOTTOM-LEFT: Corso in presenza -->
             <div class="offer-card corso-accent">
                 <div class="card-icon">&#127891;</div>
                 <div class="card-body">
@@ -499,15 +539,7 @@
                 </div>
             </div>
 
-            <!-- Download locandina -->
-            <div class="download-section">
-                <p>Scarichi la locandina del corso con tutti i dettagli</p>
-                <a href="docs/locandina_corso_malavasi.pdf" class="btn-download" download>
-                    &#128196;&nbsp; Scarica la locandina (PDF)
-                </a>
-            </div>
-
-            <!-- BLOCCO 2: Kit PT1 -->
+            <!-- BOTTOM-RIGHT: Kit PT1 -->
             <div class="offer-card kit-accent" style="padding: 0; overflow: hidden;">
                 <div class="kit-card-layout" style="width: 100%;">
                     <div class="kit-image">
@@ -546,23 +578,7 @@
                 </div>
             </div>
 
-            </div><!-- /col-left -->
-
-            <!-- COLONNA DESTRA: Forum Q&A -->
-            <div class="col-right">
-            <div class="offer-card forum-section" style="flex-direction: column; align-items: stretch;">
-                <div class="forum-title">Forum impianti pterigoidei con magnetodinamica</div>
-                <div class="forum-subtitle">
-                    Per approfondire un argomento del webinar, &egrave; possibile aprire una discussione
-                    e porre la domanda direttamente al Dr. Malavasi. Si pu&ograve; anche seguire
-                    e partecipare alle domande degli altri.
-                </div>
-
-                <div id="forumContainer">
-                    <div class="forum-empty">Caricamento...</div>
-                </div>
             </div>
-            </div><!-- /col-right -->
 
         </div>
 
