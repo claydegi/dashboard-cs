@@ -5257,6 +5257,28 @@ app.post('/api/webinar/registrant/resolve', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/webinar/registrant/flag-anomaly — segna registrante come da verificare (usato da replay_auto_processor.py)
+app.post('/api/webinar/registrant/flag-anomaly', requireReportsKey, async (req, res) => {
+    const { email, webinar_tag, motivo } = req.body;
+    if (!email || !webinar_tag) {
+        return res.status(400).json({ error: 'Parametri email e webinar_tag obbligatori' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE crm_webinar_registrazioni SET da_verificare = TRUE, motivo_verifica = $1 WHERE LOWER(email) = LOWER($2) AND webinar_tag = $3',
+            [motivo || 'Da verificare', email, webinar_tag]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registrazione non trovata' });
+        }
+        console.log(`[Webinar Flag] ${email} (${webinar_tag}): ${motivo}`);
+        res.json({ ok: true, messaggio: `Registrazione ${email} flaggata` });
+    } catch (err) {
+        console.error('[Webinar Flag]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // POST /api/webinar/registrants/recover — recupera iscrizioni perse (admin only, no Zoom, no email)
 app.post('/api/webinar/registrants/recover', requireAdmin, async (req, res) => {
     const { registrants } = req.body; // [{email, nome, cognome, citta, ha_mm, zoom_link}]
