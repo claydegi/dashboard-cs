@@ -611,7 +611,7 @@
 
             <div class="form-col">
                 <div class="form-container">
-                    <h2 class="form-title">Guarda la registrazione</h2>
+                    <h2 class="form-title">Registrati</h2>
                     <p class="form-subtitle">Compila il modulo per accedere al webinar completo</p>
 
                     <div class="error-message" id="errorMsg"></div>
@@ -648,7 +648,7 @@
                             </div>
                         </div>
 
-                        <button type="submit" class="btn-submit" id="btnSubmit">Accedi alla registrazione</button>
+                        <button type="submit" class="btn-submit" id="btnSubmit">Guardalo subito</button>
 
                         <p class="privacy-note">
                             Registrandoti accetti di ricevere comunicazioni relative a questo webinar.
@@ -706,7 +706,7 @@
                 errorMsg.textContent = 'Compila tutti i campi obbligatori.';
                 errorMsg.style.display = 'block';
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Accedi alla registrazione';
+                btnSubmit.textContent = 'Guardalo subito';
                 return;
             }
 
@@ -742,13 +742,13 @@
                     errorMsg.textContent = result.error || 'Errore durante la registrazione. Riprova.';
                     errorMsg.style.display = 'block';
                     btnSubmit.disabled = false;
-                    btnSubmit.textContent = 'Accedi alla registrazione';
+                    btnSubmit.textContent = 'Guardalo subito';
                 }
             } catch (err) {
                 errorMsg.textContent = 'Errore di connessione. Riprova tra qualche istante.';
                 errorMsg.style.display = 'block';
                 btnSubmit.disabled = false;
-                btnSubmit.textContent = 'Accedi alla registrazione';
+                btnSubmit.textContent = 'Guardalo subito';
             }
         });
     </script>
