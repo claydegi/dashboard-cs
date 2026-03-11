@@ -466,12 +466,12 @@
         <!-- Sections — 2x2 grid -->
         <div class="sections">
 
-            <!-- TOP-LEFT: Video del webinar -->
+            <!-- TOP-LEFT: Video del webinar (con tracking watch time) -->
             <div class="video-card">
                 <div class="card-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;">Rivedi il webinar</div>
                 <div class="card-title" style="font-size:20px;font-weight:800;line-height:1.3;">Impianti Pterigoidei con Magnetic Mallet</div>
                 <div class="video-wrapper">
-                    <iframe src="https://www.youtube.com/embed/5XDL-o6Uekw" title="Webinar Dr. Malavasi — Impianti Pterigoidei" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
+                    <div id="ytPlayer"></div>
                 </div>
                 <p style="font-size:14px;color:#b0bec5;line-height:1.6;margin:0;">
                     Il Dr. Andrea Malavasi illustra la tecnica degli impianti pterigoidei con approccio magnetodinamico mini-invasivo per casi di atrofia mascellare severa.
@@ -601,6 +601,97 @@
         if (waCorso) waCorso.href = 'https://wa.me/' + numero + '?text=' + corsoMsg;
         var waKit = document.getElementById('wa-kit');
         if (waKit) waKit.href = 'https://wa.me/' + numero + '?text=' + kitMsg;
+
+        // === Video Tracking (YouTube IFrame API) ===
+        var VIDEO_ID = '5XDL-o6Uekw';
+        var CAMPAGNA = 'MM_SF_WEBINAR_PT1_REC';
+        var trackingEmail = null;
+        var ytPlayer = null;
+        var trackingInterval = null;
+
+        // Decode email from base64 param (same as forum)
+        try {
+            var eParam = params.get('e');
+            if (eParam) trackingEmail = atob(eParam).trim().toLowerCase();
+        } catch(ex) {}
+
+        // Track followup page open (if email present)
+        if (trackingEmail) {
+            fetch('/api/video-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA, evento: 'landing_open',
+                    secondi_visti: 0, durata_totale: 0, percentuale: 0
+                })
+            }).catch(function(){});
+        }
+
+        function inviaVideoEvento(evento, secondi, durata, pct) {
+            if (!trackingEmail) return;
+            try {
+                fetch('/api/video-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: trackingEmail, campagna: CAMPAGNA, evento: evento,
+                        secondi_visti: secondi || 0, durata_totale: durata || 0, percentuale: pct || 0
+                    })
+                });
+            } catch(e) {}
+        }
+
+        // Load YouTube IFrame API
+        var ytTag = document.createElement('script');
+        ytTag.src = 'https://www.youtube.com/iframe_api';
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(ytTag, firstScript);
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('ytPlayer', {
+                videoId: VIDEO_ID,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': onYTStateChange }
+            });
+        };
+
+        function onYTStateChange(event) {
+            if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+            var secondi = Math.floor(ytPlayer.getCurrentTime());
+            var durata = Math.floor(ytPlayer.getDuration());
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaVideoEvento('play', secondi, durata, pct);
+                if (!trackingInterval) {
+                    trackingInterval = setInterval(function() {
+                        if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                            var s = Math.floor(ytPlayer.getCurrentTime());
+                            var d = Math.floor(ytPlayer.getDuration());
+                            var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                            inviaVideoEvento('progress', s, d, p);
+                        }
+                    }, 5000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                inviaVideoEvento('pause', secondi, durata, pct);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                inviaVideoEvento('ended', durata, durata, 100);
+                if (trackingInterval) { clearInterval(trackingInterval); trackingInterval = null; }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (ytPlayer && ytPlayer.getCurrentTime) {
+                var s = Math.floor(ytPlayer.getCurrentTime());
+                var d = Math.floor(ytPlayer.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+        });
 
         // === Forum Q&A ===
         var API = window.location.origin;
