@@ -5853,17 +5853,59 @@ app.get('/video-landing', async (req, res) => {
 </html>`);
 });
 
-// FIX: migra campagna video tracking da MM_SF_WEBINAR_PT1_REC a PT1_SF_WEBINAR_MALAVASI_REC
+// FIX: pulizia completa score video webinar PT1
 app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
     try {
+        // 1. Aggiorna campagna residua
         const vt = await pool.query(
             `UPDATE crm_video_tracking SET campagna = 'PT1_SF_WEBINAR_MALAVASI_REC' WHERE campagna = 'MM_SF_WEBINAR_PT1_REC'`
         );
+        // 2. Fix score_manuali
         const sm = await pool.query(
             `UPDATE crm_score_manuali SET linea_prodotto = 'PT1'
              WHERE linea_prodotto = 'MM' AND tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'`
         );
-        res.json({ ok: true, video_tracking: vt.rowCount, score_manuali: sm.rowCount });
+        // 3. Deduplica score events in video_tracking (score_30/60/90 doppi per PT1)
+        const dedup = await pool.query(`
+            DELETE FROM crm_video_tracking WHERE id IN (
+                SELECT id FROM (
+                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, campagna, evento ORDER BY created_at) as rn
+                    FROM crm_video_tracking
+                    WHERE evento IN ('score_30','score_60','score_90') AND campagna = 'PT1_SF_WEBINAR_MALAVASI_REC'
+                ) t WHERE t.rn > 1
+            )
+        `);
+        // 4. Deduplica score_manuali (video_watch PT1 doppi)
+        const dedupSm = await pool.query(`
+            DELETE FROM crm_score_manuali WHERE id IN (
+                SELECT id FROM (
+                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, linea_prodotto, punti ORDER BY id) as rn
+                    FROM crm_score_manuali
+                    WHERE tipo_attivita = 'video_watch' AND linea_prodotto = 'PT1' AND data_evento >= '2026-03-11'
+                ) t WHERE t.rn > 1
+            )
+        `);
+        // 5. Rimuovi score_prodotti MM orfani (nessun score_manuali MM rimasto)
+        const cleanMM = await pool.query(`
+            DELETE FROM crm_score_prodotti
+            WHERE linea_prodotto = 'MM'
+              AND NOT EXISTS (
+                SELECT 1 FROM crm_score_manuali sm
+                WHERE sm.contatto_id = crm_score_prodotti.contatto_id AND sm.linea_prodotto = 'MM'
+              )
+              AND contatto_id IN (
+                SELECT DISTINCT contatto_id FROM crm_score_manuali
+                WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'
+              )
+        `);
+        res.json({
+            ok: true,
+            video_tracking_updated: vt.rowCount,
+            score_manuali_fixed: sm.rowCount,
+            score_events_deduped: dedup.rowCount,
+            score_manuali_deduped: dedupSm.rowCount,
+            score_prodotti_mm_cleaned: cleanMM.rowCount
+        });
     } catch (err) {
         console.error('[Fix Campagna]', err);
         res.status(500).json({ error: err.message });
