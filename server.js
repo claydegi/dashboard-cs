@@ -762,7 +762,7 @@ async function initDB() {
             END $$;
         `);
 
-        // Google Ads — campagne (snapshot)
+        // Google Ads — campagne (snapshot + metriche aggregate all-time)
         await client.query(`
             CREATE TABLE IF NOT EXISTS gads_campagne (
                 campaign_id BIGINT PRIMARY KEY,
@@ -777,8 +777,23 @@ async function initDB() {
                 targeting_languages TEXT,
                 network TEXT,
                 webinar_tag TEXT,
+                totale_impressioni BIGINT DEFAULT 0,
+                totale_clic BIGINT DEFAULT 0,
+                totale_costo_micros BIGINT DEFAULT 0,
+                totale_conversioni REAL DEFAULT 0,
+                totale_cpc_micros BIGINT DEFAULT 0,
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             )
+        `);
+        // ALTER per aggiungere colonne aggregate a tabella esistente
+        await client.query(`
+            DO $$ BEGIN
+                ALTER TABLE gads_campagne ADD COLUMN IF NOT EXISTS totale_impressioni BIGINT DEFAULT 0;
+                ALTER TABLE gads_campagne ADD COLUMN IF NOT EXISTS totale_clic BIGINT DEFAULT 0;
+                ALTER TABLE gads_campagne ADD COLUMN IF NOT EXISTS totale_costo_micros BIGINT DEFAULT 0;
+                ALTER TABLE gads_campagne ADD COLUMN IF NOT EXISTS totale_conversioni REAL DEFAULT 0;
+                ALTER TABLE gads_campagne ADD COLUMN IF NOT EXISTS totale_cpc_micros BIGINT DEFAULT 0;
+            END $$;
         `);
 
         // Google Ads — metriche giornaliere per campagna
@@ -7448,12 +7463,12 @@ app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
     try {
         await client.query('BEGIN');
 
-        // UPSERT campagne
+        // UPSERT campagne (con metriche aggregate all-time da Google Ads API)
         let campagneCount = 0;
         for (const c of campagne) {
             await client.query(`
-                INSERT INTO gads_campagne (campaign_id, campaign_name, campaign_type, status, bidding_strategy, budget_micros, start_date, end_date, targeting_locations, targeting_languages, network, webinar_tag, updated_at)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                INSERT INTO gads_campagne (campaign_id, campaign_name, campaign_type, status, bidding_strategy, budget_micros, start_date, end_date, targeting_locations, targeting_languages, network, webinar_tag, totale_impressioni, totale_clic, totale_costo_micros, totale_conversioni, totale_cpc_micros, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, NOW())
                 ON CONFLICT (campaign_id) DO UPDATE SET
                     campaign_name = EXCLUDED.campaign_name,
                     campaign_type = EXCLUDED.campaign_type,
@@ -7466,8 +7481,13 @@ app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
                     targeting_languages = EXCLUDED.targeting_languages,
                     network = EXCLUDED.network,
                     webinar_tag = EXCLUDED.webinar_tag,
+                    totale_impressioni = EXCLUDED.totale_impressioni,
+                    totale_clic = EXCLUDED.totale_clic,
+                    totale_costo_micros = EXCLUDED.totale_costo_micros,
+                    totale_conversioni = EXCLUDED.totale_conversioni,
+                    totale_cpc_micros = EXCLUDED.totale_cpc_micros,
                     updated_at = NOW()
-            `, [c.campaign_id, c.campaign_name, c.campaign_type, c.status, c.bidding_strategy, c.budget_micros, c.start_date, c.end_date, c.targeting_locations, c.targeting_languages, c.network, c.webinar_tag]);
+            `, [c.campaign_id, c.campaign_name, c.campaign_type, c.status, c.bidding_strategy, c.budget_micros, c.start_date, c.end_date, c.targeting_locations, c.targeting_languages, c.network, c.webinar_tag, c.totale_impressioni || 0, c.totale_clic || 0, c.totale_costo_micros || 0, c.totale_conversioni || 0, c.totale_cpc_micros || 0]);
             campagneCount++;
         }
 
@@ -7523,27 +7543,21 @@ app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
     }
 });
 
-// GET /api/google-ads/campagne — lista campagne con metriche aggregate
+// GET /api/google-ads/campagne — lista campagne con metriche aggregate (all-time, stored in gads_campagne)
 app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
     const includeRemoved = req.query.include_removed === 'true';
     try {
-        const statusFilter = includeRemoved ? '' : "WHERE c.status IN ('ENABLED', 'PAUSED')";
+        const statusFilter = includeRemoved ? '' : "WHERE status IN ('ENABLED', 'PAUSED')";
         const result = await pool.query(`
-            SELECT c.*,
-                   COALESCE(SUM(m.impressioni), 0) AS totale_impressioni,
-                   COALESCE(SUM(m.clic), 0) AS totale_clic,
-                   COALESCE(SUM(m.costo_micros), 0) AS totale_costo_micros,
-                   COALESCE(SUM(m.conversioni), 0) AS totale_conversioni,
-                   CASE WHEN COALESCE(SUM(m.conversioni), 0) > 0
-                        THEN COALESCE(SUM(m.costo_micros), 0) / SUM(m.conversioni)
+            SELECT *,
+                   CASE WHEN totale_conversioni > 0
+                        THEN totale_costo_micros / totale_conversioni
                         ELSE 0 END AS costo_per_conversione_micros,
-                   CASE WHEN COALESCE(SUM(m.impressioni), 0) > 0
-                        THEN COALESCE(SUM(m.clic), 0)::REAL / SUM(m.impressioni)
+                   CASE WHEN totale_impressioni > 0
+                        THEN totale_clic::REAL / totale_impressioni
                         ELSE 0 END AS ctr_totale
-            FROM gads_campagne c
-            LEFT JOIN gads_metriche_giornaliere m ON c.campaign_id = m.campaign_id
+            FROM gads_campagne
             ${statusFilter}
-            GROUP BY c.campaign_id
             ORDER BY totale_costo_micros DESC
         `);
         res.json(result.rows);
