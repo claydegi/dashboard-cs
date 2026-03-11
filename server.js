@@ -5853,6 +5853,28 @@ app.get('/video-landing', async (req, res) => {
 </html>`);
 });
 
+// GET video tracking data (admin only)
+app.get('/api/video-tracking', requireAdmin, async (req, res) => {
+    const { campagna } = req.query;
+    try {
+        const where = campagna ? `WHERE vt.campagna = $1` : '';
+        const params = campagna ? [campagna] : [];
+        const result = await pool.query(`
+            SELECT vt.email, c.cognome, c.nome, c.tipo,
+                   vt.campagna, vt.evento, vt.secondi_visti,
+                   vt.durata_totale, vt.percentuale, vt.created_at
+            FROM crm_video_tracking vt
+            LEFT JOIN crm_contatti c ON c.id = vt.contatto_id
+            ${where}
+            ORDER BY vt.created_at DESC
+        `, params);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Video Tracking GET]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Endpoint tracking video (PUBBLICO — riceve beacon dal JS della landing)
 app.post('/api/video-tracking', express.json(), async (req, res) => {
     const { email, campagna, evento, secondi_visti, durata_totale, percentuale } = req.body;
