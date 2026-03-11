@@ -661,6 +661,11 @@
                         </div>
                     </div>
                     <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${s.nuovi_lead} nuovi lead e ${s.nuovi_account} nuovi account</div>
+                    ${s.da_verificare > 0 ? `<div style="margin-top:8px; text-align:center;">
+                        <span style="background:#ef4444; color:white; padding:3px 12px; border-radius:12px; font-size:0.82rem; font-weight:600;">
+                            &#9888; ${s.da_verificare} da sistemare
+                        </span>
+                    </div>` : ''}
                     <div style="margin-top:10px; text-align:center;">
                         <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
                             style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
@@ -798,38 +803,44 @@
                 const data = await resp.json();
                 const registrants = data.registrants || [];
 
-                const nuovi = registrants.filter(r => r.azione === 'nuovo_account' || r.azione === 'nuovo_lead');
-                const lead = registrants.filter(r => r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'lead');
-                const account = registrants.filter(r => r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'account');
+                const daVerificare = registrants.filter(r => r.da_verificare);
+                const nuovi = registrants.filter(r => !r.da_verificare && (r.azione === 'nuovo_account' || r.azione === 'nuovo_lead'));
+                const lead = registrants.filter(r => !r.da_verificare && r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'lead');
+                const account = registrants.filter(r => !r.da_verificare && r.azione !== 'nuovo_account' && r.azione !== 'nuovo_lead' && r.tipo === 'account');
 
                 let tableHtml = '';
-                const renderGroup = (title, items, color) => {
+                const renderGroup = (title, items, color, isWarning) => {
                     if (items.length === 0) return '';
                     let h = `<div style="font-size:0.75rem; font-weight:600; color:${color}; margin:8px 0 4px; text-transform:uppercase;">${title} (${items.length})</div>`;
                     h += `<table style="width:100%; font-size:0.75rem; border-collapse:collapse;">
-                        <thead><tr style="background:var(--gray-100, #f3f4f6);">
+                        <thead><tr style="background:${isWarning ? '#fef2f2' : 'var(--gray-100, #f3f4f6)'};">
                             <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Cognome</th>
                             <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Nome</th>
                             <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Email</th>
                             <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Citta</th>
                             <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Regione</th>
+                            ${isWarning ? '<th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Motivo</th><th style="padding:3px 6px; border-bottom:1px solid var(--gray-200);"></th>' : ''}
                         </tr></thead><tbody>`;
                     for (const r of items) {
-                        h += `<tr style="border-bottom:1px solid var(--gray-100, #f3f4f6);">
+                        const rowBg = isWarning ? 'background:#fef2f2; border-left:3px solid #ef4444;' : '';
+                        h += `<tr style="border-bottom:1px solid var(--gray-100, #f3f4f6); ${rowBg}">
                             <td style="padding:3px 6px;">${escapeHtml(r.cognome || '')}</td>
                             <td style="padding:3px 6px;">${escapeHtml(r.nome || '')}</td>
                             <td style="padding:3px 6px;">${escapeHtml(r.email || '')}</td>
                             <td style="padding:3px 6px;">${escapeHtml(r.citta || '')}</td>
                             <td style="padding:3px 6px;">${escapeHtml(r.regione || '-')}</td>
+                            ${isWarning ? `<td style="padding:3px 6px; color:#dc2626; font-size:0.7rem;">${escapeHtml(r.motivo_verifica || '')}</td>
+                            <td style="padding:3px 6px;"><button onclick="resolveRegistrant(${r.id}, '${listId}')" style="background:#059669; color:white; border:none; border-radius:4px; padding:2px 8px; font-size:0.7rem; cursor:pointer;">Risolvi</button></td>` : ''}
                         </tr>`;
                     }
                     h += '</tbody></table>';
                     return h;
                 };
 
-                tableHtml += renderGroup('Nuovi', nuovi, '#d97706');
-                tableHtml += renderGroup('Lead esistenti', lead, '#6b7280');
-                tableHtml += renderGroup('Account esistenti', account, '#059669');
+                tableHtml += renderGroup('Da sistemare', daVerificare, '#ef4444', true);
+                tableHtml += renderGroup('Nuovi', nuovi, '#d97706', false);
+                tableHtml += renderGroup('Lead esistenti', lead, '#6b7280', false);
+                tableHtml += renderGroup('Account esistenti', account, '#059669', false);
 
                 listDiv.innerHTML = `<div style="max-height:300px; overflow-y:auto;">${tableHtml}</div>`;
                 listDiv.dataset.loaded = 'true';
@@ -842,6 +853,27 @@
 
         listDiv.style.display = 'block';
         btn.innerHTML = '&#9650; Nascondi iscritti';
+    }
+
+    async function resolveRegistrant(regId, listId) {
+        if (!confirm('Segnare come risolto?')) return;
+        try {
+            const resp = await fetch(`${API_URL}/webinar/registrant/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'x-api-key': ADMIN_KEY },
+                body: JSON.stringify({ id: regId })
+            });
+            if (!resp.ok) throw new Error('Errore server');
+            // Ricarica la lista forzando un refresh
+            const listDiv = document.getElementById(listId);
+            if (listDiv) { listDiv.dataset.loaded = ''; listDiv.style.display = 'none'; }
+            // Ricarica anche le stats
+            const statsResp = await fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`);
+            if (statsResp.ok) { renderWebinarStats(await statsResp.json()); }
+        } catch (err) {
+            alert('Errore nella risoluzione');
+            console.error(err);
+        }
     }
 
     function findWebinarTag(titolo, webinarStats) {

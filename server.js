@@ -54,7 +54,8 @@ const WEBINAR_DATA = {
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
         link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
-        link_webinar: 'https://app.osseotouch.com/webinar'
+        link_webinar: 'https://app.osseotouch.com/webinar',
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Malavasi'
     }
 };
 
@@ -139,6 +140,7 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;
     else if (templateName === 'WEBINAR_FOLLOWUP') subject = data.subject_followup;
     else if (templateName === 'WEBINAR_INVITO') subject = data.subject_invito;
+    else if (templateName === 'WEBINAR_REPLAY_ACCESSO') subject = data.subject_replay_accesso;
     else subject = data.subject_reminder;
 
     await sendMailgunEmail(to, subject, html, tag);
@@ -565,6 +567,8 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_inviato BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato BOOLEAN DEFAULT FALSE`);
         await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS followup_cliccato_at TIMESTAMPTZ`);
+        await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS da_verificare BOOLEAN DEFAULT FALSE`);
+        await client.query(`ALTER TABLE crm_webinar_registrazioni ADD COLUMN IF NOT EXISTS motivo_verifica TEXT`);
 
         // ==================== TABELLA PARTECIPANTI ZOOM ====================
 
@@ -5076,10 +5080,19 @@ app.post('/api/webinar/register', async (req, res) => {
             }
         }
 
-        // 5. Invio email conferma iscrizione (fire-and-forget, skip per replay)
+        // 5. Invio email conferma iscrizione (fire-and-forget)
         if (!replay) {
             sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
                 .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma:`, err.message));
+        } else {
+            // Replay: invia email con link alla registrazione
+            sendWebinarEmail('WEBINAR_REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+                .then(async () => {
+                    try {
+                        await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE email = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
+                    } catch (e) { console.error(`[Webinar ${WEBINAR_TAG}] Errore update followup_inviato:`, e.message); }
+                })
+                .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email replay:`, err.message));
         }
 
         res.json({
@@ -5150,7 +5163,8 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 COUNT(*) FILTER (WHERE
                     (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead,
                 COUNT(*) FILTER (WHERE
-                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account
+                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account,
+                COUNT(*) FILTER (WHERE r.da_verificare = TRUE)::int AS da_verificare
             FROM crm_webinar_registrazioni r
             GROUP BY r.webinar_tag
         `);
@@ -5163,7 +5177,8 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
                 nuovi_lead: row.nuovi_lead,
                 nuovi_account: row.nuovi_account,
                 lead: row.lead,
-                account: row.account
+                account: row.account,
+                da_verificare: row.da_verificare
             };
         }
         res.json(stats);
@@ -5182,7 +5197,8 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     try {
         // Lookup via email (robusto: funziona anche dopo remap ID negativo->positivo)
         const result = await pool.query(`
-            SELECT r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+            SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+                   r.da_verificare, r.motivo_verifica,
                    (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo
             FROM crm_webinar_registrazioni r
@@ -5215,6 +5231,28 @@ app.post('/api/webinar/registrants/delete', requireAdmin, async (req, res) => {
         res.json({ ok: true, messaggio: `Registrazione ${email} rimossa da ${tag}` });
     } catch (err) {
         console.error('[Webinar Delete]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/webinar/registrant/resolve — segna registrante come verificato (risolve anomalia)
+app.post('/api/webinar/registrant/resolve', requireAdmin, async (req, res) => {
+    const { id } = req.body;
+    if (!id) {
+        return res.status(400).json({ error: 'Parametro id obbligatorio' });
+    }
+    try {
+        const result = await pool.query(
+            'UPDATE crm_webinar_registrazioni SET da_verificare = FALSE, motivo_verifica = NULL WHERE id = $1',
+            [id]
+        );
+        if (result.rowCount === 0) {
+            return res.status(404).json({ error: 'Registrazione non trovata' });
+        }
+        console.log(`[Webinar] Registrazione #${id} risolta (da_verificare = FALSE)`);
+        res.json({ ok: true, messaggio: `Registrazione #${id} risolta` });
+    } catch (err) {
+        console.error('[Webinar Resolve]', err);
         res.status(500).json({ error: 'Errore server' });
     }
 });
