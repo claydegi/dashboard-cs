@@ -689,43 +689,58 @@
             return;
         }
 
-        // Totali
-        let totSpesa = 0, totConv = 0, totClic = 0;
-        campagne.forEach(c => {
+        // Filtra: solo campagne con spesa > 0
+        const conSpesa = campagne.filter(c => parseInt(c.totale_costo_micros || 0) > 0);
+
+        // Ordina: ENABLED prima, poi PAUSED, poi resto. A parita' di status, per spesa decrescente
+        const statusOrder = { ENABLED: 0, PAUSED: 1 };
+        conSpesa.sort((a, b) => {
+            const sa = statusOrder[a.status] ?? 2;
+            const sb = statusOrder[b.status] ?? 2;
+            if (sa !== sb) return sa - sb;
+            return parseInt(b.totale_costo_micros || 0) - parseInt(a.totale_costo_micros || 0);
+        });
+
+        // Totali (su campagne filtrate)
+        let totSpesa = 0, totConv = 0;
+        conSpesa.forEach(c => {
             totSpesa += parseInt(c.totale_costo_micros || 0);
             totConv += parseFloat(c.totale_conversioni || 0);
-            totClic += parseInt(c.totale_clic || 0);
         });
         const spesaEur = (totSpesa / 1000000).toFixed(2);
         const cpaEur = totConv > 0 ? (totSpesa / totConv / 1000000).toFixed(2) : '—';
 
-        // Righe per campagna attiva (ENABLED o PAUSED)
+        // Righe
         let righe = '';
-        campagne.forEach(c => {
+        conSpesa.forEach(c => {
             const costo = (parseInt(c.totale_costo_micros || 0) / 1000000).toFixed(2);
             const conv = parseFloat(c.totale_conversioni || 0);
             const nome = c.campaign_name || '';
             const tipo = c.campaign_type || '';
-            const bidding = c.bidding_strategy || '';
             const convLabel = conv > 0
                 ? `<span style="font-weight:600; color:#059669;">${conv.toFixed(0)} conv.</span>`
                 : `<span style="color:var(--gray-400, #9ca3af);">0 conv.</span>`;
-            const statusDot = c.status === 'ENABLED'
-                ? '<span style="color:#059669;">●</span> '
-                : '<span style="color:var(--gray-400, #9ca3af);">●</span> ';
+            const isEnabled = c.status === 'ENABLED';
+            const statusDot = isEnabled
+                ? '<span style="color:#059669; font-size:0.7rem;">●</span>'
+                : '<span style="color:var(--gray-400, #9ca3af); font-size:0.7rem;">●</span>';
+            const statusLabel = isEnabled
+                ? '<span style="color:#059669; font-weight:600; font-size:0.72rem;">Attiva</span>'
+                : '<span style="color:var(--gray-400, #9ca3af); font-size:0.72rem;">Pausa</span>';
             righe += `
                 <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
-                    <td style="padding:4px 0; font-size:0.78rem;">${statusDot}${nome.length > 35 ? nome.substring(0, 35) + '...' : nome}</td>
-                    <td style="padding:4px 8px; font-size:0.75rem; color:var(--gray-400, #9ca3af);">${tipo}</td>
-                    <td style="padding:4px 0; text-align:right; font-size:0.78rem;">&euro; ${costo}</td>
-                    <td style="padding:4px 0 4px 8px; text-align:right; font-size:0.78rem;">${convLabel}</td>
+                    <td style="padding:5px 0; font-size:0.78rem; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nome}</td>
+                    <td style="padding:5px 6px; font-size:0.73rem; color:var(--gray-400, #9ca3af);">${tipo}</td>
+                    <td style="padding:5px 6px; text-align:center; font-size:0.73rem; white-space:nowrap;">${statusDot} ${statusLabel}</td>
+                    <td style="padding:5px 0; text-align:right; font-size:0.78rem;">&euro; ${costo}</td>
+                    <td style="padding:5px 0 5px 8px; text-align:right; font-size:0.78rem;">${convLabel}</td>
                 </tr>`;
         });
 
         panel.innerHTML = `
             <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                 <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                    Google Ads — Campagne attive
+                    Google Ads
                 </div>
                 <div class="webinar-counter">
                     <div class="wc-item">
@@ -742,7 +757,18 @@
                     </div>
                 </div>
                 <table style="width:100%; margin-top:10px; font-size:0.82rem; color:var(--gray-600, #4b5563); border-collapse:collapse;">
-                    ${righe}
+                    <thead>
+                        <tr style="border-bottom:2px solid var(--gray-200, #e5e7eb);">
+                            <th style="padding:4px 0; text-align:left; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Campagna</th>
+                            <th style="padding:4px 6px; text-align:left; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Tipo</th>
+                            <th style="padding:4px 6px; text-align:center; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Stato</th>
+                            <th style="padding:4px 0; text-align:right; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Spesa</th>
+                            <th style="padding:4px 0 4px 8px; text-align:right; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Conv.</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${righe}
+                    </tbody>
                 </table>
                 <div style="text-align:center; font-size:0.75rem; color:var(--gray-400, #9ca3af); margin-top:8px;">
                     Dati sincronizzati da JESFAG
