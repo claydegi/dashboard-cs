@@ -5853,6 +5853,64 @@ app.get('/video-landing', async (req, res) => {
 </html>`);
 });
 
+// FIX: migra campagna video tracking da MM_SF_WEBINAR_PT1_REC a PT1_SF_WEBINAR_MALAVASI_REC
+app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
+    const OLD_TAG = 'MM_SF_WEBINAR_PT1_REC';
+    const NEW_TAG = 'PT1_SF_WEBINAR_MALAVASI_REC';
+    try {
+        // 1. Aggiorna crm_video_tracking
+        const vt = await pool.query(
+            `UPDATE crm_video_tracking SET campagna = $1 WHERE campagna = $2`,
+            [NEW_TAG, OLD_TAG]
+        );
+        // 2. Aggiorna crm_score_manuali: linea_prodotto MM -> PT1 per video_watch con data oggi
+        const sm = await pool.query(
+            `UPDATE crm_score_manuali SET linea_prodotto = 'PT1'
+             WHERE linea_prodotto = 'MM' AND tipo_attivita = 'video_watch'
+               AND data_evento >= '2026-03-11'`
+        );
+        // 3. Ricostruisci crm_score_prodotti per i contatti coinvolti
+        const affected = await pool.query(
+            `SELECT DISTINCT contatto_id FROM crm_score_manuali
+             WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'`
+        );
+        for (const row of affected.rows) {
+            // Ricalcola score PT1 da score_manuali
+            const scores = await pool.query(
+                `SELECT linea_prodotto, SUM(punti) as totale
+                 FROM crm_score_manuali WHERE contatto_id = $1 AND sincronizzata = false
+                 GROUP BY linea_prodotto`, [row.contatto_id]
+            );
+            // Rimuovi vecchio score MM da video (se esiste solo da video)
+            await pool.query(
+                `DELETE FROM crm_score_prodotti
+                 WHERE contatto_id = $1 AND linea_prodotto = 'MM'
+                   AND NOT EXISTS (
+                     SELECT 1 FROM crm_score_manuali
+                     WHERE contatto_id = $1 AND linea_prodotto = 'MM' AND sincronizzata = false
+                   )
+                   AND NOT EXISTS (
+                     SELECT 1 FROM crm_score_prodotti sp2
+                     JOIN crm_contatti c ON c.id = sp2.contatto_id
+                     WHERE sp2.contatto_id = $1 AND sp2.linea_prodotto = 'MM'
+                       AND sp2.score > 0
+                       AND EXISTS (SELECT 1 FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'MM')
+                   )`,
+                [row.contatto_id]
+            );
+        }
+        res.json({
+            ok: true,
+            video_tracking_updated: vt.rowCount,
+            score_manuali_updated: sm.rowCount,
+            contatti_affected: affected.rows.length
+        });
+    } catch (err) {
+        console.error('[Fix Campagna]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET video tracking data (admin only)
 app.get('/api/video-tracking', requireAdmin, async (req, res) => {
     const { campagna } = req.query;
