@@ -4822,6 +4822,10 @@ app.get('/webinar-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-followup.html'));
 });
 
+app.get('/webinar-replay', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-replay.html'));
+});
+
 app.get('/webinar-grazie', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-grazie.html'));
 });
