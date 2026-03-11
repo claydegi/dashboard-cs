@@ -2837,7 +2837,8 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
                 'crm_prodotti', 'crm_acquisti', 'crm_note', 'crm_opportunita',
                 'crm_score_prodotti', 'crm_score_manuali', 'crm_audit_log', 'crm_cestino',
                 'crm_modifiche_log', 'crm_promozioni_log', 'crm_webinar_registrazioni',
-                'crm_webinar_partecipanti', 'crm_video_tracking', 'crm_consensi_log'
+                'crm_webinar_partecipanti', 'crm_video_tracking', 'crm_consensi_log',
+                'crm_whatsapp_clicks', 'forum_topics', 'forum_replies'
             ];
             for (const table of fkTables) {
                 await client.query(`UPDATE ${table} SET contatto_id = $1 WHERE contatto_id = $2`, [new_id, old_id]);
@@ -2883,6 +2884,11 @@ app.put('/api/crm/contatti/remap-id', requireReportsKey, async (req, res) => {
             // Video tracking e consensi: migra
             await client.query('UPDATE crm_video_tracking SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
             await client.query('UPDATE crm_consensi_log SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+
+            // WhatsApp clicks, forum topics e replies: migra
+            await client.query('UPDATE crm_whatsapp_clicks SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE forum_topics SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
+            await client.query('UPDATE forum_replies SET contatto_id = $1 WHERE contatto_id = $2', [new_id, old_id]);
 
             // Cancella il vecchio contatto orfano
             await client.query('DELETE FROM crm_contatti WHERE id = $1', [old_id]);
