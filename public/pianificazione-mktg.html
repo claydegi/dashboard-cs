@@ -552,11 +552,12 @@
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, consensiResp, webinarResp, mailingResp] = await Promise.all([
+            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp] = await Promise.all([
                 fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`)
+                fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/google-ads/campagne?key=${ADMIN_KEY}`)
             ]);
 
             // Attivita'
@@ -579,8 +580,9 @@
             // Stats registrazioni webinar
             renderWebinarStats(webinarStats);
 
-            // Google Ads stats (solo admin)
-            renderGoogleAdsPanel();
+            // Google Ads stats (solo admin, dati dinamici da PostgreSQL)
+            const gadsData = gadsResp.ok ? await gadsResp.json() : [];
+            renderGoogleAdsPanel(gadsData);
 
             // Calendario mailing
             if (mailingResp.ok) {
@@ -672,56 +674,78 @@
         panel.innerHTML = html;
     }
 
-    function renderGoogleAdsPanel() {
+    function renderGoogleAdsPanel(campagne) {
         const panel = document.getElementById('googleAdsPanel');
         if (!panel || !IS_ADMIN) return;
+
+        if (!campagne || campagne.length === 0) {
+            panel.innerHTML = `
+                <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
+                    <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                        Google Ads
+                    </div>
+                    <div class="empty-state"><p>Nessuna campagna sincronizzata</p></div>
+                </div>`;
+            return;
+        }
+
+        // Totali
+        let totSpesa = 0, totConv = 0, totClic = 0;
+        campagne.forEach(c => {
+            totSpesa += parseInt(c.totale_costo_micros || 0);
+            totConv += parseFloat(c.totale_conversioni || 0);
+            totClic += parseInt(c.totale_clic || 0);
+        });
+        const spesaEur = (totSpesa / 1000000).toFixed(2);
+        const cpaEur = totConv > 0 ? (totSpesa / totConv / 1000000).toFixed(2) : '—';
+
+        // Righe per campagna attiva (ENABLED o PAUSED)
+        let righe = '';
+        campagne.forEach(c => {
+            const costo = (parseInt(c.totale_costo_micros || 0) / 1000000).toFixed(2);
+            const conv = parseFloat(c.totale_conversioni || 0);
+            const nome = c.campaign_name || '';
+            const tipo = c.campaign_type || '';
+            const bidding = c.bidding_strategy || '';
+            const convLabel = conv > 0
+                ? `<span style="font-weight:600; color:#059669;">${conv.toFixed(0)} conv.</span>`
+                : `<span style="color:var(--gray-400, #9ca3af);">0 conv.</span>`;
+            const statusDot = c.status === 'ENABLED'
+                ? '<span style="color:#059669;">●</span> '
+                : '<span style="color:var(--gray-400, #9ca3af);">●</span> ';
+            righe += `
+                <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
+                    <td style="padding:4px 0; font-size:0.78rem;">${statusDot}${nome.length > 35 ? nome.substring(0, 35) + '...' : nome}</td>
+                    <td style="padding:4px 8px; font-size:0.75rem; color:var(--gray-400, #9ca3af);">${tipo}</td>
+                    <td style="padding:4px 0; text-align:right; font-size:0.78rem;">&euro; ${costo}</td>
+                    <td style="padding:4px 0 4px 8px; text-align:right; font-size:0.78rem;">${convLabel}</td>
+                </tr>`;
+        });
+
         panel.innerHTML = `
             <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                 <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                    Costi Advertising - Webinar Malavasi PT1
+                    Google Ads — Campagne attive
                 </div>
                 <div class="webinar-counter">
                     <div class="wc-item">
-                        <span class="wc-num" style="color:#059669;">&euro; 312,93</span>
+                        <span class="wc-num" style="color:#059669;">&euro; ${spesaEur}</span>
                         <span class="wc-label">Speso totale</span>
                     </div>
                     <div class="wc-item">
-                        <span class="wc-num" style="color:#1a73e8;">67</span>
-                        <span class="wc-label">Conv. Google</span>
+                        <span class="wc-num" style="color:#1a73e8;">${totConv.toFixed(0)}</span>
+                        <span class="wc-label">Conversioni</span>
                     </div>
                     <div class="wc-item">
-                        <span class="wc-num" style="color:#1a73e8;">&euro; 2,32</span>
+                        <span class="wc-num" style="color:#1a73e8;">&euro; ${cpaEur}</span>
                         <span class="wc-label">Costo/conv.</span>
                     </div>
                 </div>
                 <table style="width:100%; margin-top:10px; font-size:0.82rem; color:var(--gray-600, #4b5563); border-collapse:collapse;">
-                    <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
-                        <td style="padding:4px 0; font-weight:600; color:#1a73e8;">Google Ads</td>
-                        <td style="padding:4px 8px;">Search</td>
-                        <td style="padding:4px 0; text-align:right;">&euro; 20,57</td>
-                        <td style="padding:4px 0 4px 8px; text-align:right; color:var(--gray-400, #9ca3af);">0 conv.</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
-                        <td style="padding:4px 0;"></td>
-                        <td style="padding:4px 8px;">Demand Gen</td>
-                        <td style="padding:4px 0; text-align:right;">&euro; 134,91</td>
-                        <td style="padding:4px 0 4px 8px; text-align:right; font-weight:600; color:#059669;">67 conv.</td>
-                    </tr>
-                    <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
-                        <td style="padding:4px 0; font-weight:600; color:#4267B2;">Meta Ads</td>
-                        <td style="padding:4px 8px;">Post</td>
-                        <td style="padding:4px 0; text-align:right;">&euro; 51,85</td>
-                        <td style="padding:4px 0 4px 8px;"></td>
-                    </tr>
-                    <tr>
-                        <td style="padding:4px 0;"></td>
-                        <td style="padding:4px 8px;">Campagna</td>
-                        <td style="padding:4px 0; text-align:right;">&euro; 105,60</td>
-                        <td style="padding:4px 0 4px 8px;"></td>
-                    </tr>
+                    ${righe}
                 </table>
-                <div style="text-align:center; font-size:0.78rem; color:var(--gray-400, #9ca3af); margin-top:8px;">
-                    5-9 marzo 2026
+                <div style="text-align:center; font-size:0.75rem; color:var(--gray-400, #9ca3af); margin-top:8px;">
+                    Dati sincronizzati da JESFAG
                 </div>
             </div>
         `;
