@@ -762,6 +762,62 @@ async function initDB() {
             END $$;
         `);
 
+        // Google Ads — campagne (snapshot)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS gads_campagne (
+                campaign_id BIGINT PRIMARY KEY,
+                campaign_name TEXT,
+                campaign_type TEXT,
+                status TEXT,
+                bidding_strategy TEXT,
+                budget_micros BIGINT,
+                start_date TEXT,
+                end_date TEXT,
+                targeting_locations TEXT,
+                targeting_languages TEXT,
+                network TEXT,
+                webinar_tag TEXT,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        // Google Ads — metriche giornaliere per campagna
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS gads_metriche_giornaliere (
+                campaign_id BIGINT NOT NULL,
+                data DATE NOT NULL,
+                impressioni INTEGER DEFAULT 0,
+                clic INTEGER DEFAULT 0,
+                ctr REAL DEFAULT 0,
+                cpc_micros BIGINT DEFAULT 0,
+                costo_micros BIGINT DEFAULT 0,
+                conversioni REAL DEFAULT 0,
+                costo_conversione_micros BIGINT DEFAULT 0,
+                interazioni INTEGER DEFAULT 0,
+                UNIQUE(campaign_id, data)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_gads_metriche_campaign ON gads_metriche_giornaliere(campaign_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_gads_metriche_data ON gads_metriche_giornaliere(data)`);
+
+        // Google Ads — metriche keyword (solo campagne Search)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS gads_keyword_metriche (
+                campaign_id BIGINT NOT NULL,
+                keyword TEXT NOT NULL,
+                match_type TEXT NOT NULL,
+                data DATE NOT NULL,
+                impressioni INTEGER DEFAULT 0,
+                clic INTEGER DEFAULT 0,
+                ctr REAL DEFAULT 0,
+                cpc_micros BIGINT DEFAULT 0,
+                costo_micros BIGINT DEFAULT 0,
+                conversioni REAL DEFAULT 0,
+                UNIQUE(campaign_id, keyword, match_type, data)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_gads_kw_campaign ON gads_keyword_metriche(campaign_id)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -7376,6 +7432,169 @@ app.get('/api/webinar/forum/stats', requireAdmin, async (req, res) => {
         res.json({ webinar_tag: tag, ...stats.rows[0] });
     } catch (err) {
         console.error('[Forum] Errore stats:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== GOOGLE ADS ====================
+
+// POST /api/google-ads/sync — riceve dati da jesfag_google_ads.py (UPSERT nelle 3 tabelle)
+app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
+    const { campagne, metriche, keywords } = req.body;
+    if (!campagne || !Array.isArray(campagne)) {
+        return res.status(400).json({ error: 'Payload campagne mancante o non valido' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // UPSERT campagne
+        let campagneCount = 0;
+        for (const c of campagne) {
+            await client.query(`
+                INSERT INTO gads_campagne (campaign_id, campaign_name, campaign_type, status, bidding_strategy, budget_micros, start_date, end_date, targeting_locations, targeting_languages, network, webinar_tag, updated_at)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, NOW())
+                ON CONFLICT (campaign_id) DO UPDATE SET
+                    campaign_name = EXCLUDED.campaign_name,
+                    campaign_type = EXCLUDED.campaign_type,
+                    status = EXCLUDED.status,
+                    bidding_strategy = EXCLUDED.bidding_strategy,
+                    budget_micros = EXCLUDED.budget_micros,
+                    start_date = EXCLUDED.start_date,
+                    end_date = EXCLUDED.end_date,
+                    targeting_locations = EXCLUDED.targeting_locations,
+                    targeting_languages = EXCLUDED.targeting_languages,
+                    network = EXCLUDED.network,
+                    webinar_tag = EXCLUDED.webinar_tag,
+                    updated_at = NOW()
+            `, [c.campaign_id, c.campaign_name, c.campaign_type, c.status, c.bidding_strategy, c.budget_micros, c.start_date, c.end_date, c.targeting_locations, c.targeting_languages, c.network, c.webinar_tag]);
+            campagneCount++;
+        }
+
+        // UPSERT metriche giornaliere
+        let metricheCount = 0;
+        if (metriche && Array.isArray(metriche)) {
+            for (const m of metriche) {
+                await client.query(`
+                    INSERT INTO gads_metriche_giornaliere (campaign_id, data, impressioni, clic, ctr, cpc_micros, costo_micros, conversioni, costo_conversione_micros, interazioni)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    ON CONFLICT (campaign_id, data) DO UPDATE SET
+                        impressioni = EXCLUDED.impressioni,
+                        clic = EXCLUDED.clic,
+                        ctr = EXCLUDED.ctr,
+                        cpc_micros = EXCLUDED.cpc_micros,
+                        costo_micros = EXCLUDED.costo_micros,
+                        conversioni = EXCLUDED.conversioni,
+                        costo_conversione_micros = EXCLUDED.costo_conversione_micros,
+                        interazioni = EXCLUDED.interazioni
+                `, [m.campaign_id, m.data, m.impressioni, m.clic, m.ctr, m.cpc_micros, m.costo_micros, m.conversioni, m.costo_conversione_micros, m.interazioni]);
+                metricheCount++;
+            }
+        }
+
+        // UPSERT keyword metriche
+        let kwCount = 0;
+        if (keywords && Array.isArray(keywords)) {
+            for (const k of keywords) {
+                await client.query(`
+                    INSERT INTO gads_keyword_metriche (campaign_id, keyword, match_type, data, impressioni, clic, ctr, cpc_micros, costo_micros, conversioni)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+                    ON CONFLICT (campaign_id, keyword, match_type, data) DO UPDATE SET
+                        impressioni = EXCLUDED.impressioni,
+                        clic = EXCLUDED.clic,
+                        ctr = EXCLUDED.ctr,
+                        cpc_micros = EXCLUDED.cpc_micros,
+                        costo_micros = EXCLUDED.costo_micros,
+                        conversioni = EXCLUDED.conversioni
+                `, [k.campaign_id, k.keyword, k.match_type, k.data, k.impressioni, k.clic, k.ctr, k.cpc_micros, k.costo_micros, k.conversioni]);
+                kwCount++;
+            }
+        }
+
+        await client.query('COMMIT');
+        console.log(`[Google Ads] Sync: ${campagneCount} campagne, ${metricheCount} metriche, ${kwCount} keyword`);
+        res.json({ ok: true, campagne: campagneCount, metriche: metricheCount, keywords: kwCount });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[Google Ads] Errore sync:', err.message);
+        res.status(500).json({ error: 'Errore sync Google Ads' });
+    } finally {
+        client.release();
+    }
+});
+
+// GET /api/google-ads/campagne — lista campagne con metriche aggregate
+app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
+    const includeRemoved = req.query.include_removed === 'true';
+    try {
+        const statusFilter = includeRemoved ? '' : "WHERE c.status IN ('ENABLED', 'PAUSED')";
+        const result = await pool.query(`
+            SELECT c.*,
+                   COALESCE(SUM(m.impressioni), 0) AS totale_impressioni,
+                   COALESCE(SUM(m.clic), 0) AS totale_clic,
+                   COALESCE(SUM(m.costo_micros), 0) AS totale_costo_micros,
+                   COALESCE(SUM(m.conversioni), 0) AS totale_conversioni,
+                   CASE WHEN COALESCE(SUM(m.conversioni), 0) > 0
+                        THEN COALESCE(SUM(m.costo_micros), 0) / SUM(m.conversioni)
+                        ELSE 0 END AS costo_per_conversione_micros,
+                   CASE WHEN COALESCE(SUM(m.impressioni), 0) > 0
+                        THEN COALESCE(SUM(m.clic), 0)::REAL / SUM(m.impressioni)
+                        ELSE 0 END AS ctr_totale
+            FROM gads_campagne c
+            LEFT JOIN gads_metriche_giornaliere m ON c.campaign_id = m.campaign_id
+            ${statusFilter}
+            GROUP BY c.campaign_id
+            ORDER BY totale_costo_micros DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Google Ads] Errore campagne:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/google-ads/metriche — metriche giornaliere per campagna
+app.get('/api/google-ads/metriche', requireAdmin, async (req, res) => {
+    const campaignId = req.query.campaign_id;
+    if (!campaignId) {
+        return res.status(400).json({ error: 'campaign_id obbligatorio' });
+    }
+    try {
+        const result = await pool.query(`
+            SELECT * FROM gads_metriche_giornaliere
+            WHERE campaign_id = $1
+            ORDER BY data DESC
+        `, [campaignId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Google Ads] Errore metriche:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/google-ads/keywords — keyword metriche per campagna Search
+app.get('/api/google-ads/keywords', requireAdmin, async (req, res) => {
+    const campaignId = req.query.campaign_id;
+    if (!campaignId) {
+        return res.status(400).json({ error: 'campaign_id obbligatorio' });
+    }
+    try {
+        const result = await pool.query(`
+            SELECT keyword, match_type,
+                   SUM(impressioni) AS totale_impressioni,
+                   SUM(clic) AS totale_clic,
+                   CASE WHEN SUM(impressioni) > 0 THEN SUM(clic)::REAL / SUM(impressioni) ELSE 0 END AS ctr,
+                   CASE WHEN SUM(clic) > 0 THEN SUM(costo_micros) / SUM(clic) ELSE 0 END AS cpc_medio_micros,
+                   SUM(costo_micros) AS totale_costo_micros,
+                   SUM(conversioni) AS totale_conversioni
+            FROM gads_keyword_metriche
+            WHERE campaign_id = $1
+            GROUP BY keyword, match_type
+            ORDER BY totale_impressioni DESC
+        `, [campaignId]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Google Ads] Errore keywords:', err.message);
         res.status(500).json({ error: 'Errore server' });
     }
 });
