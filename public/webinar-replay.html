@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webinar OSSEOTOUCH - Dr. A. Malavasi | Registrazione</title>
+    <!-- Meta Pixel -->
+    <script>
+        !function(f,b,e,v,n,t,s)
+        {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+        n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+        if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+        n.queue=[];t=b.createElement(e);t.async=!0;
+        t.src=v;s=b.getElementsByTagName(e)[0];
+        s.parentNode.insertBefore(t,s)}(window, document,'script',
+        'https://connect.facebook.net/en_US/fbevents.js');
+        fbq('init', '1120409049346037');
+        fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+        src="https://www.facebook.com/tr?id=1120409049346037&ev=PageView&noscript=1"/></noscript>
+    <!-- Google Tag (gtag.js) - Google Ads Conversion Tracking -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=AW-708493969"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'AW-708493969');
+    </script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background: #061220;
+            overflow-x: hidden;
+        }
+
+        .bg-waves {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0;
+            opacity: 0.45;
+        }
+
+        .bg-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(180deg,
+                rgba(6,18,32,0.3) 0%,
+                rgba(6,18,32,0.65) 40%,
+                rgba(6,18,32,0.9) 100%);
+            z-index: 1;
+        }
+
+        .page-content {
+            position: relative;
+            z-index: 2;
+        }
+
+        .header {
+            padding: 18px 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header img {
+            height: 52px;
+            filter: brightness(0) invert(1);
+        }
+
+        .speaker-section {
+            max-width: 1060px;
+            margin: 8px auto 0;
+            padding: 0 40px;
+        }
+
+        .speaker-card {
+            display: flex;
+            align-items: center;
+            gap: 22px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 20px 28px;
+        }
+
+        .speaker-photo {
+            width: 110px;
+            height: 110px;
+            border-radius: 50%;
+            overflow: hidden;
+            border: 3px solid rgba(0, 180, 216, 0.5);
+            flex-shrink: 0;
+            background: rgba(0,180,216,0.08);
+        }
+
+        .speaker-photo img {
+            width: 130%;
+            height: 130%;
+            object-fit: cover;
+            object-position: center 10%;
+            margin-left: -15%;
+            margin-top: -5%;
+        }
+
+        .speaker-text {
+            flex: 1;
+        }
+
+        .speaker-text h1 {
+            font-size: 24px;
+            font-weight: 800;
+            line-height: 1.2;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+        }
+
+        .speaker-text h1 .highlight {
+            color: #00b4d8;
+        }
+
+        .webinar-subtitle {
+            font-size: 15px;
+            color: #90caf9;
+            font-weight: 400;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .speaker-meta {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .meta-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+        }
+
+        .meta-item .icon {
+            font-size: 14px;
+        }
+
+        .meta-item .label {
+            color: #78909c;
+            font-weight: 500;
+        }
+
+        .meta-item .value {
+            color: #ffffff;
+            font-weight: 600;
+        }
+
+        .description-section {
+            max-width: 1060px;
+            margin: 20px auto 0;
+            padding: 0 40px;
+        }
+
+        .description-text {
+            font-size: 15px;
+            color: #dce7ed;
+            line-height: 1.7;
+            padding: 0 4px;
+        }
+
+        .main-row {
+            max-width: 1060px;
+            margin: 24px auto 0;
+            padding: 0 40px;
+            display: flex;
+            gap: 28px;
+            align-items: flex-start;
+        }
+
+        .preview-col {
+            flex: 0 0 320px;
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: #000;
+            position: relative;
+        }
+
+        .preview-col img {
+            width: 100%;
+            display: block;
+        }
+
+        .preview-play-overlay {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 72px;
+            height: 72px;
+            background: rgba(0, 180, 216, 0.85);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-play-overlay svg {
+            width: 32px;
+            height: 32px;
+            fill: #ffffff;
+            margin-left: 4px;
+        }
+
+        .preview-badge {
+            position: absolute;
+            bottom: 12px;
+            left: 12px;
+            background: rgba(0, 0, 0, 0.75);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            color: #ffffff;
+        }
+
+        .form-col {
+            flex: 1;
+        }
+
+        .form-container {
+            background: rgba(255, 255, 255, 0.06);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 28px 26px;
+            backdrop-filter: blur(10px);
+        }
+
+        .form-title {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 4px;
+            text-align: center;
+        }
+
+        .form-subtitle {
+            font-size: 12px;
+            color: #78909c;
+            margin-bottom: 22px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 14px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 600;
+            color: #90a4ae;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .form-group label .required {
+            color: #00b4d8;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        input[type="text"],
+        input[type="email"],
+        select {
+            width: 100%;
+            padding: 11px 13px;
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 7px;
+            color: #ffffff;
+            font-size: 13px;
+            font-family: inherit;
+            transition: border-color 0.2s, background 0.2s;
+            outline: none;
+        }
+
+        input[type="text"]:focus,
+        input[type="email"]:focus,
+        select:focus {
+            border-color: #00b4d8;
+            background: rgba(0, 180, 216, 0.08);
+        }
+
+        input::placeholder {
+            color: #546e7a;
+        }
+
+        select {
+            cursor: pointer;
+            appearance: none;
+            -webkit-appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378909c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            padding-right: 32px;
+        }
+
+        select option {
+            background: #1a2a3a;
+            color: #ffffff;
+        }
+
+        .btn-submit {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 6px;
+        }
+
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0, 180, 216, 0.35);
+        }
+
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+
+        .privacy-note {
+            font-size: 10px;
+            color: #455a64;
+            text-align: center;
+            margin-top: 12px;
+            line-height: 1.5;
+        }
+
+        .error-message {
+            display: none;
+            background: rgba(244, 67, 54, 0.1);
+            border: 1px solid rgba(244, 67, 54, 0.3);
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin-bottom: 14px;
+            color: #ef9a9a;
+            font-size: 12px;
+            text-align: center;
+        }
+
+        .kit-section {
+            max-width: 1060px;
+            margin: 50px auto 0;
+            padding: 0 40px;
+            text-align: center;
+        }
+
+        .kit-content {
+            display: flex;
+            align-items: center;
+            gap: 36px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 14px;
+            padding: 28px 32px;
+        }
+
+        .kit-title {
+            font-size: 22px;
+            font-weight: 800;
+            color: #ffffff;
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            margin-bottom: 6px;
+        }
+
+        .kit-title .highlight {
+            color: #00b4d8;
+        }
+
+        .kit-image {
+            flex: 0 0 420px;
+        }
+
+        .kit-image img {
+            width: 100%;
+            border-radius: 10px;
+        }
+
+        .kit-cta {
+            flex: 1;
+            text-align: left;
+        }
+
+        .kit-desc {
+            font-size: 15px;
+            color: #b0bec5;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        .btn-whatsapp {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 28px;
+            background: #25D366;
+            color: #ffffff;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 700;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.35);
+        }
+
+        .btn-whatsapp:active {
+            transform: translateY(0);
+        }
+
+        .footer {
+            text-align: center;
+            padding: 24px;
+            color: #37474f;
+            font-size: 11px;
+            position: relative;
+            z-index: 2;
+            margin-top: 30px;
+        }
+
+        @media (max-width: 860px) {
+            .description-section {
+                padding: 0 20px;
+            }
+
+            .speaker-section {
+                padding: 0 20px;
+            }
+
+            .speaker-card {
+                flex-direction: column;
+                text-align: center;
+                padding: 18px 20px;
+                gap: 14px;
+            }
+
+            .speaker-meta {
+                justify-content: center;
+            }
+
+            .main-row {
+                flex-direction: column;
+                padding: 0 20px;
+                gap: 20px;
+            }
+
+            .preview-col {
+                flex: none;
+                width: 100%;
+                max-width: 400px;
+                margin: 0 auto;
+            }
+
+            .header {
+                padding: 14px 20px;
+            }
+
+            .speaker-text h1 {
+                font-size: 20px;
+            }
+
+            .kit-section {
+                padding: 0 20px;
+            }
+
+            .kit-content {
+                flex-direction: column;
+                padding: 20px;
+                gap: 20px;
+            }
+
+            .kit-image {
+                flex: none;
+                width: 100%;
+            }
+
+            .kit-cta {
+                text-align: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .speaker-photo {
+                width: 90px;
+                height: 90px;
+            }
+
+            .speaker-text h1 {
+                font-size: 17px;
+            }
+
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+
+            .meta-item {
+                font-size: 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="page-content">
+
+        <div class="header">
+            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+
+        <div class="speaker-section">
+            <div class="speaker-card">
+                <div class="speaker-photo">
+                    <img src="img/dr-malavasi.png" alt="Dr. A. Malavasi">
+                </div>
+                <div class="speaker-text">
+                    <h1>
+                        <span class="highlight">Dr. A. Malavasi</span><br>
+                        Impianti Pterigoidei con Magnetic Mallet
+                    </h1>
+                    <p class="webinar-subtitle">Protocollo d'utilizzo e casi clinici</p>
+                    <div class="speaker-meta">
+                        <div class="meta-item">
+                            <span class="icon">&#9658;</span>
+                            <span class="value">Registrazione disponibile</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="icon">&#9202;</span>
+                            <span class="value">Durata ~1 ora</span>
+                        </div>
+                        <div class="meta-item">
+                            <span class="icon">&#127891;</span>
+                            <span class="value">Gratuito &mdash; accesso immediato</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="description-section">
+            <p class="description-text">
+                La gestione delle creste atrofiche rappresenta una delle sfide pi&ugrave; complesse in implantologia. Gli impianti pterigoidei offrono oggi una soluzione moderna e mini-invasiva, ma il successo della procedura dipende dalla qualit&agrave; della preparazione del sito implantare.
+                <br><br>
+                In questo webinar il Dr. Andrea Malavasi illustra come identificare le casistiche elegibili per l'impianto pterigoideo &mdash; distinguendole dalle procedure pi&ugrave; invasive e meno predicibili &mdash; e mostra passo dopo passo il protocollo operativo con il Magnetic Mallet e il kit dedicato PT1.
+            </p>
+        </div>
+
+        <div class="main-row">
+
+            <div class="preview-col">
+                <img src="https://img.youtube.com/vi/5XDL-o6Uekw/maxresdefault.jpg" alt="Anteprima webinar">
+                <div class="preview-play-overlay">
+                    <svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                </div>
+                <div class="preview-badge">&#9658; Webinar completo</div>
+            </div>
+
+            <div class="form-col">
+                <div class="form-container">
+                    <h2 class="form-title">Guarda la registrazione</h2>
+                    <p class="form-subtitle">Compila il modulo per accedere al webinar completo</p>
+
+                    <div class="error-message" id="errorMsg"></div>
+
+                    <form id="webinarForm">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nome <span class="required">*</span></label>
+                                <input type="text" id="nome" name="nome" placeholder="Il tuo nome" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Cognome <span class="required">*</span></label>
+                                <input type="text" id="cognome" name="cognome" placeholder="Il tuo cognome" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>Email <span class="required">*</span></label>
+                            <input type="email" id="email" name="email" placeholder="La tua email professionale" required>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Citta' <span class="required">*</span></label>
+                                <input type="text" id="citta" name="citta" placeholder="La tua citta'" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Hai il Magnetic Mallet? <span class="required">*</span></label>
+                                <select id="ha_mm" name="ha_mm" required>
+                                    <option value="" disabled selected>Seleziona...</option>
+                                    <option value="si">Si</option>
+                                    <option value="no">No</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button type="submit" class="btn-submit" id="btnSubmit">Accedi alla registrazione</button>
+
+                        <p class="privacy-note">
+                            Registrandoti accetti di ricevere comunicazioni relative a questo webinar.
+                            I tuoi dati saranno trattati nel rispetto del GDPR.
+                        </p>
+                    </form>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="kit-section">
+            <div class="kit-content">
+                <div class="kit-image">
+                    <img src="img/kit-pt1.png" alt="Kit PT1 per Magnetic Mallet">
+                </div>
+                <div class="kit-cta">
+                    <h2 class="kit-title"><span class="highlight">Kit PT1</span> per Magnetic Mallet</h2>
+                    <p class="kit-desc">Il kit dedicato all'implantologia pterigoidea: osteotomi pterigoidei, frese, pins, driver CA e misuratore.</p>
+                    <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sul%20Kit%20PT1%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        Richiedi informazioni
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </div>
+
+    </div>
+
+    <script>
+        var form = document.getElementById('webinarForm');
+        var errorMsg = document.getElementById('errorMsg');
+        var btnSubmit = document.getElementById('btnSubmit');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Accesso in corso...';
+
+            var data = {
+                nome: document.getElementById('nome').value.trim(),
+                cognome: document.getElementById('cognome').value.trim(),
+                email: document.getElementById('email').value.trim().toLowerCase(),
+                citta: document.getElementById('citta').value.trim().toUpperCase(),
+                ha_mm: document.getElementById('ha_mm').value,
+                replay: true
+            };
+
+            if (!data.nome || !data.cognome || !data.email || !data.citta || !data.ha_mm) {
+                errorMsg.textContent = 'Compila tutti i campi obbligatori.';
+                errorMsg.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Accedi alla registrazione';
+                return;
+            }
+
+            try {
+                var resp = await fetch('/api/webinar/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+
+                var result = await resp.json();
+
+                if (resp.ok) {
+                    // Meta Pixel
+                    if (typeof fbq === 'function') {
+                        fbq('track', 'Lead', {
+                            content_name: 'Webinar Malavasi PT1 Replay',
+                            content_category: 'webinar_replay_registration'
+                        });
+                    }
+                    // Google Ads
+                    if (typeof gtag === 'function') {
+                        gtag('event', 'conversion', {
+                            'send_to': 'AW-708493969/fLPdCJfs8IIcEJGF69EC',
+                            'value': 1.0,
+                            'currency': 'EUR'
+                        });
+                    }
+                    // Redirect to video page
+                    var emailB64 = btoa(data.email);
+                    window.location.href = '/webinar-followup?e=' + encodeURIComponent(emailB64) + '&from=replay';
+                } else {
+                    errorMsg.textContent = result.error || 'Errore durante la registrazione. Riprova.';
+                    errorMsg.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'Accedi alla registrazione';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Errore di connessione. Riprova tra qualche istante.';
+                errorMsg.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Accedi alla registrazione';
+            }
+        });
+    </script>
+
+</body>
+</html>

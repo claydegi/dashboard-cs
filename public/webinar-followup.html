@@ -710,8 +710,9 @@
 
         canPost = !!userEmail || !!relatoreKey;
 
-        // Track click-through: registra visita landing + 20 punti score
-        if (userEmail) {
+        // Track click-through: registra visita landing + 20 punti score (skip per replay: lo score e' gia' stato dato alla registrazione)
+        var fromReplay = params.get('from') === 'replay';
+        if (userEmail && !fromReplay) {
             fetch('/api/webinar/track-followup-click', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

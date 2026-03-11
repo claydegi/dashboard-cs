@@ -4844,7 +4844,7 @@ app.get('/privacy-policy', (req, res) => {
 
 // Registrazione webinar (PUBBLICA, no auth — chiamata dal form landing page)
 app.post('/api/webinar/register', async (req, res) => {
-    const { nome, cognome, email, citta, ha_mm } = req.body;
+    const { nome, cognome, email, citta, ha_mm, replay } = req.body;
 
     // Validazione campi obbligatori
     if (!nome || !cognome || !email || !citta || !ha_mm) {
@@ -4871,6 +4871,10 @@ app.post('/api/webinar/register', async (req, res) => {
         );
         if (giaIscritto.rows.length > 0) {
             await client.query('ROLLBACK');
+            if (replay) {
+                // Replay: se gia' iscritto, consenti accesso senza errore
+                return res.json({ ok: true, azione: 'gia_iscritto', messaggio: 'Accesso alla registrazione confermato' });
+            }
             return res.status(409).json({ error: 'Sei gia\' iscritto a questo webinar.' });
         }
 
@@ -5037,16 +5041,17 @@ app.post('/api/webinar/register', async (req, res) => {
         await client.query(
             `INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]
+            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, replay ? 'replay_' + azione : azione]
         );
 
         await client.query('COMMIT');
 
-        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione CRM: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | contatto_id=${contattoId}`);
+        const azioneFinale = replay ? 'replay_' + azione : azione;
+        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione CRM: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azioneFinale} | score +30 ${lineaScore} | contatto_id=${contattoId}`);
 
-        // 4. Registra su Zoom e ottieni link univoco
+        // 4. Registra su Zoom e ottieni link univoco (skip per replay)
         let zoomJoinUrl = null;
-        const zoomWebinarId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
+        const zoomWebinarId = !replay ? ZOOM_WEBINAR_IDS[WEBINAR_TAG] : null;
         if (zoomWebinarId) {
             try {
                 const zoomResult = await registerZoomWebinarParticipant(zoomWebinarId, emailClean, nomeClean, cognomeClean);
@@ -5067,17 +5072,19 @@ app.post('/api/webinar/register', async (req, res) => {
             }
         }
 
-        // 5. Invio email conferma iscrizione (fire-and-forget, non blocca la response)
-        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
-            .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma:`, err.message));
+        // 5. Invio email conferma iscrizione (fire-and-forget, skip per replay)
+        if (!replay) {
+            sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
+                .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma:`, err.message));
+        }
 
         res.json({
             ok: true,
-            azione,
+            azione: azioneFinale,
             contatto_id: contattoId,
             score_linea: lineaScore,
             zoom_join_url: zoomJoinUrl,
-            messaggio: 'Iscrizione completata con successo'
+            messaggio: replay ? 'Accesso alla registrazione confermato' : 'Iscrizione completata con successo'
         });
 
     } catch (err) {
