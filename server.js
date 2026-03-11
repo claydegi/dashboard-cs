@@ -5018,6 +5018,26 @@ app.post('/api/webinar/register', async (req, res) => {
     }
 });
 
+// PUT /api/webinar/registrations/fix-contatto-id — ricollegare registrazioni con contatto_id NULL al contatto giusto (per email)
+app.put('/api/webinar/registrations/fix-contatto-id', requireAdmin, async (req, res) => {
+    const { webinar_tag } = req.body;
+    if (!webinar_tag) {
+        return res.status(400).json({ error: 'webinar_tag richiesto' });
+    }
+    try {
+        const result = await pool.query(`
+            UPDATE crm_webinar_registrazioni r
+            SET contatto_id = (SELECT id FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1)
+            WHERE r.webinar_tag = $1 AND r.contatto_id IS NULL
+            AND EXISTS (SELECT 1 FROM crm_contatti WHERE LOWER(email) = LOWER(r.email))
+        `, [webinar_tag]);
+        res.json({ ok: true, fixed: result.rowCount });
+    } catch (err) {
+        console.error('[Webinar Fix ContID]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // PUT /api/webinar/registrations/fix-action — aggiorna azione registrazioni webinar (per merge duplicati)
 app.put('/api/webinar/registrations/fix-action', requireAdmin, async (req, res) => {
     const { emails, nuova_azione, webinar_tag } = req.body;
