@@ -2027,7 +2027,7 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
                        COUNT(DISTINCT campagna) as num_video
                 FROM crm_video_tracking
                 WHERE contatto_id = ANY($1::int[])
-                  AND evento = 'score_90'
+                  AND evento IN ('score_90', 'score_40min')
                 GROUP BY contatto_id, SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1)
             `, [ids]);
             for (const v of videoCompletions.rows) {
@@ -3623,7 +3623,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                        COUNT(DISTINCT campagna) as num_video
                 FROM crm_video_tracking
                 WHERE contatto_id = ANY($1::int[])
-                  AND evento = 'score_90'
+                  AND evento IN ('score_90', 'score_40min')
                 GROUP BY contatto_id, SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1)
             `, [contattiIds]);
             for (const v of videoCompletions.rows) {
@@ -5853,58 +5853,58 @@ app.get('/video-landing', async (req, res) => {
 </html>`);
 });
 
-// FIX: pulizia completa score video webinar PT1
+// FIX: ricalcola score video registrazione con soglie a minuti (200+200+200, come webinar live)
 app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
+    const CAMPAGNA = 'PT1_SF_WEBINAR_MALAVASI_REC';
     try {
-        // 1. Aggiorna campagna residua
-        const vt = await pool.query(
-            `UPDATE crm_video_tracking SET campagna = 'PT1_SF_WEBINAR_MALAVASI_REC' WHERE campagna = 'MM_SF_WEBINAR_PT1_REC'`
+        // 1. Rimuovi TUTTI i vecchi score_manuali video_watch per PT1 (i 15/15/30 sbagliati)
+        const delSm = await pool.query(
+            `DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'`
         );
-        // 2. Fix score_manuali
-        const sm = await pool.query(
-            `UPDATE crm_score_manuali SET linea_prodotto = 'PT1'
-             WHERE linea_prodotto = 'MM' AND tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'`
+        // 2. Rimuovi vecchi score events dal video_tracking
+        const delVt = await pool.query(
+            `DELETE FROM crm_video_tracking WHERE evento IN ('score_30','score_60','score_90','score_10min','score_25min','score_40min') AND campagna = $1`,
+            [CAMPAGNA]
         );
-        // 3. Deduplica score events in video_tracking (score_30/60/90 doppi per PT1)
-        const dedup = await pool.query(`
-            DELETE FROM crm_video_tracking WHERE id IN (
-                SELECT id FROM (
-                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, campagna, evento ORDER BY created_at) as rn
-                    FROM crm_video_tracking
-                    WHERE evento IN ('score_30','score_60','score_90') AND campagna = 'PT1_SF_WEBINAR_MALAVASI_REC'
-                ) t WHERE t.rn > 1
-            )
-        `);
-        // 4. Deduplica score_manuali (video_watch PT1 doppi)
-        const dedupSm = await pool.query(`
-            DELETE FROM crm_score_manuali WHERE id IN (
-                SELECT id FROM (
-                    SELECT id, ROW_NUMBER() OVER (PARTITION BY contatto_id, linea_prodotto, punti ORDER BY id) as rn
-                    FROM crm_score_manuali
-                    WHERE tipo_attivita = 'video_watch' AND linea_prodotto = 'PT1' AND data_evento >= '2026-03-11'
-                ) t WHERE t.rn > 1
-            )
-        `);
-        // 5. Rimuovi score_prodotti MM orfani (nessun score_manuali MM rimasto)
-        const cleanMM = await pool.query(`
-            DELETE FROM crm_score_prodotti
-            WHERE linea_prodotto = 'MM'
-              AND NOT EXISTS (
-                SELECT 1 FROM crm_score_manuali sm
-                WHERE sm.contatto_id = crm_score_prodotti.contatto_id AND sm.linea_prodotto = 'MM'
-              )
-              AND contatto_id IN (
-                SELECT DISTINCT contatto_id FROM crm_score_manuali
-                WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'
-              )
-        `);
+        // 3. Calcola max secondi per ogni contatto dalla campagna
+        const maxPerContatto = await pool.query(`
+            SELECT contatto_id, email, MAX(secondi_visti) as max_sec
+            FROM crm_video_tracking
+            WHERE campagna = $1 AND contatto_id IS NOT NULL AND evento NOT IN ('landing_open')
+            GROUP BY contatto_id, email
+            HAVING MAX(secondi_visti) >= 600
+        `, [CAMPAGNA]);
+        // 4. Assegna nuovi score basati sui minuti (stesse soglie del webinar live)
+        const soglie = [
+            { nome: 'score_10min', minSec: 600, punti: 200, label: 'Video watch >=10min' },
+            { nome: 'score_25min', minSec: 1500, punti: 200, label: 'Video watch >=25min' },
+            { nome: 'score_40min', minSec: 2400, punti: 200, label: 'Video watch >=40min' }
+        ];
+        const oggi = new Date().toISOString().split('T')[0];
+        let scoreAssegnati = 0;
+        for (const row of maxPerContatto.rows) {
+            for (const soglia of soglie) {
+                if (row.max_sec >= soglia.minSec) {
+                    await pool.query(
+                        `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                         VALUES ($1, 'PT1', 'video_watch', $2, $3)`,
+                        [row.contatto_id, soglia.punti, oggi]
+                    );
+                    await pool.query(
+                        `INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                         VALUES ($1, $2, $3, $4, $5, 4433, $6)`,
+                        [row.contatto_id, row.email, CAMPAGNA, soglia.nome, row.max_sec, Math.round(row.max_sec / 4433 * 100)]
+                    );
+                    scoreAssegnati++;
+                }
+            }
+        }
         res.json({
             ok: true,
-            video_tracking_updated: vt.rowCount,
-            score_manuali_fixed: sm.rowCount,
-            score_events_deduped: dedup.rowCount,
-            score_manuali_deduped: dedupSm.rowCount,
-            score_prodotti_mm_cleaned: cleanMM.rowCount
+            old_score_manuali_deleted: delSm.rowCount,
+            old_score_events_deleted: delVt.rowCount,
+            contatti_ricalcolati: maxPerContatto.rows.length,
+            score_assegnati: scoreAssegnati
         });
     } catch (err) {
         console.error('[Fix Campagna]', err);
@@ -5958,22 +5958,23 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
              secondi_visti || 0, durata_totale || 0, percentuale || 0]
         );
 
-        // Score video: soglie cumulative
-        // Linea prodotto estratta dal tag campagna (es. ELEVATE_SF_ITA1 -> ELEVATE)
+        // Score video: soglie cumulative basate sui MINUTI di visione
+        // Stesse soglie del webinar live: >=10min +200, >=25min +200, >=40min +200 (max 600pt)
+        // Linea prodotto estratta dal tag campagna (es. PT1_SF_WEBINAR_MALAVASI_REC -> PT1)
         if (contatto && (secondi_visti || 0) >= 10) {
-            const pct = percentuale || 0;
+            const minuti = Math.floor((secondi_visti || 0) / 60);
             const lineaProdotto = campagna.replace(/_TEST$/, '').split('_SF_')[0] || 'ELEVATE';
             const oggi = new Date().toISOString().split('T')[0];
 
-            // Soglie: 10s-30% = 15pt, 31-60% = 15pt, >=90% = 30pt (cumulative)
+            // Soglie identiche al webinar live (sync-zoom-participants)
             const soglie = [
-                { nome: 'score_30', minPct: 1,  maxPct: 100, minSec: 10, punti: 15, label: 'Video watch 10s-30%' },
-                { nome: 'score_60', minPct: 31, maxPct: 100, minSec: 0,  punti: 15, label: 'Video watch 31-60%' },
-                { nome: 'score_90', minPct: 90, maxPct: 100, minSec: 0,  punti: 30, label: 'Video watch >=90%' }
+                { nome: 'score_10min', minMinuti: 10, punti: 200, label: 'Video watch >=10min' },
+                { nome: 'score_25min', minMinuti: 25, punti: 200, label: 'Video watch >=25min' },
+                { nome: 'score_40min', minMinuti: 40, punti: 200, label: 'Video watch >=40min' }
             ];
 
             for (const soglia of soglie) {
-                const raggiunta = (pct >= soglia.minPct && (secondi_visti || 0) >= soglia.minSec);
+                const raggiunta = (minuti >= soglia.minMinuti);
                 if (!raggiunta) continue;
 
                 // Controlla se questa soglia e' gia' stata assegnata per questa campagna
