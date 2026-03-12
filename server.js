@@ -837,6 +837,114 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_gads_kw_campaign ON gads_keyword_metriche(campaign_id)`);
 
+        // ==================== MIGRAZIONE: Fix video score inflation (12 marzo 2026) ====================
+        // Bug: variabile 'pct' (undefined) nella INSERT dedup marker causava riassegnazione score ogni 5 secondi
+        // Ogni beacon (ogni 5s) assegnava 200pt x soglia raggiunta. 13 contatti con score fino a 163.830pt
+        const hasVideoWatch = await client.query(
+            "SELECT 1 FROM crm_score_manuali WHERE tipo_attivita = 'video_watch' LIMIT 1"
+        );
+        if (hasVideoWatch.rows.length > 0) {
+            console.log('[Migration] Fixing video score inflation...');
+            await client.query(`
+                DO $$
+                DECLARE
+                    rec RECORD;
+                    synced_wrong BIGINT;
+                    correct_score INT;
+                    max_seconds INT;
+                    max_minutes INT;
+                    affected_count INT := 0;
+                BEGIN
+                    -- Step 1: Fix crm_score_prodotti per ogni contatto+linea affetto
+                    FOR rec IN
+                        SELECT DISTINCT contatto_id, linea_prodotto
+                        FROM crm_score_manuali
+                        WHERE tipo_attivita = 'video_watch'
+                    LOOP
+                        -- Tempo effettivo di visione dai beacon progress
+                        SELECT COALESCE(MAX(secondi_visti), 0) INTO max_seconds
+                        FROM crm_video_tracking
+                        WHERE contatto_id = rec.contatto_id AND evento = 'progress';
+
+                        max_minutes := FLOOR(max_seconds / 60);
+
+                        -- Score corretto (stesse soglie: >=10min +200, >=25min +200, >=40min +200)
+                        correct_score := 0;
+                        IF max_minutes >= 10 THEN correct_score := correct_score + 200; END IF;
+                        IF max_minutes >= 25 THEN correct_score := correct_score + 200; END IF;
+                        IF max_minutes >= 40 THEN correct_score := correct_score + 200; END IF;
+
+                        -- Punti video errati gia' sincronizzati in crm_score_prodotti via SQLite
+                        SELECT COALESCE(SUM(punti), 0) INTO synced_wrong
+                        FROM crm_score_manuali
+                        WHERE contatto_id = rec.contatto_id
+                          AND linea_prodotto = rec.linea_prodotto
+                          AND tipo_attivita = 'video_watch'
+                          AND sincronizzata = true;
+
+                        -- Correggi crm_score_prodotti: sottrai errati, aggiungi corretti
+                        IF EXISTS (SELECT 1 FROM crm_score_prodotti WHERE contatto_id = rec.contatto_id AND linea_prodotto = rec.linea_prodotto) THEN
+                            UPDATE crm_score_prodotti
+                            SET score = GREATEST(score - synced_wrong + correct_score, 0)
+                            WHERE contatto_id = rec.contatto_id AND linea_prodotto = rec.linea_prodotto;
+                        ELSIF correct_score > 0 THEN
+                            INSERT INTO crm_score_prodotti (contatto_id, linea_prodotto, score)
+                            VALUES (rec.contatto_id, rec.linea_prodotto, correct_score);
+                        END IF;
+
+                        affected_count := affected_count + 1;
+                    END LOOP;
+
+                    -- Step 2: Elimina TUTTI i video_watch da crm_score_manuali
+                    DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch';
+
+                    -- Step 3: Elimina i log add_score video_watch da crm_modifiche_log
+                    -- (impedisce al push di ricreare score_eventi duplicati in SQLite)
+                    DELETE FROM crm_modifiche_log
+                    WHERE tipo_modifica = 'add_score'
+                      AND dettagli->>'tipo_attivita' = 'video_watch';
+
+                    -- Step 4: Inserisci dedup marker mancanti per ogni contatto con tempo sufficiente
+                    FOR rec IN
+                        SELECT vt.contatto_id, MIN(vt.email) as email, vt.campagna,
+                               MAX(vt.secondi_visti) as max_sec, MAX(vt.durata_totale) as max_dur
+                        FROM crm_video_tracking vt
+                        WHERE vt.evento = 'progress' AND vt.contatto_id IS NOT NULL
+                        GROUP BY vt.contatto_id, vt.campagna
+                    LOOP
+                        max_minutes := FLOOR(rec.max_sec / 60);
+
+                        IF max_minutes >= 10 AND NOT EXISTS (
+                            SELECT 1 FROM crm_video_tracking
+                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_10min'
+                        ) THEN
+                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_10min', rec.max_sec, rec.max_dur, 0);
+                        END IF;
+
+                        IF max_minutes >= 25 AND NOT EXISTS (
+                            SELECT 1 FROM crm_video_tracking
+                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_25min'
+                        ) THEN
+                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_25min', rec.max_sec, rec.max_dur, 0);
+                        END IF;
+
+                        IF max_minutes >= 40 AND NOT EXISTS (
+                            SELECT 1 FROM crm_video_tracking
+                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_40min'
+                        ) THEN
+                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_40min', rec.max_sec, rec.max_dur, 0);
+                        END IF;
+                    END LOOP;
+
+                    RAISE NOTICE '[Migration] Video score cleanup: % contatti corretti', affected_count;
+                END $$;
+            `);
+            console.log('[Migration] Video score inflation fix completed');
+        }
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -6080,7 +6188,7 @@ app.post('/api/video-tracking', express.json(), async (req, res) => {
                         `INSERT INTO crm_video_tracking
                          (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
                          VALUES ($1, $2, $3, $4, $5, $6, $7)`,
-                        [contattoId, email, campagna, soglia.nome, secondi_visti || 0, durata_totale || 0, pct]
+                        [contattoId, email, campagna, soglia.nome, secondi_visti || 0, durata_totale || 0, percentuale || 0]
                     );
 
                     console.log(`[Video Tracking] ${lineaProdotto} +${soglia.punti}pt (${soglia.label}) a ${email} (${campagna})`);
