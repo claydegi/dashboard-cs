@@ -925,8 +925,11 @@
 
                     let videoStr = '';
                     if (r.ha_play) {
-                        const min = Math.floor((r.max_sec || 0) / 60);
-                        videoStr = `<span style="color:#059669; font-weight:600;" title="${r.max_sec}s">&#9654; ${min} min</span>`;
+                        const sec = r.max_sec || 0;
+                        const min = Math.floor(sec / 60);
+                        videoStr = sec < 60
+                            ? `<span style="color:#d97706; font-weight:600;" title="${sec}s">&#9654; ${sec}s</span>`
+                            : `<span style="color:#059669; font-weight:600;" title="${sec}s">&#9654; ${min} min</span>`;
                     } else if (r.max_sec > 0) {
                         videoStr = '<span style="color:#d97706;" title="Solo landing open">&#128065;</span>';
                     } else {
