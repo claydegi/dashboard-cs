@@ -5330,10 +5330,11 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
     try {
         const result = await pool.query(`
             SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
-                   c.regione, c.tipo, c.mailing_ricevuto,
+                   (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
+                   (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo,
+                   (SELECT mailing_ricevuto FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS mailing_ricevuto,
                    vt.max_sec, vt.ha_play
             FROM crm_webinar_registrazioni r
-            LEFT JOIN crm_contatti c ON LOWER(c.email) = LOWER(r.email)
             LEFT JOIN LATERAL (
                 SELECT COALESCE(MAX(secondi_visti), 0) AS max_sec,
                        COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
