@@ -1115,6 +1115,21 @@ async function syncSutureFromOdoo() {
     } catch (err) {
         console.error('[Suture Sync] Errore:', err.message);
         await pool.query(`UPDATE suture_sync_meta SET status = 'error', error_message = $1 WHERE id = 1`, [err.message.substring(0, 500)]);
+
+        // Allarme Telegram se autenticazione fallita (API key scaduta)
+        if (err.message.includes('uid=false') || err.message.includes('autenticazione fallita') || err.message.includes('Access Denied')) {
+            try {
+                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID,
+                    `⚠️ *ALLARME SUTURE SYNC*\n\n` +
+                    `La API key Odoo è SCADUTA o non valida.\n` +
+                    `Il sync suture non funziona.\n\n` +
+                    `Errore: ${err.message.substring(0, 200)}\n\n` +
+                    `👉 Rigenerare la API key su Odoo e aggiornare la variabile ODOO\\_API\\_KEY su Railway.`
+                );
+            } catch (telegramErr) {
+                console.error('[Suture Sync] Errore invio allarme Telegram:', telegramErr.message);
+            }
+        }
     }
 }
 
