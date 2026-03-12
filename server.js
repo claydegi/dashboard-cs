@@ -5320,6 +5320,37 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/webinar/registrants/latest — ultimi N iscritti con enrichment email/video
+app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
+    const tag = req.query.tag;
+    const limit = Math.min(parseInt(req.query.limit) || 10, 50);
+    if (!tag) {
+        return res.status(400).json({ error: 'Parametro tag obbligatorio' });
+    }
+    try {
+        const result = await pool.query(`
+            SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+                   c.regione, c.tipo, c.mailing_ricevuto,
+                   vt.max_sec, vt.ha_play
+            FROM crm_webinar_registrazioni r
+            LEFT JOIN crm_contatti c ON LOWER(c.email) = LOWER(r.email)
+            LEFT JOIN LATERAL (
+                SELECT COALESCE(MAX(secondi_visti), 0) AS max_sec,
+                       COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
+                FROM crm_video_tracking
+                WHERE LOWER(crm_video_tracking.email) = LOWER(r.email)
+            ) vt ON true
+            WHERE r.webinar_tag = $1
+            ORDER BY r.created_at DESC
+            LIMIT $2
+        `, [tag, limit]);
+        res.json({ registrants: result.rows });
+    } catch (err) {
+        console.error('[Webinar Registrants Latest]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // POST /api/webinar/registrants/delete — rimuove una registrazione webinar per email
 app.post('/api/webinar/registrants/delete', requireAdmin, async (req, res) => {
     const email = (req.body.email || '').toLowerCase().trim();

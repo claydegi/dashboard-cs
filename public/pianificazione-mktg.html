@@ -641,6 +641,8 @@
             const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
             const toggleId = 'toggle_' + tag;
             const listId = 'list_' + tag;
+            const latestToggleId = 'latest_toggle_' + tag;
+            const latestListId = 'latest_list_' + tag;
             html += `
                 <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                     <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
@@ -666,13 +668,18 @@
                             &#9888; ${s.da_verificare} da sistemare
                         </span>
                     </div>` : ''}
-                    <div style="margin-top:10px; text-align:center;">
+                    <div style="margin-top:10px; text-align:center; display:flex; justify-content:center; gap:8px;">
                         <button id="${toggleId}" onclick="toggleRegistrants('${tag}', '${listId}', '${toggleId}')"
                             style="background:none; border:1px solid var(--gray-300, #d1d5db); border-radius:6px; padding:4px 14px; font-size:0.78rem; color:var(--gray-500, #6b7280); cursor:pointer;">
                             &#9660; Mostra iscritti
                         </button>
+                        <button id="${latestToggleId}" onclick="toggleLatestRegistrants('${tag}', '${latestListId}', '${latestToggleId}')"
+                            style="background:none; border:1px solid #8b5cf6; border-radius:6px; padding:4px 14px; font-size:0.78rem; color:#8b5cf6; cursor:pointer; font-weight:600;">
+                            &#9660; Ultimi 10 iscritti
+                        </button>
                     </div>
                     <div id="${listId}" style="display:none; margin-top:10px;"></div>
+                    <div id="${latestListId}" style="display:none; margin-top:10px;"></div>
                 </div>
             `;
         }
@@ -874,6 +881,85 @@
             alert('Errore nella risoluzione');
             console.error(err);
         }
+    }
+
+    async function toggleLatestRegistrants(tag, listId, toggleId) {
+        const listDiv = document.getElementById(listId);
+        const btn = document.getElementById(toggleId);
+        if (!listDiv || !btn) return;
+
+        if (listDiv.style.display !== 'none') {
+            listDiv.style.display = 'none';
+            btn.innerHTML = '&#9660; Ultimi 10 iscritti';
+            return;
+        }
+
+        if (!listDiv.dataset.loaded) {
+            btn.innerHTML = 'Caricamento...';
+            btn.disabled = true;
+            try {
+                const resp = await fetch(`${API_URL}/webinar/registrants/latest?key=${ADMIN_KEY}&tag=${encodeURIComponent(tag)}&limit=10`);
+                if (!resp.ok) throw new Error('Errore server');
+                const data = await resp.json();
+                const regs = data.registrants || [];
+
+                let h = `<table style="width:100%; font-size:0.75rem; border-collapse:collapse;">
+                    <thead><tr style="background:var(--gray-100, #f3f4f6);">
+                        <th style="padding:3px 6px; text-align:center; border-bottom:1px solid var(--gray-200);">#</th>
+                        <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Nome</th>
+                        <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Tipo</th>
+                        <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Citta</th>
+                        <th style="padding:3px 6px; text-align:left; border-bottom:1px solid var(--gray-200);">Registrato</th>
+                        <th style="padding:3px 6px; text-align:center; border-bottom:1px solid var(--gray-200);">Email</th>
+                        <th style="padding:3px 6px; text-align:center; border-bottom:1px solid var(--gray-200);">Video</th>
+                    </tr></thead><tbody>`;
+
+                for (let i = 0; i < regs.length; i++) {
+                    const r = regs[i];
+                    const nome = escapeHtml((r.cognome || '') + ' ' + (r.nome || '')).trim();
+                    const tipo = r.tipo === 'account' ? '<span style="color:#059669; font-weight:600;">Account</span>' : '<span style="color:#6b7280;">Lead</span>';
+                    const citta = escapeHtml(r.citta || '-');
+                    const regione = escapeHtml(r.regione || '');
+                    const dataReg = (r.created_at || '').substring(0, 10);
+                    const emailIcon = r.mailing_ricevuto ? '<span style="color:#059669;" title="Ha ricevuto email">&#9993;</span>' : '<span style="color:#d1d5db;" title="Nessuna email">&#9993;</span>';
+
+                    let videoStr = '';
+                    if (r.ha_play) {
+                        const min = Math.floor((r.max_sec || 0) / 60);
+                        videoStr = `<span style="color:#059669; font-weight:600;" title="${r.max_sec}s">&#9654; ${min} min</span>`;
+                    } else if (r.max_sec > 0) {
+                        videoStr = '<span style="color:#d97706;" title="Solo landing open">&#128065;</span>';
+                    } else {
+                        videoStr = '<span style="color:#d1d5db;">—</span>';
+                    }
+
+                    h += `<tr style="border-bottom:1px solid var(--gray-100, #f3f4f6);">
+                        <td style="padding:3px 6px; text-align:center; color:var(--gray-400);">${i + 1}</td>
+                        <td style="padding:3px 6px;">${nome}</td>
+                        <td style="padding:3px 6px;">${tipo}</td>
+                        <td style="padding:3px 6px;">${citta}${regione ? ' <span style="color:var(--gray-400);font-size:0.68rem;">(' + regione + ')</span>' : ''}</td>
+                        <td style="padding:3px 6px;">${dataReg}</td>
+                        <td style="padding:3px 6px; text-align:center;">${emailIcon}</td>
+                        <td style="padding:3px 6px; text-align:center;">${videoStr}</td>
+                    </tr>`;
+                }
+
+                h += '</tbody></table>';
+                if (regs.length === 0) {
+                    h = '<div style="color:var(--gray-400); font-size:0.78rem; text-align:center;">Nessun iscritto</div>';
+                }
+
+                listDiv.innerHTML = `<div style="max-height:350px; overflow-y:auto;">${h}</div>`;
+                listDiv.dataset.loaded = 'true';
+            } catch (err) {
+                listDiv.innerHTML = `<div style="color:#ef4444; font-size:0.78rem;">Errore nel caricamento</div>`;
+                console.error('Errore caricamento ultimi registrants:', err);
+            }
+            btn.disabled = false;
+        }
+
+        listDiv.style.display = 'block';
+        btn.innerHTML = '&#9650; Ultimi 10 iscritti';
     }
 
     function findWebinarTag(titolo, webinarStats) {
