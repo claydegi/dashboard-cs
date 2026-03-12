@@ -107,11 +107,12 @@ function switchSection(section) {
     document.getElementById('section-privati').style.display = section === 'privati' ? 'block' : 'none';
     document.getElementById('section-report-kim').style.display = section === 'report-kim' ? 'block' : 'none';
     document.getElementById('section-report-massimo').style.display = section === 'report-massimo' ? 'block' : 'none';
+    document.getElementById('section-suture').style.display = section === 'suture' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {
@@ -126,6 +127,8 @@ function switchSection(section) {
     } else if (section === 'report-massimo') {
         loadReportsMassimo();
         loadFatture('massimo');
+    } else if (section === 'suture') {
+        loadSuture();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -540,6 +543,103 @@ async function deleteFattura(id, agente) {
         showToast('Errore nell\'eliminazione', 'error');
     }
 }
+
+// ==================== SUTURE ====================
+
+async function loadSuture() {
+    const container = document.getElementById('suture-table-container');
+    const syncLabel = document.getElementById('suture-last-sync');
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
+
+    try {
+        const response = await fetch(`${API_URL}/suture/ordine?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento');
+        const data = await response.json();
+
+        // Timestamp ultimo sync
+        if (data.last_sync) {
+            const syncDate = new Date(data.last_sync);
+            syncLabel.textContent = `Ultimo sync: ${syncDate.toLocaleString('it-IT')}`;
+            if (data.sync_status === 'syncing') {
+                syncLabel.textContent += ' (sync in corso...)';
+            } else if (data.sync_status === 'error') {
+                syncLabel.textContent += ' ⚠ Errore';
+                syncLabel.title = data.sync_error || '';
+            }
+        } else {
+            syncLabel.textContent = 'Mai sincronizzato';
+        }
+
+        if (!data.items || data.items.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
+            return;
+        }
+
+        let html = `<div class="suture-table-wrapper"><table id="suture-table">
+            <thead><tr>
+                <th>Tipo</th>
+                <th>Codice</th>
+                <th>Descrizione</th>
+                <th style="text-align:right">Giacenza</th>
+                <th style="text-align:right">Impegnato</th>
+                <th style="text-align:right">Da Ordinare</th>
+                <th style="text-align:right">Costo Acq.</th>
+                <th style="text-align:right">Valore</th>
+            </tr></thead><tbody>`;
+
+        for (const item of data.items) {
+            const rowClass = item.best_of ? 'suture-row-bestof' : '';
+            const tipoBadge = item.best_of
+                ? '<span class="badge-bestof">BEST OF</span>'
+                : '<span class="badge-other">ALTRO</span>';
+            html += `<tr class="${rowClass}">
+                <td>${tipoBadge}</td>
+                <td><strong>${escapeHtml(item.codice)}</strong></td>
+                <td>${escapeHtml(item.descrizione)}</td>
+                <td style="text-align:right">${item.giacenza}</td>
+                <td style="text-align:right">${item.impegnato}</td>
+                <td style="text-align:right; font-weight:600; color:#ef4444;">${item.da_ordinare}</td>
+                <td style="text-align:right">${item.costo_acquisto.toFixed(2)} &euro;</td>
+                <td style="text-align:right">${item.valore.toFixed(2)} &euro;</td>
+            </tr>`;
+        }
+
+        html += `</tbody><tfoot><tr class="suture-row-total">
+            <td colspan="7" style="text-align:right; font-weight:700;">TOTALE ORDINE</td>
+            <td style="text-align:right; font-weight:700; font-size:1.05rem;">${data.totale_valore.toFixed(2)} &euro;</td>
+        </tr></tfoot></table></div>`;
+
+        container.innerHTML = html;
+    } catch (error) {
+        console.error('Errore caricamento suture:', error);
+        container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
+    }
+}
+
+// Sync suture button handler
+(function() {
+    const btn = document.getElementById('btnSyncSuture');
+    if (btn) {
+        btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            btn.textContent = 'Sincronizzazione...';
+            try {
+                await fetch(`${API_URL}/suture/sync?key=${ADMIN_KEY}`, { method: 'POST' });
+                showToast('Sincronizzazione avviata', 'success');
+                setTimeout(() => {
+                    loadSuture();
+                    btn.disabled = false;
+                    btn.textContent = 'Aggiorna da Odoo';
+                }, 5000);
+            } catch (error) {
+                console.error('Errore sync suture:', error);
+                showToast('Errore nella sincronizzazione', 'error');
+                btn.disabled = false;
+                btn.textContent = 'Aggiorna da Odoo';
+            }
+        });
+    }
+})();
 
 // Toast notification
 function showToast(message, type = 'success') {

@@ -24,7 +24,11 @@ const CONFIG = {
     RELATORE_NOME: 'Alberto',
     RELATORE_COGNOME: 'Malavasi',
     RELATORE_EMAIL: process.env.RELATORE_EMAIL || 'dottmalavasi@gmail.com',
-    TELEGRAM_CHAT_ID_RELATORE: process.env.TELEGRAM_CHAT_ID_RELATORE || ''
+    TELEGRAM_CHAT_ID_RELATORE: process.env.TELEGRAM_CHAT_ID_RELATORE || '',
+    ODOO_URL: process.env.ODOO_URL || 'https://osseotouch.odoo.com',
+    ODOO_DB: process.env.ODOO_DB || 'ati-comunicazione-osseotouch-produzione-26370252',
+    ODOO_USER: process.env.ODOO_USER || 'admin',
+    ODOO_API_KEY: process.env.ODOO_API_KEY || ''
 };
 
 // ==================== ISTAT LOOKUP: citta -> regione ====================
@@ -945,9 +949,172 @@ async function initDB() {
             console.log('[Migration] Video score inflation fix completed');
         }
 
+        // Tabella suture stock (cache da Odoo)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS suture_stock (
+                id SERIAL PRIMARY KEY,
+                product_id INTEGER UNIQUE NOT NULL,
+                codice TEXT NOT NULL,
+                descrizione TEXT,
+                giacenza NUMERIC(10,2) DEFAULT 0,
+                impegnato NUMERIC(10,2) DEFAULT 0,
+                costo_acquisto NUMERIC(10,4) DEFAULT 0,
+                best_of BOOLEAN DEFAULT false,
+                last_sync TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_codice ON suture_stock(codice)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_best_of ON suture_stock(best_of)`);
+
+        // Metadata sync suture (singola riga)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS suture_sync_meta (
+                id INTEGER PRIMARY KEY DEFAULT 1,
+                last_sync TIMESTAMPTZ,
+                status TEXT DEFAULT 'idle',
+                error_message TEXT,
+                CONSTRAINT single_row_suture CHECK (id = 1)
+            )
+        `);
+        await client.query(`INSERT INTO suture_sync_meta (id) VALUES (1) ON CONFLICT DO NOTHING`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
+    }
+}
+
+// ==================== ODOO JSON-RPC + SUTURE SYNC ====================
+
+const BEST_OF_CODES = [
+    'LV0212','LV0211','LV0205','LV0201',
+    'MV0212','MV0211','MV0205','MV0201',
+    '4021','SM2362','SM2367','SM2056','SM2055',
+    'TG4554','TG4553','TG4547','TG4538',
+    '3336','3335','3320','3154',
+    'TF6101','TF6105','TF6106'
+];
+
+async function odooJsonRpc(service, method, args) {
+    const url = `${CONFIG.ODOO_URL}/jsonrpc`;
+    const payload = {
+        jsonrpc: '2.0',
+        method: 'call',
+        id: Date.now(),
+        params: { service, method, args }
+    };
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error(`Odoo HTTP ${response.status}`);
+    const data = await response.json();
+    if (data.error) {
+        const msg = data.error.data?.message || data.error.message || JSON.stringify(data.error);
+        throw new Error(`Odoo RPC: ${msg}`);
+    }
+    return data.result;
+}
+
+async function odooAuthenticate() {
+    const uid = await odooJsonRpc('common', 'authenticate', [
+        CONFIG.ODOO_DB, CONFIG.ODOO_USER, CONFIG.ODOO_API_KEY, {}
+    ]);
+    if (!uid) throw new Error('Odoo autenticazione fallita (uid=false)');
+    return uid;
+}
+
+async function odooExecute(uid, model, method, args, kwargs = {}) {
+    return await odooJsonRpc('object', 'execute_kw', [
+        CONFIG.ODOO_DB, uid, CONFIG.ODOO_API_KEY, model, method, args, kwargs
+    ]);
+}
+
+async function syncSutureFromOdoo() {
+    if (!CONFIG.ODOO_API_KEY) {
+        console.warn('[Suture Sync] ODOO_API_KEY non configurata — sync saltato');
+        return;
+    }
+    console.log('[Suture Sync] Inizio sincronizzazione...');
+    await pool.query(`UPDATE suture_sync_meta SET status = 'syncing', error_message = NULL WHERE id = 1`);
+
+    try {
+        const uid = await odooAuthenticate();
+
+        // 1) Prodotti categoria SUTURE (ID=38)
+        const products = await odooExecute(uid, 'product.product', 'search_read',
+            [[['categ_id', '=', 38]]],
+            { fields: ['id', 'default_code', 'name', 'standard_price'], context: { allowed_company_ids: [1], force_company: 1 } }
+        );
+        if (!products || products.length === 0) {
+            console.warn('[Suture Sync] Nessun prodotto trovato cat. 38');
+            await pool.query(`UPDATE suture_sync_meta SET status = 'done', last_sync = NOW(), error_message = 'Nessun prodotto' WHERE id = 1`);
+            return;
+        }
+        const productIds = products.map(p => p.id);
+        const prodMap = {};
+        for (const p of products) prodMap[p.id] = p;
+        console.log(`[Suture Sync] ${products.length} prodotti trovati`);
+
+        // 2) Giacenze da stock.quant su OSNRGY (location_id=8)
+        const quants = await odooExecute(uid, 'stock.quant', 'search_read',
+            [[['product_id', 'in', productIds], ['location_id', '=', 8]]],
+            { fields: ['product_id', 'quantity', 'reserved_quantity'], context: { allowed_company_ids: [1], force_company: 1 } }
+        );
+        const quantMap = {};
+        for (const q of quants) {
+            const pid = q.product_id[0];
+            if (!quantMap[pid]) quantMap[pid] = { qty: 0, reserved: 0 };
+            quantMap[pid].qty += q.quantity || 0;
+            quantMap[pid].reserved += q.reserved_quantity || 0;
+        }
+
+        // 3) Impegnato da sale.order.line (ordini confermati, qty da consegnare > 0)
+        const solLines = await odooExecute(uid, 'sale.order.line', 'search_read',
+            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale']], ['qty_to_deliver', '>', 0]]],
+            { fields: ['product_id', 'qty_to_deliver'], context: { allowed_company_ids: [1], force_company: 1 } }
+        );
+        const commitMap = {};
+        for (const line of solLines) {
+            const pid = line.product_id[0];
+            commitMap[pid] = (commitMap[pid] || 0) + (line.qty_to_deliver || 0);
+        }
+
+        // 4) UPSERT in suture_stock
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            for (const prod of products) {
+                const codice = prod.default_code || `ID-${prod.id}`;
+                const isBestOf = BEST_OF_CODES.includes(codice);
+                const giacenza = quantMap[prod.id] ? quantMap[prod.id].qty : 0;
+                const impegnato = commitMap[prod.id] || 0;
+                const costo = prod.standard_price || 0;
+
+                await client.query(`
+                    INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, costo_acquisto, best_of, last_sync)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                    ON CONFLICT (product_id) DO UPDATE SET
+                        codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
+                        giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
+                        costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
+                        last_sync = NOW()
+                `, [prod.id, codice, prod.name || '', giacenza, impegnato, costo, isBestOf]);
+            }
+            await client.query('COMMIT');
+        } catch (err) {
+            await client.query('ROLLBACK');
+            throw err;
+        } finally {
+            client.release();
+        }
+
+        await pool.query(`UPDATE suture_sync_meta SET status = 'done', last_sync = NOW(), error_message = NULL WHERE id = 1`);
+        console.log(`[Suture Sync] Completato: ${products.length} prodotti sincronizzati`);
+    } catch (err) {
+        console.error('[Suture Sync] Errore:', err.message);
+        await pool.query(`UPDATE suture_sync_meta SET status = 'error', error_message = $1 WHERE id = 1`, [err.message.substring(0, 500)]);
     }
 }
 
@@ -7906,6 +8073,74 @@ app.get('/api/google-ads/keywords', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== API SUTURE ====================
+
+// GET /api/suture/ordine — Cosa ordinare
+app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
+    try {
+        const metaResult = await pool.query('SELECT last_sync, status, error_message FROM suture_sync_meta WHERE id = 1');
+        const meta = metaResult.rows[0] || { last_sync: null, status: 'unknown', error_message: null };
+
+        const result = await pool.query(`
+            SELECT codice, descrizione, giacenza, impegnato, costo_acquisto, best_of
+            FROM suture_stock ORDER BY best_of DESC, codice ASC
+        `);
+
+        const items = [];
+        for (const row of result.rows) {
+            const giacenza = parseFloat(row.giacenza) || 0;
+            const impegnato = parseFloat(row.impegnato) || 0;
+            const costo = parseFloat(row.costo_acquisto) || 0;
+            let daOrdinare = 0;
+
+            if (row.best_of) {
+                daOrdinare = Math.max(0, 5 - (giacenza - impegnato));
+            } else {
+                daOrdinare = Math.max(0, impegnato - giacenza);
+            }
+
+            if (daOrdinare > 0) {
+                items.push({
+                    codice: row.codice,
+                    descrizione: row.descrizione,
+                    giacenza, impegnato,
+                    da_ordinare: daOrdinare,
+                    costo_acquisto: costo,
+                    valore: Math.round(daOrdinare * costo * 100) / 100,
+                    best_of: row.best_of
+                });
+            }
+        }
+
+        const totaleValore = items.reduce((sum, item) => sum + item.valore, 0);
+        res.json({
+            items,
+            totale_valore: Math.round(totaleValore * 100) / 100,
+            last_sync: meta.last_sync,
+            sync_status: meta.status,
+            sync_error: meta.error_message
+        });
+    } catch (err) {
+        console.error('[Suture API] Errore:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/suture/sync — Trigger sync manuale da Odoo
+app.post('/api/suture/sync', requireAdmin, async (req, res) => {
+    try {
+        const metaResult = await pool.query('SELECT status FROM suture_sync_meta WHERE id = 1');
+        if (metaResult.rows[0]?.status === 'syncing') {
+            return res.json({ message: 'Sincronizzazione gia in corso' });
+        }
+        syncSutureFromOdoo();
+        res.json({ message: 'Sincronizzazione avviata' });
+    } catch (err) {
+        console.error('[Suture API] Errore sync:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== AVVIO SERVER ====================
 
 async function start() {
@@ -7924,6 +8159,17 @@ async function start() {
         `);
 
         startTelegramPolling();
+
+        // Sync suture da Odoo: controlla ogni minuto, esegue alle 8:00 ora italiana
+        setInterval(() => {
+            const nowItaly = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Rome' }));
+            if (nowItaly.getHours() === 8 && nowItaly.getMinutes() === 0) {
+                syncSutureFromOdoo();
+            }
+        }, 60000);
+
+        // Sync iniziale all'avvio
+        syncSutureFromOdoo();
     });
 }
 

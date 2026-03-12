@@ -15,6 +15,7 @@
                 <a href="#" class="nav-link" data-section="privati">Task Privati</a>
                 <a href="#" class="nav-link" data-section="report-kim">Report Kim</a>
                 <a href="#" class="nav-link" data-section="report-massimo">Report Massimo</a>
+                <a href="#" class="nav-link" data-section="suture">Suture</a>
                 <a href="storico.html" class="nav-link nav-storico">Storico Completati</a>
                 <a href="report.html" class="nav-link nav-report">Report</a>
                 <a href="pianificazione-mktg.html" class="nav-link nav-mktg">Pianificazione MKTG</a>
@@ -194,6 +195,20 @@
                         <div class="report-card-titolo">CRM Lombardia</div>
                         <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
                     </div>
+                </div>
+            </section>
+
+            <!-- Suture - Ordine da Odoo -->
+            <section id="section-suture" class="reports-section" style="display: none;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
+                    <h2 style="margin-bottom: 0;">Suture da Ordinare</h2>
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span id="suture-last-sync" style="font-size: 0.85rem; color: #6b7280;"></span>
+                        <button class="btn btn-primary btn-small" id="btnSyncSuture">Aggiorna da Odoo</button>
+                    </div>
+                </div>
+                <div id="suture-table-container">
+                    <p class="loading">Caricamento...</p>
                 </div>
             </section>
         </main>

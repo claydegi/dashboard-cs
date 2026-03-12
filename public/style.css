@@ -2567,3 +2567,84 @@ nav {
 .crm-btn-elimina-score:hover {
     background: #c0392b;
 }
+
+/* ========================================
+   SEZIONE SUTURE
+   ======================================== */
+
+.suture-table-wrapper {
+    overflow-x: auto;
+    background: white;
+    border-radius: 8px;
+}
+
+#suture-table {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+#suture-table th {
+    background: #2c3e50;
+    color: white;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+#suture-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+#suture-table tbody tr:hover {
+    background: #f0f7ff;
+}
+
+#suture-table tbody tr:nth-child(even) {
+    background: #f9fafb;
+}
+
+#suture-table tbody tr:nth-child(even):hover {
+    background: #f0f7ff;
+}
+
+.suture-row-bestof td:first-child {
+    border-left: 3px solid #3b82f6;
+}
+
+.suture-row-total {
+    background: #f3f4f6 !important;
+    border-top: 2px solid #d1d5db;
+}
+
+.suture-row-total td {
+    padding: 12px;
+    font-size: 1rem;
+}
+
+.badge-bestof {
+    display: inline-block;
+    background: #3b82f6;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+
+.badge-other {
+    display: inline-block;
+    background: #9ca3af;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+}
