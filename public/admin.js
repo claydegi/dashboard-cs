@@ -932,10 +932,14 @@ function refreshSutureDropdown() {
         btnConferma.addEventListener('click', async () => {
             if (sutureOrdine.length === 0) { showToast('Nessun articolo nell\'ordine', 'error'); return; }
             const totale = sutureOrdine.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
-            if (!confirm(`Creare bozza ordine acquisto VITREX in Odoo?\n\n${sutureOrdine.length} righe — Totale: €${totale}\n\nL'ordine sarà in stato BOZZA.`)) return;
+            const hasBozza = sutureInBozza.length > 0;
+            const msgConferma = hasBozza
+                ? `Aggiungere ${sutureOrdine.length} righe alla bozza esistente in Odoo?\n\nTotale nuove righe: €${totale}`
+                : `Creare nuova bozza ordine VITREX in Odoo?\n\n${sutureOrdine.length} righe — Totale: €${totale}`;
+            if (!confirm(msgConferma)) return;
 
             btnConferma.disabled = true;
-            btnConferma.textContent = 'Creazione in corso...';
+            btnConferma.textContent = hasBozza ? 'Aggiunta in corso...' : 'Creazione in corso...';
             try {
                 const payload = { items: sutureOrdine.map(i => ({
                     product_id: i.product_id,
@@ -951,7 +955,10 @@ function refreshSutureDropdown() {
                 });
                 const result = await resp.json();
                 if (!resp.ok) throw new Error(result.error || 'Errore');
-                showToast(`Bozza ordine ${result.po_name} creata in Odoo!`, 'success');
+                const msg = result.action === 'aggiornato'
+                    ? `${result.righe} righe aggiunte a ${result.po_name}!`
+                    : `Nuova bozza ${result.po_name} creata!`;
+                showToast(msg, 'success');
                 setTimeout(() => loadSuture(), 2000);
             } catch (error) {
                 console.error('Errore conferma ordine:', error);

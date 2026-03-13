@@ -8366,7 +8366,7 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
     }
 });
 
-// POST /api/suture/conferma-ordine — Crea bozza PO in Odoo verso VITREX
+// POST /api/suture/conferma-ordine — Aggiunge righe al PO draft VITREX esistente, oppure ne crea uno nuovo
 app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
     try {
         const { items } = req.body;
@@ -8389,7 +8389,12 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
         }
         const partnerId = partners[0];
 
-        // Costruisci order_line
+        // Cerca PO draft esistente per VITREX
+        const draftPoIds = await odooExecute(uid, 'purchase.order', 'search',
+            [[['partner_id', '=', partnerId], ['state', '=', 'draft'], ['company_id', '=', 1]]],
+            { context: { allowed_company_ids: [1] } }
+        );
+
         const orderLines = items.map(item => [0, 0, {
             product_id: item.product_id,
             product_qty: item.quantita,
@@ -8397,24 +8402,36 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
             name: `[${item.codice}] ${item.descrizione || ''}`
         }]);
 
-        // Crea purchase.order in draft
-        const poId = await odooExecute(uid, 'purchase.order', 'create',
-            [{ partner_id: partnerId, company_id: 1, order_line: orderLines }],
-            { context: { allowed_company_ids: [1], force_company: 1 } }
-        );
+        let poId, action;
+        if (draftPoIds && draftPoIds.length > 0) {
+            // Aggiungi righe al PO draft esistente
+            poId = draftPoIds[0];
+            await odooExecute(uid, 'purchase.order', 'write',
+                [[poId], { order_line: orderLines }],
+                { context: { allowed_company_ids: [1], force_company: 1 } }
+            );
+            action = 'aggiornato';
+        } else {
+            // Nessun draft → crea nuovo PO
+            poId = await odooExecute(uid, 'purchase.order', 'create',
+                [{ partner_id: partnerId, company_id: 1, order_line: orderLines }],
+                { context: { allowed_company_ids: [1], force_company: 1 } }
+            );
+            action = 'creato';
+        }
 
-        // Leggi il nome/numero dell'ordine creato
+        // Leggi il nome/numero dell'ordine
         const poData = await odooExecute(uid, 'purchase.order', 'read',
             [[poId], ['name']],
             { context: { allowed_company_ids: [1] } }
         );
         const poName = poData && poData[0] ? poData[0].name : `PO #${poId}`;
 
-        console.log(`[Suture] Bozza PO creata: ${poName} (ID: ${poId}) - ${items.length} righe`);
-        res.json({ success: true, po_id: poId, po_name: poName, righe: items.length });
+        console.log(`[Suture] Bozza PO ${action}: ${poName} (ID: ${poId}) - ${items.length} righe aggiunte`);
+        res.json({ success: true, po_id: poId, po_name: poName, righe: items.length, action });
     } catch (err) {
-        console.error('[Suture API] Errore creazione PO:', err.message);
-        res.status(500).json({ error: `Errore creazione ordine: ${err.message}` });
+        console.error('[Suture API] Errore creazione/aggiornamento PO:', err.message);
+        res.status(500).json({ error: `Errore ordine: ${err.message}` });
     }
 });
 
