@@ -76,6 +76,53 @@ nav {
     color: white;
 }
 
+/* Nav Dropdowns */
+.nav-dropdown {
+    position: relative;
+}
+
+.nav-dropdown-toggle {
+    cursor: pointer;
+    user-select: none;
+}
+
+.nav-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    margin-top: 4px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    min-width: 180px;
+    z-index: 100;
+    overflow: hidden;
+}
+
+.nav-dropdown.open .nav-dropdown-menu {
+    display: block;
+}
+
+.nav-dropdown-item {
+    display: block;
+    padding: 10px 16px;
+    text-decoration: none;
+    color: var(--gray-700);
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: background 0.15s;
+}
+
+.nav-dropdown-item:hover {
+    background: var(--gray-100);
+}
+
+.nav-dropdown-item.active {
+    background: var(--primary);
+    color: white;
+}
+
 .nav-storico {
     background: var(--gray-100);
 }

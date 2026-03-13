@@ -57,10 +57,33 @@ function setupEventListeners() {
         assegnatoGroup.style.display = tipoSelect.value === 'cs' ? 'block' : 'none';
     });
 
-    // Navigazione sezioni
-    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+    // Dropdown toggle
+    document.querySelectorAll('.nav-dropdown-toggle').forEach(toggle => {
+        toggle.addEventListener('click', (e) => {
+            e.preventDefault();
+            const dropdown = toggle.closest('.nav-dropdown');
+            // Close other dropdowns
+            document.querySelectorAll('.nav-dropdown').forEach(d => {
+                if (d !== dropdown) d.classList.remove('open');
+            });
+            dropdown.classList.toggle('open');
+        });
+    });
+
+    // Close dropdowns on click outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.nav-dropdown')) {
+            document.querySelectorAll('.nav-dropdown').forEach(d => d.classList.remove('open'));
+        }
+    });
+
+    // Navigazione sezioni (dropdown items + direct nav links)
+    document.querySelectorAll('.nav-dropdown-item[data-section], .nav-link[data-section]').forEach(link => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
+            // Close dropdown after selection
+            const dropdown = link.closest('.nav-dropdown');
+            if (dropdown) dropdown.classList.remove('open');
             switchSection(link.dataset.section);
         });
     });
@@ -97,9 +120,22 @@ async function loadTasks() {
 function switchSection(section) {
     currentSection = section;
 
-    // Aggiorna nav
-    document.querySelectorAll('.nav-link[data-section]').forEach(link => {
+    // Aggiorna nav - direct links
+    document.querySelectorAll('nav > .nav-link[data-section]').forEach(link => {
         link.classList.toggle('active', link.dataset.section === section);
+    });
+
+    // Aggiorna nav - dropdown items and toggles
+    document.querySelectorAll('.nav-dropdown').forEach(dropdown => {
+        const items = dropdown.querySelectorAll('.nav-dropdown-item[data-section]');
+        const toggle = dropdown.querySelector('.nav-dropdown-toggle');
+        let hasActive = false;
+        items.forEach(item => {
+            const isActive = item.dataset.section === section;
+            item.classList.toggle('active', isActive);
+            if (isActive) hasActive = true;
+        });
+        toggle.classList.toggle('active', hasActive);
     });
 
     // Mostra/nascondi sezioni

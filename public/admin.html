@@ -11,15 +11,25 @@
         <header>
             <h1>Dashboard Admin</h1>
             <nav>
-                <a href="#" class="nav-link active" data-section="cs">Task CS</a>
-                <a href="#" class="nav-link" data-section="privati">Task Privati</a>
-                <a href="#" class="nav-link" data-section="report-kim">Report Kim</a>
-                <a href="#" class="nav-link" data-section="report-massimo">Report Massimo</a>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-link nav-dropdown-toggle active" data-group="task">Task &#9662;</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="#" class="nav-dropdown-item" data-section="cs">Task CS</a>
+                        <a href="#" class="nav-dropdown-item" data-section="privati">Claudio/Manuel</a>
+                    </div>
+                </div>
+                <div class="nav-dropdown">
+                    <a href="#" class="nav-link nav-dropdown-toggle" data-group="agenti">Agenti &#9662;</a>
+                    <div class="nav-dropdown-menu">
+                        <a href="#" class="nav-dropdown-item" data-section="report-kim">Kim</a>
+                        <a href="#" class="nav-dropdown-item" data-section="report-massimo">Massimo</a>
+                    </div>
+                </div>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
                 <a href="#" class="nav-link" data-section="crm">CRM</a>
-                <a href="storico.html" class="nav-link nav-storico">Storico Completati</a>
+                <a href="storico.html" class="nav-link nav-storico">Storico</a>
                 <a href="report.html" class="nav-link nav-report">Report</a>
-                <a href="pianificazione-mktg.html" class="nav-link nav-mktg">Pianificazione MKTG</a>
+                <a href="pianificazione-mktg.html" class="nav-link nav-mktg">MKTG</a>
             </nav>
         </header>
 
@@ -98,7 +108,7 @@
 
             <!-- Lista Task Privati -->
             <section id="section-privati" class="tasks-section" style="display: none;">
-                <h2>Task Privati Admin</h2>
+                <h2>Task Claudio/Manuel</h2>
                 <div id="taskListPrivati" class="task-list">
                     <p class="loading">Caricamento...</p>
                 </div>
