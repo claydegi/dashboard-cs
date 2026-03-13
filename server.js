@@ -8178,7 +8178,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                 });
             }
             // In bozza: mostra solo la parte non gia coperta dall'arrivo
-            const bozzaUtile = (fabbisogno > 0) ? Math.min(inBozza, Math.max(0, fabbisogno)) : inBozza;
+            const bozzaUtile = Math.min(inBozza, fabbisogno);
             if (bozzaUtile > 0) {
                 inBozzaItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
