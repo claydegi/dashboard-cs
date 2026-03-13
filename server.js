@@ -8252,7 +8252,10 @@ app.get('/api/suture/catalogo', requireAdmin, async (req, res) => {
     }
 });
 
-// PUT /api/suture/aggiorna-bozza — Aggiorna PO draft VITREX in Odoo (rimuovi/modifica/aggiungi righe)
+// PUT /api/suture/aggiorna-bozza — Sincronizza bozza dashboard ↔ Odoo (unica fonte di verità)
+// La dashboard è la fonte di verità: il PO draft in Odoo deve rispecchiare esattamente gli items ricevuti.
+// Se non esiste un draft PO e ci sono items, ne crea uno nuovo.
+// Se esiste, fa un diff: rimuove/aggiorna/aggiunge righe per allinearsi.
 app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
     try {
         const { items } = req.body; // [{ product_id, codice, descrizione, quantita, prezzo_unitario }]
@@ -8277,9 +8280,36 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
             [[['partner_id', '=', partnerId], ['state', '=', 'draft'], ['company_id', '=', 1]]],
             { context: { allowed_company_ids: [1] } }
         );
-        if (!draftPoIds || draftPoIds.length === 0) {
-            return res.status(404).json({ error: 'Nessun ordine in bozza trovato per VITREX' });
+
+        const hasItems = items && items.length > 0;
+
+        // CASO 1: Nessun draft PO e nessun item → niente da fare
+        if ((!draftPoIds || draftPoIds.length === 0) && !hasItems) {
+            return res.json({ success: true, po_names: '', removed: 0, updated: 0, added: 0, created: false });
         }
+
+        // CASO 2: Nessun draft PO ma ci sono items → crea nuovo PO
+        if (!draftPoIds || draftPoIds.length === 0) {
+            const orderLines = items.map(item => [0, 0, {
+                product_id: item.product_id,
+                product_qty: item.quantita,
+                price_unit: item.prezzo_unitario,
+                name: `[${item.codice}] ${item.descrizione || ''}`
+            }]);
+            const poId = await odooExecute(uid, 'purchase.order', 'create',
+                [{ partner_id: partnerId, company_id: 1, order_line: orderLines }],
+                { context: { allowed_company_ids: [1], force_company: 1 } }
+            );
+            const poData = await odooExecute(uid, 'purchase.order', 'read',
+                [[poId], ['name']],
+                { context: { allowed_company_ids: [1] } }
+            );
+            const poName = poData && poData[0] ? poData[0].name : `PO #${poId}`;
+            console.log(`[Suture] Nuova bozza creata: ${poName} — ${items.length} righe`);
+            return res.json({ success: true, po_names: poName, removed: 0, updated: 0, added: items.length, created: true });
+        }
+
+        // CASO 3: Draft PO esiste → diff per allinearlo alla dashboard
 
         // Leggi le righe esistenti di tutti i PO draft
         const existingLines = await odooExecute(uid, 'purchase.order.line', 'search_read',
@@ -8287,16 +8317,22 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
             { fields: ['id', 'product_id', 'product_qty', 'price_unit', 'order_id'], context: { allowed_company_ids: [1] } }
         );
 
-        // Mappa: product_id → existing line info
+        // Mappa: product_id → existing line info (se ci sono duplicati, tieni il primo e segna gli altri da rimuovere)
         const existingMap = {};
+        const duplicateLinesToRemove = [];
         for (const line of existingLines) {
             const pid = line.product_id[0];
-            existingMap[pid] = { id: line.id, order_id: line.order_id[0], qty: line.product_qty, price: line.price_unit };
+            if (existingMap[pid]) {
+                // Duplicato! Segna per la rimozione
+                duplicateLinesToRemove.push({ id: line.id, order_id: line.order_id[0] });
+            } else {
+                existingMap[pid] = { id: line.id, order_id: line.order_id[0], qty: line.product_qty, price: line.price_unit };
+            }
         }
 
         // Mappa: product_id → desired item
         const desiredMap = {};
-        if (items && items.length > 0) {
+        if (hasItems) {
             for (const item of items) {
                 desiredMap[item.product_id] = item;
             }
@@ -8305,6 +8341,13 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
         // Build write commands per PO
         const poCommands = {};
         let removed = 0, updated = 0, added = 0;
+
+        // Rimuovi righe duplicate prima di tutto
+        for (const dup of duplicateLinesToRemove) {
+            if (!poCommands[dup.order_id]) poCommands[dup.order_id] = [];
+            poCommands[dup.order_id].push([2, dup.id, 0]);
+            removed++;
+        }
 
         // Righe da rimuovere o aggiornare
         for (const [pid, existing] of Object.entries(existingMap)) {
@@ -8358,8 +8401,8 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
         );
         const names = poNames.map(p => p.name).join(', ');
 
-        console.log(`[Suture] Bozza aggiornata: ${names} — rimossi:${removed} aggiornati:${updated} aggiunti:${added}`);
-        res.json({ success: true, po_names: names, removed, updated, added });
+        console.log(`[Suture] Bozza sincronizzata: ${names} — rimossi:${removed} aggiornati:${updated} aggiunti:${added}`);
+        res.json({ success: true, po_names: names, removed, updated, added, created: false });
     } catch (err) {
         console.error('[Suture API] Errore aggiornamento bozza:', err.message);
         res.status(500).json({ error: `Errore aggiornamento bozza: ${err.message}` });
@@ -8432,6 +8475,76 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[Suture API] Errore creazione/aggiornamento PO:', err.message);
         res.status(500).json({ error: `Errore ordine: ${err.message}` });
+    }
+});
+
+// ==================== RIEPILOGO CRM ====================
+
+app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
+    try {
+        // --- RIORDINO: account con prodotto ricorrente il cui ultimo acquisto e' scaduto ---
+        // Per BLEXO, CEP, SUTURE: conta account che possiedono il prodotto E
+        // la cui ultima fattura e' piu' vecchia di mesi_riordino mesi, oppure non hanno acquisti
+        const prodottiRiordino = ['BLEXO', 'CEP', 'SUTURE'];
+        const riordino = {};
+
+        for (const prodotto of prodottiRiordino) {
+            const result = await pool.query(`
+                SELECT COUNT(DISTINCT c.id) as n
+                FROM crm_contatti c
+                JOIN crm_prodotti p ON p.contatto_id = c.id AND p.prodotto = $1
+                WHERE c.tipo = 'account'
+                AND (
+                    -- Nessun acquisto per questo prodotto
+                    NOT EXISTS (
+                        SELECT 1 FROM crm_acquisti a
+                        WHERE a.contatto_id = c.id AND a.prodotto = $1
+                    )
+                    OR
+                    -- Ultimo acquisto piu' vecchio di mesi_riordino mesi
+                    (SELECT MAX(a.data_fattura) FROM crm_acquisti a
+                     WHERE a.contatto_id = c.id AND a.prodotto = $1)
+                    < TO_CHAR(NOW() - (COALESCE(c.mesi_riordino, 2) || ' months')::INTERVAL, 'YYYY-MM-DD')
+                )
+            `, [prodotto]);
+            riordino[prodotto] = parseInt(result.rows[0].n);
+        }
+
+        // --- HOT: contatti con score >= 400 per linea prodotto ---
+        // Somma score_prodotti + score_manuali non sincronizzati
+        const hotResult = await pool.query(`
+            SELECT
+                s.linea_prodotto,
+                c.tipo,
+                COUNT(DISTINCT s.contatto_id) as n
+            FROM (
+                SELECT contatto_id, linea_prodotto, SUM(score) as score_totale
+                FROM (
+                    SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti
+                    UNION ALL
+                    SELECT contatto_id, linea_prodotto, punti FROM crm_score_manuali WHERE sincronizzata = false
+                ) combined
+                GROUP BY contatto_id, linea_prodotto
+                HAVING SUM(score) >= ${SOGLIA_HOT_DEFAULT}
+            ) s
+            JOIN crm_contatti c ON c.id = s.contatto_id
+            WHERE c.tipo IN ('account', 'lead')
+            GROUP BY s.linea_prodotto, c.tipo
+            ORDER BY s.linea_prodotto, c.tipo
+        `);
+
+        const hot = {};
+        for (const row of hotResult.rows) {
+            if (!hot[row.linea_prodotto]) {
+                hot[row.linea_prodotto] = { account: 0, lead: 0 };
+            }
+            hot[row.linea_prodotto][row.tipo] = parseInt(row.n);
+        }
+
+        res.json({ riordino, hot });
+    } catch (err) {
+        console.error('[CRM Riepilogo] Errore:', err.message);
+        res.status(500).json({ error: 'Errore riepilogo CRM' });
     }
 });
 

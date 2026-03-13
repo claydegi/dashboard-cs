@@ -166,6 +166,8 @@ function switchSection(section) {
         loadFatture('massimo');
     } else if (section === 'suture') {
         loadSuture();
+    } else if (section === 'crm') {
+        loadCrmRiepilogo();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -931,33 +933,53 @@ function refreshSutureDropdown() {
     if (btnConferma) {
         btnConferma.addEventListener('click', async () => {
             if (sutureOrdine.length === 0) { showToast('Nessun articolo nell\'ordine', 'error'); return; }
-            const totale = sutureOrdine.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
-            const hasBozza = sutureInBozza.length > 0;
-            const msgConferma = hasBozza
-                ? `Aggiungere ${sutureOrdine.length} righe alla bozza esistente in Odoo?\n\nTotale nuove righe: €${totale}`
-                : `Creare nuova bozza ordine VITREX in Odoo?\n\n${sutureOrdine.length} righe — Totale: €${totale}`;
+
+            // Merge: unisci "Da ordinare" nella bozza locale (se stesso prodotto, somma quantità)
+            const mergedBozza = [...sutureInBozza];
+            for (const item of sutureOrdine) {
+                const existing = mergedBozza.find(b => b.product_id === item.product_id);
+                if (existing) {
+                    existing.quantita += item.quantita;
+                } else {
+                    mergedBozza.push({
+                        product_id: item.product_id, codice: item.codice,
+                        descrizione: item.descrizione, quantita: item.quantita,
+                        prezzo: item.prezzo, best_of: item.best_of
+                    });
+                }
+            }
+
+            const totale = mergedBozza.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
+            const msgConferma = sutureInBozza.length > 0
+                ? `Aggiornare la bozza in Odoo?\n\n${mergedBozza.length} righe totali — Totale: €${totale}\n\n(${sutureOrdine.length} nuove righe verranno aggiunte alla bozza)`
+                : `Creare nuova bozza ordine VITREX in Odoo?\n\n${mergedBozza.length} righe — Totale: €${totale}`;
             if (!confirm(msgConferma)) return;
 
             btnConferma.disabled = true;
-            btnConferma.textContent = hasBozza ? 'Aggiunta in corso...' : 'Creazione in corso...';
+            btnConferma.textContent = 'Aggiornamento in corso...';
             try {
-                const payload = { items: sutureOrdine.map(i => ({
+                const payload = { items: mergedBozza.map(i => ({
                     product_id: i.product_id,
                     codice: i.codice,
                     descrizione: i.descrizione,
                     quantita: i.quantita,
                     prezzo_unitario: i.prezzo
                 }))};
-                const resp = await fetch(`${API_URL}/suture/conferma-ordine?key=${ADMIN_KEY}`, {
-                    method: 'POST',
+                // Usa aggiorna-bozza (diff-based) — unico endpoint per sincronizzare
+                const resp = await fetch(`${API_URL}/suture/aggiorna-bozza?key=${ADMIN_KEY}`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const result = await resp.json();
                 if (!resp.ok) throw new Error(result.error || 'Errore');
-                const msg = result.action === 'aggiornato'
-                    ? `${result.righe} righe aggiunte a ${result.po_name}!`
-                    : `Nuova bozza ${result.po_name} creata!`;
+                let msg = `Bozza ${result.po_names} sincronizzata!`;
+                if (result.created) msg = `Nuova bozza ${result.po_names} creata con ${result.added} righe!`;
+                else {
+                    if (result.added > 0) msg += ` ${result.added} aggiunte.`;
+                    if (result.updated > 0) msg += ` ${result.updated} aggiornate.`;
+                    if (result.removed > 0) msg += ` ${result.removed} rimosse.`;
+                }
                 showToast(msg, 'success');
                 setTimeout(() => loadSuture(), 2000);
             } catch (error) {
@@ -969,6 +991,67 @@ function refreshSutureDropdown() {
         });
     }
 })();
+
+// Riepilogo CRM (riordino + hot opportunity)
+async function loadCrmRiepilogo() {
+    const container = document.getElementById('crm-riepilogo');
+    if (!container) return;
+    container.innerHTML = '<p class="loading" style="margin-top:20px;">Caricamento riepilogo...</p>';
+
+    try {
+        const response = await fetch(`${API_URL}/crm/riepilogo?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore caricamento riepilogo');
+        const data = await response.json();
+
+        // --- Riordino ---
+        let riordinoHtml = '<div style="flex:1;min-width:260px">';
+        riordinoHtml += '<h4 style="margin:0 0 12px 0;font-size:1rem;color:#374151">Da Riordino</h4>';
+        const prodottiRiordino = ['BLEXO', 'CEP', 'SUTURE'];
+        for (const prod of prodottiRiordino) {
+            const n = (data.riordino && data.riordino[prod]) || 0;
+            const color = n > 0 ? '#dc2626' : '#16a34a';
+            riordinoHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6">
+                <span style="font-weight:600;color:#374151">${prod}</span>
+                <span style="font-weight:700;font-size:1.1rem;color:${color}">${n} <span style="font-weight:400;font-size:0.85rem;color:#6b7280">account</span></span>
+            </div>`;
+        }
+        riordinoHtml += '</div>';
+
+        // --- Hot Opportunity ---
+        let hotHtml = '<div style="flex:1;min-width:260px">';
+        hotHtml += '<h4 style="margin:0 0 12px 0;font-size:1rem;color:#374151">Opportunity Hot <span style="font-weight:400;font-size:0.85rem;color:#6b7280">(&ge;400pt)</span></h4>';
+        const hotLinee = data.hot ? Object.keys(data.hot).sort() : [];
+        if (hotLinee.length === 0) {
+            hotHtml += '<div style="color:#9ca3af;font-style:italic;padding:6px 0">Nessun contatto hot</div>';
+        } else {
+            for (const linea of hotLinee) {
+                const acc = data.hot[linea].account || 0;
+                const lead = data.hot[linea].lead || 0;
+                hotHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6">
+                    <span style="font-weight:600;color:#374151">${linea}</span>
+                    <span style="font-size:0.95rem">
+                        <span style="font-weight:700;color:#7c3aed">${acc}</span> <span style="color:#6b7280">acc</span>
+                        &nbsp;/&nbsp;
+                        <span style="font-weight:700;color:#2563eb">${lead}</span> <span style="color:#6b7280">lead</span>
+                    </span>
+                </div>`;
+            }
+        }
+        hotHtml += '</div>';
+
+        container.innerHTML = `
+            <div style="margin-top:24px;padding:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px">
+                <h3 style="margin:0 0 16px 0;font-size:1.1rem;color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px">Riepilogo CRM</h3>
+                <div style="display:flex;gap:32px;flex-wrap:wrap">
+                    ${riordinoHtml}
+                    ${hotHtml}
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<p style="color:#dc2626;margin-top:20px;">Errore caricamento riepilogo: ${err.message}</p>`;
+    }
+}
 
 // Toast notification
 function showToast(message, type = 'success') {
