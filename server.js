@@ -7349,7 +7349,7 @@ app.get('/api/mailing/check-cooldown', requireAdmin, async (req, res) => {
         }
 
         // Regioni target: se non specificate, tutte le attive
-        const REGIONI_DEFAULT = ['LIGURIA', 'PIEMONTE', 'LOMBARDIA', 'CAMPANIA', 'LAZIO', "VALLE D'AOSTA", 'PUGLIA', 'BASILICATA'];
+        const REGIONI_DEFAULT = ['LIGURIA', 'PIEMONTE', 'LOMBARDIA', 'CAMPANIA', 'LAZIO', "VALLE D'AOSTA", 'PUGLIA', 'BASILICATA', 'VENETO', 'FRIULI VENEZIA GIULIA', 'TRENTINO-ALTO ADIGE'];
         let targetRegioni = REGIONI_DEFAULT;
         if (regioni && regioni.trim()) {
             targetRegioni = regioni.split(',').map(r => r.trim().toUpperCase()).filter(r => r.length > 0);
