@@ -145,11 +145,12 @@ function switchSection(section) {
     document.getElementById('section-report-massimo').style.display = section === 'report-massimo' ? 'block' : 'none';
     document.getElementById('section-suture').style.display = section === 'suture' ? 'block' : 'none';
     document.getElementById('section-crm').style.display = section === 'crm' ? 'block' : 'none';
+    document.getElementById('section-upwork').style.display = section === 'upwork' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'upwork') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {
@@ -168,6 +169,9 @@ function switchSection(section) {
         loadSuture();
     } else if (section === 'crm') {
         loadCrmRiepilogo();
+    } else if (section === 'upwork') {
+        loadUpworkJobs();
+        loadUpworkApprovals();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -1054,6 +1058,302 @@ async function loadCrmRiepilogo() {
         container.innerHTML = `<p style="color:#dc2626;margin-top:20px;">Errore caricamento riepilogo: ${err.message}</p>`;
     }
 }
+
+// ==================== UPWORK ====================
+
+let upworkPendingFiles = [];
+
+// Sub-tab switching
+document.querySelectorAll('.upwork-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        document.querySelectorAll('.upwork-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.upwork-tab-content').forEach(c => c.style.display = 'none');
+        tab.classList.add('active');
+        document.getElementById(`upwork-tab-${tab.dataset.upworkTab}`).style.display = 'block';
+    });
+});
+
+// Toggle form nuovo progetto
+document.getElementById('btnNuovoJob').addEventListener('click', () => {
+    const form = document.getElementById('upwork-job-form');
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+});
+document.getElementById('btnAnnullaJob').addEventListener('click', () => {
+    document.getElementById('upwork-job-form').style.display = 'none';
+    resetUpworkForm();
+});
+
+// Drag & drop zone
+const dropzone = document.getElementById('upwork-dropzone');
+const fileInput = document.getElementById('upwork-files');
+
+dropzone.addEventListener('click', () => fileInput.click());
+dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+dropzone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropzone.classList.remove('dragover');
+    handleUpworkFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', () => handleUpworkFiles(fileInput.files));
+
+function handleUpworkFiles(files) {
+    Array.from(files).forEach(file => {
+        if (file.size > 8 * 1024 * 1024) {
+            showToast(`${file.name} troppo grande (max 8MB)`, 'error');
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            upworkPendingFiles.push({ nome_file: file.name, tipo_file: file.type, file_base64: reader.result });
+            renderUpworkFileList();
+        };
+        reader.readAsDataURL(file);
+    });
+}
+
+function renderUpworkFileList() {
+    const list = document.getElementById('upwork-file-list');
+    list.innerHTML = upworkPendingFiles.map((f, i) => `
+        <div class="upwork-file-item">
+            <span>${f.nome_file}</span>
+            <button class="btn-small btn-danger" onclick="removeUpworkFile(${i})">&times;</button>
+        </div>
+    `).join('');
+}
+
+function removeUpworkFile(index) {
+    upworkPendingFiles.splice(index, 1);
+    renderUpworkFileList();
+}
+
+function resetUpworkForm() {
+    document.getElementById('upwork-titolo').value = '';
+    document.getElementById('upwork-descrizione').value = '';
+    document.getElementById('upwork-budget').value = '';
+    upworkPendingFiles = [];
+    renderUpworkFileList();
+}
+
+// Salva progetto
+document.getElementById('btnSalvaJob').addEventListener('click', async () => {
+    const titolo = document.getElementById('upwork-titolo').value.trim();
+    const descrizione_testo = document.getElementById('upwork-descrizione').value.trim();
+    const budget_max = document.getElementById('upwork-budget').value || null;
+
+    if (!titolo) { showToast('Titolo obbligatorio', 'error'); return; }
+
+    try {
+        const res = await fetch(`${API_URL}/upwork/jobs?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ titolo, descrizione_testo, budget_max, allegati: upworkPendingFiles })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Progetto creato');
+        document.getElementById('upwork-job-form').style.display = 'none';
+        resetUpworkForm();
+        loadUpworkJobs();
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+});
+
+// Carica lista progetti
+async function loadUpworkJobs() {
+    const container = document.getElementById('upwork-jobs-list');
+    try {
+        const res = await fetch(`${API_URL}/upwork/jobs?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const jobs = await res.json();
+
+        if (jobs.length === 0) {
+            container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Nessun progetto. Clicca "+ Nuovo Progetto" per iniziare.</p>';
+            return;
+        }
+
+        container.innerHTML = jobs.map(j => {
+            const statoColors = { bozza: '#6b7280', pubblicato: '#3b82f6', in_corso: '#f59e0b', completato: '#22c55e', annullato: '#ef4444' };
+            const color = statoColors[j.stato] || '#6b7280';
+            const pending = j.num_pending > 0 ? `<span class="nav-badge">${j.num_pending}</span>` : '';
+            return `
+                <div class="upwork-job-card" onclick="openUpworkJob(${j.id})">
+                    <div class="upwork-job-header">
+                        <h3>${j.titolo}</h3>
+                        <span class="upwork-stato" style="background:${color}">${j.stato}</span>
+                    </div>
+                    <p class="upwork-job-desc">${(j.descrizione_testo || '').substring(0, 150)}${(j.descrizione_testo || '').length > 150 ? '...' : ''}</p>
+                    <div class="upwork-job-footer">
+                        <span>${j.budget_max ? '€' + Number(j.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
+                        <span>${j.num_allegati} allegati</span>
+                        <span>${pending} ${new Date(j.created_at).toLocaleDateString('it')}</span>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        container.innerHTML = `<p style="color:#dc2626;">Errore: ${err.message}</p>`;
+    }
+}
+
+// Apri dettaglio progetto
+async function openUpworkJob(id) {
+    const container = document.getElementById('upwork-jobs-list');
+    try {
+        const res = await fetch(`${API_URL}/upwork/jobs/${id}?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const job = await res.json();
+
+        const allegatiHtml = job.allegati.map(a => `
+            <div class="upwork-file-item">
+                <span>${a.nome_file} (${a.dimensione_kb} KB)</span>
+                <button class="btn-small btn-danger" onclick="deleteUpworkAttachment(${id}, ${a.id})">&times;</button>
+            </div>
+        `).join('') || '<p style="color:#6b7280;">Nessun allegato</p>';
+
+        const approvazioniHtml = job.approvazioni.map(a => {
+            const statoClass = a.stato === 'pending' ? 'warning' : a.stato === 'approved' ? 'success' : 'danger';
+            return `
+                <div class="upwork-approval-item ${statoClass}">
+                    <strong>[${a.modulo}]</strong> ${a.azione}
+                    <span class="upwork-approval-stato">${a.stato}</span>
+                </div>
+            `;
+        }).join('') || '<p style="color:#6b7280;">Nessuna approvazione richiesta</p>';
+
+        container.innerHTML = `
+            <div class="upwork-detail">
+                <button class="btn" onclick="loadUpworkJobs()">&larr; Torna alla lista</button>
+                <h2>${job.titolo}</h2>
+                <div class="upwork-detail-meta">
+                    <span class="upwork-stato" style="background:${job.stato === 'bozza' ? '#6b7280' : '#3b82f6'}">${job.stato}</span>
+                    <span>${job.budget_max ? '€' + Number(job.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
+                    <span>Creato: ${new Date(job.created_at).toLocaleDateString('it')}</span>
+                </div>
+                <div class="upwork-detail-desc">
+                    <h3>Descrizione</h3>
+                    <p>${(job.descrizione_testo || 'Nessuna descrizione').replace(/\n/g, '<br>')}</p>
+                </div>
+                <div class="upwork-detail-attachments">
+                    <h3>Allegati</h3>
+                    ${allegatiHtml}
+                </div>
+                <div class="upwork-detail-approvals">
+                    <h3>Approvazioni</h3>
+                    ${approvazioniHtml}
+                </div>
+                <div class="form-actions" style="margin-top:20px;">
+                    <button class="btn btn-danger" onclick="deleteUpworkJob(${id})">Elimina Progetto</button>
+                </div>
+            </div>
+        `;
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+async function deleteUpworkJob(id) {
+    if (!confirm('Eliminare questo progetto e tutti i suoi allegati?')) return;
+    try {
+        const res = await fetch(`${API_URL}/upwork/jobs/${id}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Errore eliminazione');
+        showToast('Progetto eliminato');
+        loadUpworkJobs();
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+async function deleteUpworkAttachment(jobId, attachmentId) {
+    if (!confirm('Rimuovere questo allegato?')) return;
+    try {
+        const res = await fetch(`${API_URL}/upwork/jobs/${jobId}/attachments/${attachmentId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        if (!res.ok) throw new Error('Errore eliminazione');
+        showToast('Allegato rimosso');
+        openUpworkJob(jobId);
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Approvazioni
+async function loadUpworkApprovals() {
+    const container = document.getElementById('upwork-approvals-list');
+    try {
+        const res = await fetch(`${API_URL}/upwork/approvals?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const approvals = await res.json();
+
+        // Badge
+        const badge = document.getElementById('upwork-badge');
+        const countBadge = document.getElementById('upwork-approvals-count');
+        if (approvals.length > 0) {
+            badge.textContent = approvals.length;
+            badge.style.display = 'inline';
+            countBadge.textContent = approvals.length;
+            countBadge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+            countBadge.style.display = 'none';
+        }
+
+        if (approvals.length === 0) {
+            container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Nessuna approvazione in attesa.</p>';
+            return;
+        }
+
+        container.innerHTML = approvals.map(a => `
+            <div class="upwork-approval-card">
+                <div class="upwork-approval-header">
+                    <span class="upwork-modulo-tag">${a.modulo.replace('_', ' ')}</span>
+                    <span style="color:#6b7280;font-size:0.85rem;">${a.job_titolo}</span>
+                </div>
+                <p class="upwork-approval-action">${a.azione}</p>
+                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? `<pre class="upwork-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>` : ''}
+                <div class="form-group" style="margin-top:8px;">
+                    <input type="text" id="upwork-nota-${a.id}" placeholder="Nota (opzionale)">
+                </div>
+                <div class="form-actions">
+                    <button class="btn btn-primary" onclick="decideUpworkApproval(${a.id}, 'approved')">Approva</button>
+                    <button class="btn btn-danger" onclick="decideUpworkApproval(${a.id}, 'rejected')">Rifiuta</button>
+                </div>
+            </div>
+        `).join('');
+    } catch (err) {
+        container.innerHTML = `<p style="color:#dc2626;">Errore: ${err.message}</p>`;
+    }
+}
+
+async function decideUpworkApproval(id, stato) {
+    const nota = document.getElementById(`upwork-nota-${id}`)?.value || '';
+    try {
+        const res = await fetch(`${API_URL}/upwork/approvals/${id}/decide?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ stato, risposta_imprenditore: nota })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast(stato === 'approved' ? 'Approvato' : 'Rifiutato');
+        loadUpworkApprovals();
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Carica conteggio approvazioni al load
+(async function initUpworkBadge() {
+    try {
+        const res = await fetch(`${API_URL}/upwork/approvals?key=${ADMIN_KEY}`);
+        if (res.ok) {
+            const approvals = await res.json();
+            const badge = document.getElementById('upwork-badge');
+            if (approvals.length > 0) {
+                badge.textContent = approvals.length;
+                badge.style.display = 'inline';
+            }
+        }
+    } catch (_) {}
+})();
 
 // Toast notification
 function showToast(message, type = 'success') {

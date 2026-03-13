@@ -985,6 +985,45 @@ async function initDB() {
         `);
         await client.query(`INSERT INTO suture_sync_meta (id) VALUES (1) ON CONFLICT DO NOTHING`);
 
+        // ==================== UPWORK ====================
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS upwork_jobs (
+                id SERIAL PRIMARY KEY,
+                titolo TEXT NOT NULL,
+                descrizione_testo TEXT,
+                stato TEXT DEFAULT 'bozza',
+                budget_max NUMERIC,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS upwork_attachments (
+                id SERIAL PRIMARY KEY,
+                job_id INTEGER REFERENCES upwork_jobs(id) ON DELETE CASCADE,
+                nome_file TEXT NOT NULL,
+                tipo_file TEXT,
+                file_base64 TEXT NOT NULL,
+                dimensione_kb INTEGER,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS upwork_approvals (
+                id SERIAL PRIMARY KEY,
+                job_id INTEGER REFERENCES upwork_jobs(id) ON DELETE CASCADE,
+                modulo TEXT NOT NULL,
+                azione TEXT NOT NULL,
+                dettagli JSONB DEFAULT '{}',
+                stato TEXT DEFAULT 'pending',
+                risposta_imprenditore TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                decided_at TIMESTAMPTZ
+            )
+        `);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -8549,6 +8588,198 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[CRM Riepilogo] Errore:', err.message);
         res.status(500).json({ error: 'Errore riepilogo CRM' });
+    }
+});
+
+// ==================== API UPWORK ====================
+
+// Lista progetti
+app.get('/api/upwork/jobs', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT j.*,
+                (SELECT COUNT(*) FROM upwork_attachments WHERE job_id = j.id) as num_allegati,
+                (SELECT COUNT(*) FROM upwork_approvals WHERE job_id = j.id AND stato = 'pending') as num_pending
+            FROM upwork_jobs j ORDER BY j.created_at DESC
+        `);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Upwork] Errore lista jobs:', err);
+        res.status(500).json({ error: 'Errore caricamento progetti' });
+    }
+});
+
+// Crea progetto
+app.post('/api/upwork/jobs', requireAdmin, async (req, res) => {
+    try {
+        const { titolo, descrizione_testo, budget_max, allegati } = req.body;
+        if (!titolo) return res.status(400).json({ error: 'Titolo obbligatorio' });
+
+        const result = await pool.query(`
+            INSERT INTO upwork_jobs (titolo, descrizione_testo, budget_max)
+            VALUES ($1, $2, $3) RETURNING *
+        `, [titolo, descrizione_testo || '', budget_max || null]);
+
+        const job = result.rows[0];
+
+        // Salva allegati se presenti
+        if (allegati && allegati.length > 0) {
+            for (const file of allegati) {
+                const base64Data = file.file_base64.includes(',') ? file.file_base64.split(',')[1] : file.file_base64;
+                const dimensione_kb = Math.round(Buffer.byteLength(base64Data, 'base64') / 1024);
+                await pool.query(`
+                    INSERT INTO upwork_attachments (job_id, nome_file, tipo_file, file_base64, dimensione_kb)
+                    VALUES ($1, $2, $3, $4, $5)
+                `, [job.id, file.nome_file, file.tipo_file, base64Data, dimensione_kb]);
+            }
+        }
+
+        res.status(201).json(job);
+    } catch (err) {
+        console.error('[Upwork] Errore creazione job:', err);
+        res.status(500).json({ error: 'Errore creazione progetto' });
+    }
+});
+
+// Dettaglio progetto con allegati e approvazioni
+app.get('/api/upwork/jobs/:id', requireAdmin, async (req, res) => {
+    try {
+        const job = await pool.query('SELECT * FROM upwork_jobs WHERE id = $1', [req.params.id]);
+        if (job.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+
+        const attachments = await pool.query(
+            'SELECT id, job_id, nome_file, tipo_file, dimensione_kb, created_at FROM upwork_attachments WHERE job_id = $1 ORDER BY created_at',
+            [req.params.id]
+        );
+        const approvals = await pool.query(
+            'SELECT * FROM upwork_approvals WHERE job_id = $1 ORDER BY created_at DESC',
+            [req.params.id]
+        );
+
+        res.json({ ...job.rows[0], allegati: attachments.rows, approvazioni: approvals.rows });
+    } catch (err) {
+        console.error('[Upwork] Errore dettaglio job:', err);
+        res.status(500).json({ error: 'Errore caricamento progetto' });
+    }
+});
+
+// Modifica progetto
+app.put('/api/upwork/jobs/:id', requireAdmin, async (req, res) => {
+    try {
+        const { titolo, descrizione_testo, budget_max, stato } = req.body;
+        const result = await pool.query(`
+            UPDATE upwork_jobs SET titolo = COALESCE($1, titolo), descrizione_testo = COALESCE($2, descrizione_testo),
+            budget_max = COALESCE($3, budget_max), stato = COALESCE($4, stato), updated_at = NOW()
+            WHERE id = $5 RETURNING *
+        `, [titolo, descrizione_testo, budget_max, stato, req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Upwork] Errore modifica job:', err);
+        res.status(500).json({ error: 'Errore modifica progetto' });
+    }
+});
+
+// Elimina progetto (CASCADE elimina allegati e approvazioni)
+app.delete('/api/upwork/jobs/:id', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query('DELETE FROM upwork_jobs WHERE id = $1 RETURNING id', [req.params.id]);
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+        res.json({ deleted: true });
+    } catch (err) {
+        console.error('[Upwork] Errore eliminazione job:', err);
+        res.status(500).json({ error: 'Errore eliminazione progetto' });
+    }
+});
+
+// Aggiungi allegato
+app.post('/api/upwork/jobs/:id/attachments', requireAdmin, async (req, res) => {
+    try {
+        const { nome_file, tipo_file, file_base64 } = req.body;
+        if (!nome_file || !file_base64) return res.status(400).json({ error: 'File obbligatorio' });
+
+        const base64Data = file_base64.includes(',') ? file_base64.split(',')[1] : file_base64;
+        const dimensione_kb = Math.round(Buffer.byteLength(base64Data, 'base64') / 1024);
+
+        const result = await pool.query(`
+            INSERT INTO upwork_attachments (job_id, nome_file, tipo_file, file_base64, dimensione_kb)
+            VALUES ($1, $2, $3, $4, $5) RETURNING id, job_id, nome_file, tipo_file, dimensione_kb, created_at
+        `, [req.params.id, nome_file, tipo_file, base64Data, dimensione_kb]);
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('[Upwork] Errore upload allegato:', err);
+        res.status(500).json({ error: 'Errore upload allegato' });
+    }
+});
+
+// Rimuovi allegato
+app.delete('/api/upwork/jobs/:id/attachments/:aid', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'DELETE FROM upwork_attachments WHERE id = $1 AND job_id = $2 RETURNING id',
+            [req.params.aid, req.params.id]
+        );
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Allegato non trovato' });
+        res.json({ deleted: true });
+    } catch (err) {
+        console.error('[Upwork] Errore eliminazione allegato:', err);
+        res.status(500).json({ error: 'Errore eliminazione allegato' });
+    }
+});
+
+// Lista approvazioni pending
+app.get('/api/upwork/approvals', requireAdmin, async (req, res) => {
+    try {
+        const stato = req.query.stato || 'pending';
+        const result = await pool.query(`
+            SELECT a.*, j.titolo as job_titolo FROM upwork_approvals a
+            JOIN upwork_jobs j ON j.id = a.job_id
+            WHERE a.stato = $1 ORDER BY a.created_at DESC
+        `, [stato]);
+        res.json(result.rows);
+    } catch (err) {
+        console.error('[Upwork] Errore lista approvals:', err);
+        res.status(500).json({ error: 'Errore caricamento approvazioni' });
+    }
+});
+
+// Crea richiesta approvazione (usato dai moduli)
+app.post('/api/upwork/approvals', requireAdmin, async (req, res) => {
+    try {
+        const { job_id, modulo, azione, dettagli } = req.body;
+        const moduli_validi = ['job_composer', 'talent_scout', 'negotiator', 'delivery_manager', 'cost_tracker'];
+        if (!job_id || !modulo || !azione) return res.status(400).json({ error: 'job_id, modulo e azione obbligatori' });
+        if (!moduli_validi.includes(modulo)) return res.status(400).json({ error: `Modulo non valido. Validi: ${moduli_validi.join(', ')}` });
+
+        const result = await pool.query(`
+            INSERT INTO upwork_approvals (job_id, modulo, azione, dettagli)
+            VALUES ($1, $2, $3, $4) RETURNING *
+        `, [job_id, modulo, azione, dettagli || {}]);
+
+        res.status(201).json(result.rows[0]);
+    } catch (err) {
+        console.error('[Upwork] Errore creazione approval:', err);
+        res.status(500).json({ error: 'Errore creazione approvazione' });
+    }
+});
+
+// Approva o rifiuta
+app.put('/api/upwork/approvals/:id/decide', requireAdmin, async (req, res) => {
+    try {
+        const { stato, risposta_imprenditore } = req.body;
+        if (!['approved', 'rejected'].includes(stato)) return res.status(400).json({ error: 'Stato deve essere approved o rejected' });
+
+        const result = await pool.query(`
+            UPDATE upwork_approvals SET stato = $1, risposta_imprenditore = $2, decided_at = NOW()
+            WHERE id = $3 AND stato = 'pending' RETURNING *
+        `, [stato, risposta_imprenditore || null, req.params.id]);
+
+        if (result.rows.length === 0) return res.status(404).json({ error: 'Approvazione non trovata o gia\' decisa' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Upwork] Errore decisione approval:', err);
+        res.status(500).json({ error: 'Errore decisione approvazione' });
     }
 });
 

@@ -26,6 +26,7 @@
                     </div>
                 </div>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
+                <a href="#" class="nav-link" data-section="upwork">Upwork <span id="upwork-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="crm">CRM</a>
                 <a href="storico.html" class="nav-link nav-storico">Storico</a>
                 <a href="report.html" class="nav-link nav-report">Report</a>
@@ -276,6 +277,65 @@
                 </div>
                 <div id="suture-conferma-container" style="display:none; margin-top:16px; text-align:right;">
                     <button class="btn-conferma-ordine" id="btnConfermaOrdine">Conferma Ordine &rarr; Odoo</button>
+                </div>
+            </section>
+
+            <!-- ==================== UPWORK ==================== -->
+            <section id="section-upwork" class="reports-section" style="display: none;">
+                <!-- Sub-tabs -->
+                <div class="upwork-tabs">
+                    <button class="upwork-tab active" data-upwork-tab="progetti">Progetti</button>
+                    <button class="upwork-tab" data-upwork-tab="approvazioni">Approvazioni <span id="upwork-approvals-count" class="nav-badge" style="display:none;">0</span></button>
+                </div>
+
+                <!-- TAB: Progetti -->
+                <div id="upwork-tab-progetti" class="upwork-tab-content">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                        <h2 style="margin-bottom: 0;">Progetti Upwork</h2>
+                        <button class="btn btn-primary" id="btnNuovoJob">+ Nuovo Progetto</button>
+                    </div>
+
+                    <!-- Form nuovo progetto (nascosto) -->
+                    <div id="upwork-job-form" style="display: none;" class="upwork-form-card">
+                        <h3>Nuovo Progetto</h3>
+                        <div class="form-group">
+                            <label for="upwork-titolo">Titolo *</label>
+                            <input type="text" id="upwork-titolo" placeholder="Es: Video caso clinico implantologia">
+                        </div>
+                        <div class="form-group">
+                            <label for="upwork-descrizione">Descrizione del lavoro</label>
+                            <textarea id="upwork-descrizione" rows="6" placeholder="Descrivi nel dettaglio cosa deve fare il freelancer..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="upwork-budget">Budget massimo (EUR)</label>
+                            <input type="number" id="upwork-budget" placeholder="500" min="0" step="50">
+                        </div>
+                        <div class="form-group">
+                            <label>Allegati (documenti, foto, riferimenti)</label>
+                            <div id="upwork-dropzone" class="upwork-dropzone">
+                                <p>Trascina file qui oppure <strong>clicca per selezionare</strong></p>
+                                <input type="file" id="upwork-files" multiple accept="image/*,.pdf,.doc,.docx,.zip" style="display:none;">
+                            </div>
+                            <div id="upwork-file-list" class="upwork-file-list"></div>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn btn-primary" id="btnSalvaJob">Crea Progetto</button>
+                            <button class="btn" id="btnAnnullaJob">Annulla</button>
+                        </div>
+                    </div>
+
+                    <!-- Lista progetti -->
+                    <div id="upwork-jobs-list">
+                        <p class="loading">Caricamento...</p>
+                    </div>
+                </div>
+
+                <!-- TAB: Approvazioni -->
+                <div id="upwork-tab-approvazioni" class="upwork-tab-content" style="display: none;">
+                    <h2>Approvazioni in attesa</h2>
+                    <div id="upwork-approvals-list">
+                        <p class="loading">Caricamento...</p>
+                    </div>
                 </div>
             </section>
         </main>
