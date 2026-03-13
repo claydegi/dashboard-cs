@@ -8252,6 +8252,120 @@ app.get('/api/suture/catalogo', requireAdmin, async (req, res) => {
     }
 });
 
+// PUT /api/suture/aggiorna-bozza — Aggiorna PO draft VITREX in Odoo (rimuovi/modifica/aggiungi righe)
+app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
+    try {
+        const { items } = req.body; // [{ product_id, codice, descrizione, quantita, prezzo_unitario }]
+        if (!CONFIG.ODOO_API_KEY) {
+            return res.status(500).json({ error: 'ODOO_API_KEY non configurata' });
+        }
+
+        const uid = await odooAuthenticate();
+
+        // Trova VITREX MEDICAL A/S
+        const partners = await odooExecute(uid, 'res.partner', 'search',
+            [[['name', 'ilike', 'VITREX MEDICAL']]],
+            { limit: 1, context: { allowed_company_ids: [1] } }
+        );
+        if (!partners || partners.length === 0) {
+            return res.status(404).json({ error: 'Fornitore VITREX MEDICAL A/S non trovato' });
+        }
+        const partnerId = partners[0];
+
+        // Trova PO draft per VITREX
+        const draftPoIds = await odooExecute(uid, 'purchase.order', 'search',
+            [[['partner_id', '=', partnerId], ['state', '=', 'draft'], ['company_id', '=', 1]]],
+            { context: { allowed_company_ids: [1] } }
+        );
+        if (!draftPoIds || draftPoIds.length === 0) {
+            return res.status(404).json({ error: 'Nessun ordine in bozza trovato per VITREX' });
+        }
+
+        // Leggi le righe esistenti di tutti i PO draft
+        const existingLines = await odooExecute(uid, 'purchase.order.line', 'search_read',
+            [[['order_id', 'in', draftPoIds]]],
+            { fields: ['id', 'product_id', 'product_qty', 'price_unit', 'order_id'], context: { allowed_company_ids: [1] } }
+        );
+
+        // Mappa: product_id → existing line info
+        const existingMap = {};
+        for (const line of existingLines) {
+            const pid = line.product_id[0];
+            existingMap[pid] = { id: line.id, order_id: line.order_id[0], qty: line.product_qty, price: line.price_unit };
+        }
+
+        // Mappa: product_id → desired item
+        const desiredMap = {};
+        if (items && items.length > 0) {
+            for (const item of items) {
+                desiredMap[item.product_id] = item;
+            }
+        }
+
+        // Build write commands per PO
+        const poCommands = {};
+        let removed = 0, updated = 0, added = 0;
+
+        // Righe da rimuovere o aggiornare
+        for (const [pid, existing] of Object.entries(existingMap)) {
+            const poId = existing.order_id;
+            if (!poCommands[poId]) poCommands[poId] = [];
+
+            if (!desiredMap[parseInt(pid)]) {
+                // Rimuovi riga
+                poCommands[poId].push([2, existing.id, 0]);
+                removed++;
+            } else {
+                const desired = desiredMap[parseInt(pid)];
+                if (existing.qty !== desired.quantita || existing.price !== desired.prezzo_unitario) {
+                    poCommands[poId].push([1, existing.id, {
+                        product_qty: desired.quantita,
+                        price_unit: desired.prezzo_unitario
+                    }]);
+                    updated++;
+                }
+                delete desiredMap[parseInt(pid)];
+            }
+        }
+
+        // Righe nuove da aggiungere (non già nel PO)
+        const firstPoId = draftPoIds[0];
+        if (!poCommands[firstPoId]) poCommands[firstPoId] = [];
+        for (const [pid, item] of Object.entries(desiredMap)) {
+            poCommands[firstPoId].push([0, 0, {
+                product_id: item.product_id,
+                product_qty: item.quantita,
+                price_unit: item.prezzo_unitario,
+                name: `[${item.codice}] ${item.descrizione || ''}`
+            }]);
+            added++;
+        }
+
+        // Applica le modifiche
+        for (const [poId, commands] of Object.entries(poCommands)) {
+            if (commands.length > 0) {
+                await odooExecute(uid, 'purchase.order', 'write',
+                    [[parseInt(poId)], { order_line: commands }],
+                    { context: { allowed_company_ids: [1], force_company: 1 } }
+                );
+            }
+        }
+
+        // Leggi i nomi dei PO aggiornati
+        const poNames = await odooExecute(uid, 'purchase.order', 'read',
+            [draftPoIds, ['name']],
+            { context: { allowed_company_ids: [1] } }
+        );
+        const names = poNames.map(p => p.name).join(', ');
+
+        console.log(`[Suture] Bozza aggiornata: ${names} — rimossi:${removed} aggiornati:${updated} aggiunti:${added}`);
+        res.json({ success: true, po_names: names, removed, updated, added });
+    } catch (err) {
+        console.error('[Suture API] Errore aggiornamento bozza:', err.message);
+        res.status(500).json({ error: `Errore aggiornamento bozza: ${err.message}` });
+    }
+});
+
 // POST /api/suture/conferma-ordine — Crea bozza PO in Odoo verso VITREX
 app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
     try {

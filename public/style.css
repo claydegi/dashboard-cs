@@ -2783,6 +2783,27 @@ nav {
     cursor: not-allowed;
 }
 
+.btn-aggiorna-bozza {
+    background: #f59e0b;
+    color: white;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+}
+
+.btn-aggiorna-bozza:hover {
+    background: #d97706;
+}
+
+.btn-aggiorna-bozza:disabled {
+    background: #9ca3af;
+    cursor: not-allowed;
+}
+
 #suture-table-ordinati {
     border-collapse: collapse;
     width: 100%;

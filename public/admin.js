@@ -705,6 +705,7 @@ function renderSutureTable() {
             <td style="text-align:right; font-weight:700;">${totBozza.toFixed(2)} &euro;</td>
             <td></td>
         </tr></tfoot></table></div>`;
+        html += `<div style="text-align:right; margin-bottom:20px;"><button class="btn-aggiorna-bozza" id="btnAggiornaBozza">Aggiorna Bozza &rarr; Odoo</button></div>`;
     }
 
     // Sezione 3: Da ordinare (editabile)
@@ -795,6 +796,48 @@ function renderSutureTable() {
             if (ft) { ft.querySelector('td:first-child').textContent = `TOTALE BOZZA (${sutureInBozza.length} righe)`; ft.querySelector('td:nth-child(2)').textContent = tot.toFixed(2) + ' €'; }
         });
     });
+
+    // Event handler: Aggiorna Bozza → Odoo
+    const btnAggiornaBozza = container.querySelector('#btnAggiornaBozza');
+    if (btnAggiornaBozza) {
+        btnAggiornaBozza.addEventListener('click', async () => {
+            const totale = sutureInBozza.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
+            const msg = sutureInBozza.length === 0
+                ? 'Vuoi rimuovere TUTTE le righe dalla bozza in Odoo?'
+                : `Aggiornare la bozza in Odoo?\n\n${sutureInBozza.length} righe — Totale: €${totale}\n\nLe righe rimosse qui verranno eliminate anche dal PO in Odoo.`;
+            if (!confirm(msg)) return;
+
+            btnAggiornaBozza.disabled = true;
+            btnAggiornaBozza.textContent = 'Aggiornamento in corso...';
+            try {
+                const payload = { items: sutureInBozza.map(i => ({
+                    product_id: i.product_id,
+                    codice: i.codice,
+                    descrizione: i.descrizione,
+                    quantita: i.quantita,
+                    prezzo_unitario: i.prezzo
+                }))};
+                const resp = await fetch(`${API_URL}/suture/aggiorna-bozza?key=${ADMIN_KEY}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+                if (!resp.ok) throw new Error(result.error || 'Errore');
+                let summary = `Bozza ${result.po_names} aggiornata!`;
+                if (result.removed > 0) summary += ` ${result.removed} righe rimosse.`;
+                if (result.updated > 0) summary += ` ${result.updated} righe aggiornate.`;
+                if (result.added > 0) summary += ` ${result.added} righe aggiunte.`;
+                showToast(summary, 'success');
+                setTimeout(() => loadSuture(), 2000);
+            } catch (error) {
+                console.error('Errore aggiornamento bozza:', error);
+                showToast(`Errore: ${error.message}`, 'error');
+            }
+            btnAggiornaBozza.disabled = false;
+            btnAggiornaBozza.textContent = 'Aggiorna Bozza → Odoo';
+        });
+    }
 }
 
 async function loadSutureCatalogo() {
