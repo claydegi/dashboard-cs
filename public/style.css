@@ -2824,10 +2824,23 @@ nav {
     background: #fff;
 }
 
-.suture-qty-input:focus {
+.suture-qty-input:focus,
+.suture-bozza-qty:focus {
     outline: none;
     border-color: #3b82f6;
     box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+.suture-bozza-qty {
+    width: 60px;
+    padding: 4px 6px;
+    border: 1px solid #d1d5db;
+    border-radius: 4px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #f59e0b;
+    text-align: right;
+    background: #fff;
 }
 
 .badge-ordinato {

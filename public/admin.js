@@ -673,10 +673,38 @@ function renderSutureTable() {
         html += renderReadOnlyTable(sutureInArrivo, 'suture-table-arrivo', 'suture-row-arrivo', 'badge-arrivo', 'IN ARRIVO', '#059669');
     }
 
-    // Sezione 2: In bozza (PO draft — ordinati ma non confermati)
+    // Sezione 2: In bozza (PO draft — editabile)
     if (hasBozza) {
         html += `<h3 style="margin:0 0 8px 0; color:#f59e0b; font-size:0.95rem;">&#x1f4cb; In bozza (RDP da confermare)</h3>`;
-        html += renderReadOnlyTable(sutureInBozza, 'suture-table-bozza', 'suture-row-bozza', 'badge-bozza', 'BOZZA', '#f59e0b');
+        html += `<div class="suture-table-wrapper" style="margin-bottom:24px;"><table id="suture-table-bozza">
+            <thead><tr>
+                <th>Tipo</th><th>Codice</th><th>Descrizione</th>
+                <th style="text-align:right">Qtà</th>
+                <th style="text-align:right">Costo Unit.</th>
+                <th style="text-align:right">Valore</th>
+                <th style="text-align:center;width:50px"></th>
+            </tr></thead><tbody>`;
+        let totBozza = 0;
+        for (let i = 0; i < sutureInBozza.length; i++) {
+            const item = sutureInBozza[i];
+            const valore = Math.round(item.quantita * item.prezzo * 100) / 100;
+            totBozza += valore;
+            const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
+            html += `<tr class="suture-row-bozza">
+                <td>${tipoBadge}</td>
+                <td><strong>${escapeHtml(item.codice)}</strong></td>
+                <td>${escapeHtml(item.descrizione)}</td>
+                <td style="text-align:right"><input type="number" class="suture-bozza-qty" data-idx="${i}" value="${item.quantita}" min="1" max="999"></td>
+                <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
+                <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
+                <td style="text-align:center"><button class="btn-remove-bozza" data-idx="${i}" title="Rimuovi">&times;</button></td>
+            </tr>`;
+        }
+        html += `</tbody><tfoot><tr class="suture-row-total">
+            <td colspan="5" style="text-align:right; font-weight:700;">TOTALE BOZZA (${sutureInBozza.length} righe)</td>
+            <td style="text-align:right; font-weight:700;">${totBozza.toFixed(2)} &euro;</td>
+            <td></td>
+        </tr></tfoot></table></div>`;
     }
 
     // Sezione 3: Da ordinare (editabile)
@@ -718,30 +746,53 @@ function renderSutureTable() {
     container.innerHTML = html;
     confermaContainer.style.display = hasOrdine ? 'block' : 'none';
 
+    // Event handlers: Rimuovi riga da ordine
     container.querySelectorAll('.btn-remove-sutura').forEach(btn => {
         btn.addEventListener('click', () => {
-            const idx = parseInt(btn.dataset.idx);
-            sutureOrdine.splice(idx, 1);
+            sutureOrdine.splice(parseInt(btn.dataset.idx), 1);
             renderSutureTable();
             refreshSutureDropdown();
         });
     });
 
+    // Event handlers: Modifica qty ordine
     container.querySelectorAll('.suture-qty-input').forEach(input => {
         input.addEventListener('change', () => {
             const idx = parseInt(input.dataset.idx);
-            const newQty = parseInt(input.value) || 1;
-            if (newQty < 1) { input.value = 1; sutureOrdine[idx].quantita = 1; }
-            else { sutureOrdine[idx].quantita = newQty; }
+            const newQty = Math.max(1, parseInt(input.value) || 1);
+            input.value = newQty;
+            sutureOrdine[idx].quantita = newQty;
             const row = input.closest('tr');
-            const valoreCell = row.querySelectorAll('td')[5];
             const valore = Math.round(newQty * sutureOrdine[idx].prezzo * 100) / 100;
-            valoreCell.textContent = valore.toFixed(2) + ' €';
+            row.querySelectorAll('td')[5].textContent = valore.toFixed(2) + ' €';
             const tot = sutureOrdine.reduce((s, i) => s + Math.round(i.quantita * i.prezzo * 100) / 100, 0);
-            const footerTd = container.querySelector('#suture-table tfoot td:first-child');
-            if (footerTd) footerTd.textContent = `TOTALE DA ORDINARE (${sutureOrdine.length} righe)`;
-            const footerVal = container.querySelector('#suture-table tfoot td:nth-child(2)');
-            if (footerVal) footerVal.textContent = tot.toFixed(2) + ' €';
+            const ft = container.querySelector('#suture-table tfoot');
+            if (ft) { ft.querySelector('td:first-child').textContent = `TOTALE DA ORDINARE (${sutureOrdine.length} righe)`; ft.querySelector('td:nth-child(2)').textContent = tot.toFixed(2) + ' €'; }
+        });
+    });
+
+    // Event handlers: Rimuovi riga da bozza
+    container.querySelectorAll('.btn-remove-bozza').forEach(btn => {
+        btn.addEventListener('click', () => {
+            sutureInBozza.splice(parseInt(btn.dataset.idx), 1);
+            renderSutureTable();
+            refreshSutureDropdown();
+        });
+    });
+
+    // Event handlers: Modifica qty bozza
+    container.querySelectorAll('.suture-bozza-qty').forEach(input => {
+        input.addEventListener('change', () => {
+            const idx = parseInt(input.dataset.idx);
+            const newQty = Math.max(1, parseInt(input.value) || 1);
+            input.value = newQty;
+            sutureInBozza[idx].quantita = newQty;
+            const row = input.closest('tr');
+            const valore = Math.round(newQty * sutureInBozza[idx].prezzo * 100) / 100;
+            row.querySelectorAll('td')[5].textContent = valore.toFixed(2) + ' €';
+            const tot = sutureInBozza.reduce((s, i) => s + Math.round(i.quantita * i.prezzo * 100) / 100, 0);
+            const ft = container.querySelector('#suture-table-bozza tfoot');
+            if (ft) { ft.querySelector('td:first-child').textContent = `TOTALE BOZZA (${sutureInBozza.length} righe)`; ft.querySelector('td:nth-child(2)').textContent = tot.toFixed(2) + ' €'; }
         });
     });
 }
