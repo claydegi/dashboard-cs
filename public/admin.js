@@ -1018,8 +1018,8 @@ async function loadCrmRiepilogo() {
         riordinoHtml += '</div>';
 
         // --- Hot Opportunity ---
-        let hotHtml = '<div style="flex:1;min-width:260px">';
-        hotHtml += '<h4 style="margin:0 0 12px 0;font-size:1rem;color:#374151">Opportunity Hot <span style="font-weight:400;font-size:0.85rem;color:#6b7280">(&ge;400pt)</span></h4>';
+        let hotHtml = '<div style="flex:1;min-width:280px">';
+        hotHtml += '<h4 style="margin:0 0 14px 0;font-size:1rem;color:#374151">Opportunity Hot <span style="font-weight:400;font-size:0.85rem;color:#6b7280">(&ge;400pt)</span></h4>';
         const hotLinee = data.hot ? Object.keys(data.hot).sort() : [];
         if (hotLinee.length === 0) {
             hotHtml += '<div style="color:#9ca3af;font-style:italic;padding:6px 0">Nessun contatto hot</div>';
@@ -1027,13 +1027,15 @@ async function loadCrmRiepilogo() {
             for (const linea of hotLinee) {
                 const acc = data.hot[linea].account || 0;
                 const lead = data.hot[linea].lead || 0;
-                hotHtml += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #f3f4f6">
-                    <span style="font-weight:600;color:#374151">${linea}</span>
-                    <span style="font-size:0.95rem">
-                        <span style="font-weight:700;color:#7c3aed">${acc}</span> <span style="color:#6b7280">acc</span>
-                        &nbsp;/&nbsp;
-                        <span style="font-weight:700;color:#2563eb">${lead}</span> <span style="color:#6b7280">lead</span>
-                    </span>
+                const totale = acc + lead;
+                hotHtml += `<div style="padding:10px 12px;margin-bottom:8px;background:#fff;border:1px solid #e5e7eb;border-radius:8px;border-left:4px solid #7c3aed">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                        <span style="font-weight:700;font-size:1.05rem;color:#374151">${linea}</span>
+                        <span style="font-weight:800;font-size:1.25rem;color:#7c3aed">${totale} <span style="font-weight:400;font-size:0.85rem;color:#6b7280">totali</span></span>
+                    </div>
+                    <div style="font-size:0.88rem;color:#6b7280">
+                        di cui <span style="font-weight:600;color:#7c3aed">${acc}</span> account, <span style="font-weight:600;color:#2563eb">${lead}</span> lead
+                    </div>
                 </div>`;
             }
         }

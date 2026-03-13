@@ -8482,9 +8482,8 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
 
 app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
     try {
-        // --- RIORDINO: account con prodotto ricorrente il cui ultimo acquisto e' scaduto ---
-        // Per BLEXO, CEP, SUTURE: conta account che possiedono il prodotto E
-        // la cui ultima fattura e' piu' vecchia di mesi_riordino mesi, oppure non hanno acquisti
+        // --- RIORDINO: account che hanno acquistato il prodotto almeno una volta
+        //     e il cui ultimo acquisto e' piu' vecchio di mesi_riordino mesi ---
         const prodottiRiordino = ['BLEXO', 'CEP', 'SUTURE'];
         const riordino = {};
 
@@ -8492,20 +8491,14 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
             const result = await pool.query(`
                 SELECT COUNT(DISTINCT c.id) as n
                 FROM crm_contatti c
-                JOIN crm_prodotti p ON p.contatto_id = c.id AND p.prodotto = $1
                 WHERE c.tipo = 'account'
-                AND (
-                    -- Nessun acquisto per questo prodotto
-                    NOT EXISTS (
-                        SELECT 1 FROM crm_acquisti a
-                        WHERE a.contatto_id = c.id AND a.prodotto = $1
-                    )
-                    OR
-                    -- Ultimo acquisto piu' vecchio di mesi_riordino mesi
-                    (SELECT MAX(a.data_fattura) FROM crm_acquisti a
+                AND EXISTS (
+                    SELECT 1 FROM crm_acquisti a
+                    WHERE a.contatto_id = c.id AND a.prodotto = $1
+                )
+                AND (SELECT MAX(a.data_fattura) FROM crm_acquisti a
                      WHERE a.contatto_id = c.id AND a.prodotto = $1)
                     < TO_CHAR(NOW() - (COALESCE(c.mesi_riordino, 2) || ' months')::INTERVAL, 'YYYY-MM-DD')
-                )
             `, [prodotto]);
             riordino[prodotto] = parseInt(result.rows[0].n);
         }
