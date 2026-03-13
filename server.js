@@ -8162,10 +8162,12 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
             const costo = parseFloat(row.costo_acquisto) || 0;
             let fabbisogno = 0;
 
+            // Disponibilita effettiva = giacenza - impegnato + in arrivo (merce in transito)
+            const disponibile = giacenza - impegnato + inArrivo;
             if (row.best_of) {
-                fabbisogno = Math.max(0, 5 - (giacenza - impegnato));
+                fabbisogno = Math.max(0, 5 - disponibile);
             } else {
-                fabbisogno = Math.max(0, impegnato - giacenza);
+                fabbisogno = Math.max(0, impegnato - giacenza - inArrivo);
             }
 
             if (inArrivo > 0) {
