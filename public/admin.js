@@ -1043,7 +1043,7 @@ async function loadCrmRiepilogo() {
 
         container.innerHTML = `
             <div style="margin-top:24px;padding:20px;background:#f9fafb;border:1px solid #e5e7eb;border-radius:12px">
-                <h3 style="margin:0 0 16px 0;font-size:1.1rem;color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:8px">Riepilogo CRM</h3>
+                <h3 style="margin:0 0 16px 0;font-size:1.35rem;font-weight:800;color:#111827;border-bottom:2px solid #e5e7eb;padding-bottom:10px;letter-spacing:-0.01em">Opportunit&agrave; di Vendita</h3>
                 <div style="display:flex;gap:32px;flex-wrap:wrap">
                     ${riordinoHtml}
                     ${hotHtml}
