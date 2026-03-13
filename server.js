@@ -8186,8 +8186,8 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                     valore: Math.round(bozzaUtile * costo * 100) / 100, best_of: row.best_of
                 });
             }
-            const coperto = inBozza + inArrivo;
-            const daOrdinare = Math.max(0, fabbisogno - coperto);
+            // inArrivo gia sottratto nel calcolo fabbisogno, non contare due volte
+            const daOrdinare = Math.max(0, fabbisogno - inBozza);
             if (daOrdinare > 0) {
                 daOrdinareItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
