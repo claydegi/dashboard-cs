@@ -8480,10 +8480,20 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
 
 // ==================== RIEPILOGO CRM ====================
 
+// Regioni visibili nella tab CRM admin (escluse quelle di Kim/Massimo)
+const REGIONI_CRM_ADMIN = [
+    'BASILICATA', 'SICILIA', 'CALABRIA', 'PUGLIA',
+    'ABRUZZO', 'MOLISE', 'MARCHE', 'UMBRIA',
+    'EMILIA-ROMAGNA', 'TOSCANA', 'SARDEGNA',
+    'VENETO', 'FRIULI VENEZIA GIULIA', 'TRENTINO-ALTO ADIGE'
+];
+
 app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
     try {
-        // --- RIORDINO: account che hanno acquistato il prodotto almeno una volta
-        //     e il cui ultimo acquisto e' piu' vecchio di mesi_riordino mesi ---
+        // Placeholder per le regioni admin ($2..$N per riordino, $1..$N per hot)
+        const regioniPlaceholders = REGIONI_CRM_ADMIN.map((_, i) => `$${i + 1}`).join(', ');
+
+        // --- RIORDINO: account con almeno 1 acquisto e ultimo acquisto scaduto ---
         const prodottiRiordino = ['BLEXO', 'CEP', 'SUTURE'];
         const riordino = {};
 
@@ -8492,6 +8502,7 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
                 SELECT COUNT(DISTINCT c.id) as n
                 FROM crm_contatti c
                 WHERE c.tipo = 'account'
+                AND c.regione IN (${REGIONI_CRM_ADMIN.map((_, i) => `$${i + 2}`).join(', ')})
                 AND EXISTS (
                     SELECT 1 FROM crm_acquisti a
                     WHERE a.contatto_id = c.id AND a.prodotto = $1
@@ -8499,12 +8510,11 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
                 AND (SELECT MAX(a.data_fattura) FROM crm_acquisti a
                      WHERE a.contatto_id = c.id AND a.prodotto = $1)
                     < TO_CHAR(NOW() - (COALESCE(c.mesi_riordino, 2) || ' months')::INTERVAL, 'YYYY-MM-DD')
-            `, [prodotto]);
+            `, [prodotto, ...REGIONI_CRM_ADMIN]);
             riordino[prodotto] = parseInt(result.rows[0].n);
         }
 
         // --- HOT: contatti con score >= 400 per linea prodotto ---
-        // Somma score_prodotti + score_manuali non sincronizzati
         const hotResult = await pool.query(`
             SELECT
                 s.linea_prodotto,
@@ -8522,9 +8532,10 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
             ) s
             JOIN crm_contatti c ON c.id = s.contatto_id
             WHERE c.tipo IN ('account', 'lead')
+            AND c.regione IN (${regioniPlaceholders})
             GROUP BY s.linea_prodotto, c.tipo
             ORDER BY s.linea_prodotto, c.tipo
-        `);
+        `, REGIONI_CRM_ADMIN);
 
         const hot = {};
         for (const row of hotResult.rows) {
