@@ -108,11 +108,12 @@ function switchSection(section) {
     document.getElementById('section-report-kim').style.display = section === 'report-kim' ? 'block' : 'none';
     document.getElementById('section-report-massimo').style.display = section === 'report-massimo' ? 'block' : 'none';
     document.getElementById('section-suture').style.display = section === 'suture' ? 'block' : 'none';
+    document.getElementById('section-crm').style.display = section === 'crm' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {

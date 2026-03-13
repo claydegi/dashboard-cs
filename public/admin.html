@@ -16,6 +16,7 @@
                 <a href="#" class="nav-link" data-section="report-kim">Report Kim</a>
                 <a href="#" class="nav-link" data-section="report-massimo">Report Massimo</a>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
+                <a href="#" class="nav-link" data-section="crm">CRM</a>
                 <a href="storico.html" class="nav-link nav-storico">Storico Completati</a>
                 <a href="report.html" class="nav-link nav-report">Report</a>
                 <a href="pianificazione-mktg.html" class="nav-link nav-mktg">Pianificazione MKTG</a>
@@ -193,6 +194,18 @@
                     <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=LOMBARDIA&key=' + new URLSearchParams(window.location.search).get('key')">
                         <div class="report-card-tipo">CRM</div>
                         <div class="report-card-titolo">CRM Lombardia</div>
+                        <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- CRM - Regioni admin-only -->
+            <section id="section-crm" class="reports-section" style="display: none;">
+                <h2>CRM Regioni</h2>
+                <div class="report-cards-grid">
+                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=BASILICATA&key=' + new URLSearchParams(window.location.search).get('key')">
+                        <div class="report-card-tipo">CRM</div>
+                        <div class="report-card-titolo">CRM Basilicata</div>
                         <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
                     </div>
                 </div>
