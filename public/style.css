@@ -2782,3 +2782,44 @@ nav {
     background: #9ca3af;
     cursor: not-allowed;
 }
+
+#suture-table-ordinati {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+#suture-table-ordinati th {
+    background: #065f46;
+    color: white;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#suture-table-ordinati td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #d1fae5;
+}
+
+.suture-row-ordinato {
+    background: #ecfdf5;
+}
+
+.suture-row-ordinato:hover {
+    background: #d1fae5;
+}
+
+.badge-ordinato {
+    display: inline-block;
+    background: #10b981;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+}

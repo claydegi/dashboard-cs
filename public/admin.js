@@ -584,6 +584,7 @@ async function deleteFattura(id, agente) {
 // ==================== SUTURE - SIMULATORE ORDINE ====================
 
 let sutureOrdine = [];
+let sutureOrdinati = [];
 let sutureCatalogo = [];
 
 async function loadSuture() {
@@ -605,15 +606,25 @@ async function loadSuture() {
             syncLabel.textContent = 'Mai sincronizzato';
         }
 
-        sutureOrdine = (data.items || []).map(item => ({
-            product_id: item.product_id,
-            codice: item.codice,
-            descrizione: item.descrizione,
-            quantita: item.da_ordinare,
-            prezzo: item.costo_acquisto,
-            best_of: item.best_of,
-            auto: true
-        }));
+        // Separa: righe gia ordinate (in_ordine > 0) vs da ordinare (da_ordinare > 0)
+        sutureOrdinati = [];
+        sutureOrdine = [];
+        for (const item of (data.items || [])) {
+            if (item.in_ordine > 0) {
+                sutureOrdinati.push({
+                    product_id: item.product_id, codice: item.codice, descrizione: item.descrizione,
+                    fabbisogno: item.fabbisogno, ordinato: item.in_ordine,
+                    prezzo: item.costo_acquisto, best_of: item.best_of
+                });
+            }
+            if (item.da_ordinare > 0) {
+                sutureOrdine.push({
+                    product_id: item.product_id, codice: item.codice, descrizione: item.descrizione,
+                    quantita: item.da_ordinare, prezzo: item.costo_acquisto,
+                    best_of: item.best_of, auto: true
+                });
+            }
+        }
 
         renderSutureTable();
         await loadSutureCatalogo();
@@ -627,50 +638,87 @@ function renderSutureTable() {
     const container = document.getElementById('suture-table-container');
     const confermaContainer = document.getElementById('suture-conferma-container');
 
-    if (sutureOrdine.length === 0) {
-        container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Usa il dropdown per aggiungere prodotti.</p></div>';
+    const hasOrdinati = sutureOrdinati.length > 0;
+    const hasOrdine = sutureOrdine.length > 0;
+
+    if (!hasOrdinati && !hasOrdine) {
+        container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
         confermaContainer.style.display = 'none';
         return;
     }
 
-    let html = `<div class="suture-table-wrapper"><table id="suture-table">
-        <thead><tr>
-            <th>Tipo</th>
-            <th>Codice</th>
-            <th>Descrizione</th>
-            <th style="text-align:right">Qtà</th>
-            <th style="text-align:right">Costo Unit.</th>
-            <th style="text-align:right">Valore</th>
-            <th style="text-align:center;width:50px"></th>
-        </tr></thead><tbody>`;
+    let html = '';
 
-    let totale = 0;
-    for (let i = 0; i < sutureOrdine.length; i++) {
-        const item = sutureOrdine[i];
-        const valore = Math.round(item.quantita * item.prezzo * 100) / 100;
-        totale += valore;
-        const rowClass = item.best_of ? 'suture-row-bestof' : '';
-        const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
-        const autoTag = item.auto ? ' <span class="badge-auto">AUTO</span>' : ' <span class="badge-manual">MANUALE</span>';
-        html += `<tr class="${rowClass}">
-            <td>${tipoBadge}${autoTag}</td>
-            <td><strong>${escapeHtml(item.codice)}</strong></td>
-            <td>${escapeHtml(item.descrizione)}</td>
-            <td style="text-align:right; font-weight:600; color:#ef4444;">${item.quantita}</td>
-            <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
-            <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
-            <td style="text-align:center"><button class="btn-remove-sutura" data-idx="${i}" title="Rimuovi">&times;</button></td>
-        </tr>`;
+    // Sezione 1: Suture gia ordinate (read-only, sfondo verde)
+    if (hasOrdinati) {
+        html += `<h3 style="margin:0 0 8px 0; color:#059669; font-size:0.95rem;">Gia ordinate (in PO bozza/confermato)</h3>`;
+        html += `<div class="suture-table-wrapper" style="margin-bottom:24px;"><table id="suture-table-ordinati">
+            <thead><tr>
+                <th>Tipo</th><th>Codice</th><th>Descrizione</th>
+                <th style="text-align:right">Fabbisogno</th>
+                <th style="text-align:right">Ordinato</th>
+                <th style="text-align:right">Costo Unit.</th>
+                <th style="text-align:right">Valore</th>
+            </tr></thead><tbody>`;
+        let totOrd = 0;
+        for (const item of sutureOrdinati) {
+            const valore = Math.round(item.ordinato * item.prezzo * 100) / 100;
+            totOrd += valore;
+            const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
+            html += `<tr class="suture-row-ordinato">
+                <td>${tipoBadge}</td>
+                <td><strong>${escapeHtml(item.codice)}</strong></td>
+                <td>${escapeHtml(item.descrizione)}</td>
+                <td style="text-align:right">${item.fabbisogno}</td>
+                <td style="text-align:right; font-weight:600; color:#059669;">${item.ordinato} <span class="badge-ordinato">ORDINATO</span></td>
+                <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
+                <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
+            </tr>`;
+        }
+        html += `</tbody><tfoot><tr class="suture-row-total">
+            <td colspan="6" style="text-align:right; font-weight:700;">TOTALE ORDINATO</td>
+            <td style="text-align:right; font-weight:700;">${totOrd.toFixed(2)} &euro;</td>
+        </tr></tfoot></table></div>`;
     }
 
-    html += `</tbody><tfoot><tr class="suture-row-total">
-        <td colspan="5" style="text-align:right; font-weight:700;">TOTALE ORDINE (${sutureOrdine.length} righe)</td>
-        <td style="text-align:right; font-weight:700; font-size:1.05rem;">${totale.toFixed(2)} &euro;</td>
-        <td></td>
-    </tr></tfoot></table></div>`;
+    // Sezione 2: Da ordinare (editabile)
+    if (hasOrdine) {
+        html += `<h3 style="margin:0 0 8px 0; color:#ef4444; font-size:0.95rem;">Da ordinare</h3>`;
+        html += `<div class="suture-table-wrapper"><table id="suture-table">
+            <thead><tr>
+                <th>Tipo</th><th>Codice</th><th>Descrizione</th>
+                <th style="text-align:right">Qtà</th>
+                <th style="text-align:right">Costo Unit.</th>
+                <th style="text-align:right">Valore</th>
+                <th style="text-align:center;width:50px"></th>
+            </tr></thead><tbody>`;
+        let totale = 0;
+        for (let i = 0; i < sutureOrdine.length; i++) {
+            const item = sutureOrdine[i];
+            const valore = Math.round(item.quantita * item.prezzo * 100) / 100;
+            totale += valore;
+            const rowClass = item.best_of ? 'suture-row-bestof' : '';
+            const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
+            const autoTag = item.auto ? ' <span class="badge-auto">AUTO</span>' : ' <span class="badge-manual">MANUALE</span>';
+            html += `<tr class="${rowClass}">
+                <td>${tipoBadge}${autoTag}</td>
+                <td><strong>${escapeHtml(item.codice)}</strong></td>
+                <td>${escapeHtml(item.descrizione)}</td>
+                <td style="text-align:right; font-weight:600; color:#ef4444;">${item.quantita}</td>
+                <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
+                <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
+                <td style="text-align:center"><button class="btn-remove-sutura" data-idx="${i}" title="Rimuovi">&times;</button></td>
+            </tr>`;
+        }
+        html += `</tbody><tfoot><tr class="suture-row-total">
+            <td colspan="5" style="text-align:right; font-weight:700;">TOTALE DA ORDINARE (${sutureOrdine.length} righe)</td>
+            <td style="text-align:right; font-weight:700; font-size:1.05rem;">${totale.toFixed(2)} &euro;</td>
+            <td></td>
+        </tr></tfoot></table></div>`;
+    }
 
     container.innerHTML = html;
-    confermaContainer.style.display = 'block';
+    confermaContainer.style.display = hasOrdine ? 'block' : 'none';
 
     container.querySelectorAll('.btn-remove-sutura').forEach(btn => {
         btn.addEventListener('click', () => {

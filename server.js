@@ -958,11 +958,14 @@ async function initDB() {
                 descrizione TEXT,
                 giacenza NUMERIC(10,2) DEFAULT 0,
                 impegnato NUMERIC(10,2) DEFAULT 0,
+                in_ordine NUMERIC(10,2) DEFAULT 0,
                 costo_acquisto NUMERIC(10,4) DEFAULT 0,
                 best_of BOOLEAN DEFAULT false,
                 last_sync TIMESTAMPTZ DEFAULT NOW()
             )
         `);
+        // Migrazione: aggiunge colonna in_ordine se non esiste
+        await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_ordine NUMERIC(10,2) DEFAULT 0`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_codice ON suture_stock(codice)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_best_of ON suture_stock(best_of)`);
 
@@ -1081,7 +1084,19 @@ async function syncSutureFromOdoo() {
             commitMap[pid] = (commitMap[pid] || 0) + (line.qty_to_deliver || 0);
         }
 
-        // 4) UPSERT in suture_stock
+        // 4) In ordine da purchase.order.line (bozze + confermati)
+        const polLines = await odooExecute(uid, 'purchase.order.line', 'search_read',
+            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['draft', 'purchase']]]],
+            { fields: ['product_id', 'product_qty', 'qty_received'], context: { allowed_company_ids: [1], force_company: 1 } }
+        );
+        const poMap = {};
+        for (const line of polLines) {
+            const pid = line.product_id[0];
+            const pendente = (line.product_qty || 0) - (line.qty_received || 0);
+            if (pendente > 0) poMap[pid] = (poMap[pid] || 0) + pendente;
+        }
+
+        // 5) UPSERT in suture_stock
         const client = await pool.connect();
         try {
             await client.query('BEGIN');
@@ -1090,17 +1105,19 @@ async function syncSutureFromOdoo() {
                 const isBestOf = BEST_OF_CODES.includes(codice);
                 const giacenza = quantMap[prod.id] ? quantMap[prod.id].qty : 0;
                 const impegnato = commitMap[prod.id] || 0;
+                const inOrdine = poMap[prod.id] || 0;
                 const costo = prod.standard_price || 0;
 
                 await client.query(`
-                    INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, costo_acquisto, best_of, last_sync)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                    INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, in_ordine, costo_acquisto, best_of, last_sync)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
                     ON CONFLICT (product_id) DO UPDATE SET
                         codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
                         giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
+                        in_ordine = EXCLUDED.in_ordine,
                         costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
                         last_sync = NOW()
-                `, [prod.id, codice, prod.name || '', giacenza, impegnato, costo, isBestOf]);
+                `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, costo, isBestOf]);
             }
             await client.query('COMMIT');
         } catch (err) {
@@ -8103,7 +8120,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const meta = metaResult.rows[0] || { last_sync: null, status: 'unknown', error_message: null };
 
         const result = await pool.query(`
-            SELECT product_id, codice, descrizione, giacenza, impegnato, costo_acquisto, best_of
+            SELECT product_id, codice, descrizione, giacenza, impegnato, in_ordine, costo_acquisto, best_of
             FROM suture_stock ORDER BY best_of DESC, codice ASC
         `);
 
@@ -8111,21 +8128,26 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         for (const row of result.rows) {
             const giacenza = parseFloat(row.giacenza) || 0;
             const impegnato = parseFloat(row.impegnato) || 0;
+            const inOrdine = parseFloat(row.in_ordine) || 0;
             const costo = parseFloat(row.costo_acquisto) || 0;
-            let daOrdinare = 0;
+            let fabbisogno = 0;
 
             if (row.best_of) {
-                daOrdinare = Math.max(0, 5 - (giacenza - impegnato));
+                fabbisogno = Math.max(0, 5 - (giacenza - impegnato));
             } else {
-                daOrdinare = Math.max(0, impegnato - giacenza);
+                fabbisogno = Math.max(0, impegnato - giacenza);
             }
 
-            if (daOrdinare > 0) {
+            if (fabbisogno > 0) {
+                const daOrdinare = Math.max(0, fabbisogno - inOrdine);
+                const ordinato = Math.min(inOrdine, fabbisogno);
                 items.push({
                     product_id: row.product_id,
                     codice: row.codice,
                     descrizione: row.descrizione,
                     giacenza, impegnato,
+                    fabbisogno,
+                    in_ordine: ordinato,
                     da_ordinare: daOrdinare,
                     costo_acquisto: costo,
                     valore: Math.round(daOrdinare * costo * 100) / 100,
