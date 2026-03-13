@@ -8177,11 +8177,13 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                     valore: Math.round(inArrivo * costo * 100) / 100, best_of: row.best_of
                 });
             }
-            if (inBozza > 0) {
+            // In bozza: mostra solo la parte non gia coperta dall'arrivo
+            const bozzaUtile = (fabbisogno > 0) ? Math.min(inBozza, Math.max(0, fabbisogno)) : inBozza;
+            if (bozzaUtile > 0) {
                 inBozzaItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
-                    quantita: inBozza, costo_acquisto: costo,
-                    valore: Math.round(inBozza * costo * 100) / 100, best_of: row.best_of
+                    quantita: bozzaUtile, costo_acquisto: costo,
+                    valore: Math.round(bozzaUtile * costo * 100) / 100, best_of: row.best_of
                 });
             }
             const coperto = inBozza + inArrivo;
