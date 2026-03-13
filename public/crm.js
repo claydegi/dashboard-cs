@@ -2,6 +2,12 @@
 const API_URL = window.location.origin + '/api';
 const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
 const CRM_REGIONE = (new URLSearchParams(window.location.search).get('regione') || 'LIGURIA').toUpperCase();
+// Multi-regione: mapping nomi display per gruppi di regioni
+const MULTI_REGIONE_LABELS = {
+    'ABRUZZO,MOLISE,MARCHE,UMBRIA': 'Centro Italia'
+};
+const CRM_REGIONE_DISPLAY = MULTI_REGIONE_LABELS[CRM_REGIONE] || CRM_REGIONE;
+const CRM_IS_MULTI = CRM_REGIONE.includes(',');
 
 const PRODOTTI = ['MM','ELEVATE','BLACK RUBY','LC','FIRST','EASY IN','EASY PIN',
                   'CEP','GENOA','EASYROOT','IMPIANTI','SUTURE','BLEXO','GUIDATA','PT1'];
@@ -54,6 +60,9 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
         document.getElementById('btn-back').href = `/dashboard-kim.html?key=${ADMIN_KEY}`;
     }
+
+    // Titolo pagina con nome regione
+    document.title = `CRM ${CRM_REGIONE_DISPLAY} - OSSEOTOUCH`;
 
     renderTableHeader();
     caricaDati();
@@ -1945,8 +1954,18 @@ function apriModalNuovoContatto() {
     document.getElementById('nuovo-email-error').textContent = '';
     document.getElementById('nuovo-phone-error').textContent = '';
 
-    // Set regione corrente
-    document.getElementById('nuovo-regione').value = CRM_REGIONE;
+    // Set regione corrente (per multi-regione, mostra dropdown)
+    const regInput = document.getElementById('nuovo-regione');
+    if (CRM_IS_MULTI) {
+        const regioni = CRM_REGIONE.split(',').map(r => r.trim());
+        const sel = document.createElement('select');
+        sel.id = 'nuovo-regione';
+        sel.className = regInput.className;
+        regioni.forEach(r => { const o = document.createElement('option'); o.value = r; o.textContent = r; sel.appendChild(o); });
+        regInput.replaceWith(sel);
+    } else {
+        regInput.value = CRM_REGIONE;
+    }
 
     // Reset tipo a Lead
     document.querySelector('input[name="nuovo-tipo"][value="lead"]').checked = true;
@@ -2026,7 +2045,7 @@ async function salvaNuovoContatto() {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 cognome, nome, email, telefono, cellulare,
-                citta, regione: CRM_REGIONE, tipo, prodotti
+                citta, regione: document.getElementById('nuovo-regione').value || CRM_REGIONE.split(',')[0], tipo, prodotti
             })
         });
         const data = await res.json();

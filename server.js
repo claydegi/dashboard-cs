@@ -2239,16 +2239,22 @@ function getSogliaHot(regione) {
     return SOGLIA_HOT_PER_REGIONE[regione] || SOGLIA_HOT_DEFAULT;
 }
 
+// Helper: parse regione param (supporta multi-regione con virgola, es. "ABRUZZO,MOLISE,MARCHE,UMBRIA")
+function parseRegioni(raw) {
+    if (!raw) return null;
+    return raw.toUpperCase().split(',').map(r => r.trim()).filter(r => r);
+}
+
 // Lista contatti CRM con prodotti e score
 app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
-    const regione = req.query.regione ? req.query.regione.toUpperCase() : null;
+    const regioni = parseRegioni(req.query.regione);
     const tipoFiltro = req.query.tipo; // 'lead' o 'account' (opzionale)
     try {
         let queryStr = `SELECT * FROM crm_contatti`;
         const params = [];
-        if (regione) {
-            params.push(regione);
-            queryStr += ` WHERE regione = $1`;
+        if (regioni) {
+            params.push(regioni);
+            queryStr += ` WHERE regione = ANY($1::text[])`;
         }
         if (tipoFiltro && ['lead', 'account'].includes(tipoFiltro.toLowerCase())) {
             params.push(tipoFiltro.toLowerCase());
@@ -2293,7 +2299,7 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
         // Combina crm_score_prodotti + crm_score_manuali non ancora sincronizzati
         let scoreMap = {};
         if (ids.length > 0) {
-            const soglia = getSogliaHot(regione);
+            const soglia = getSogliaHot(regioni ? regioni[0] : 'LIGURIA');
             const scores = await pool.query(`
                 SELECT contatto_id, linea_prodotto, SUM(score) as score FROM (
                     SELECT contatto_id, linea_prodotto, score FROM crm_score_prodotti
@@ -2388,15 +2394,15 @@ app.get('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
 
 // Statistiche CRM
 app.get('/api/crm/stats', requireAdmin, async (req, res) => {
-    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    const regioni = parseRegioni(req.query.regione || 'LIGURIA');
     try {
         const totAccount = await pool.query(
-            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND (tipo = 'account' OR tipo IS NULL)", [regione]
+            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = ANY($1::text[]) AND (tipo = 'account' OR tipo IS NULL)", [regioni]
         );
         const totLead = await pool.query(
-            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = $1 AND tipo = 'lead'", [regione]
+            "SELECT COUNT(*) as totale FROM crm_contatti WHERE regione = ANY($1::text[]) AND tipo = 'lead'", [regioni]
         );
-        const sogliaStats = getSogliaHot(regione);
+        const sogliaStats = getSogliaHot(regioni[0]);
         const conScore = await pool.query(`
             SELECT COUNT(DISTINCT contatto_id) as totale FROM (
                 SELECT contatto_id, linea_prodotto, SUM(score) as total FROM (
@@ -2404,18 +2410,18 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
                     UNION ALL
                     SELECT contatto_id, linea_prodotto, punti FROM crm_score_manuali WHERE sincronizzata = false
                 ) combined
-                WHERE contatto_id IN (SELECT id FROM crm_contatti WHERE regione = $1)
+                WHERE contatto_id IN (SELECT id FROM crm_contatti WHERE regione = ANY($1::text[]))
                 GROUP BY contatto_id, linea_prodotto
                 HAVING SUM(score) >= $2
             ) hot
-        `, [regione, sogliaStats]);
+        `, [regioni, sogliaStats]);
         const clientiFattura2026 = await pool.query(
             `SELECT COUNT(DISTINCT a.contatto_id) as totale
              FROM crm_acquisti a
              JOIN crm_contatti c ON a.contatto_id = c.id
-             WHERE c.regione = $1
+             WHERE c.regione = ANY($1::text[])
                AND (c.tipo = 'account' OR c.tipo IS NULL)
-               AND a.fonte LIKE 'odoo:INV/2026/%'`, [regione]
+               AND a.fonte LIKE 'odoo:INV/2026/%'`, [regioni]
         );
         res.json({
             tot_contatti: parseInt(totAccount.rows[0].totale),
@@ -3522,16 +3528,16 @@ app.delete('/api/crm/note/:id', requireAdmin, async (req, res) => {
 
 // Note + Opportunita CRM: conteggio bulk per regione (per caricamento iniziale)
 app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
-    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    const regioni = parseRegioni(req.query.regione || 'LIGURIA');
     try {
         // Note count
         const noteResult = await pool.query(`
             SELECT n.contatto_id, COUNT(*) as num_note
             FROM crm_note n
             JOIN crm_contatti c ON n.contatto_id = c.id
-            WHERE c.regione = $1
+            WHERE c.regione = ANY($1::text[])
             GROUP BY n.contatto_id
-        `, [regione]);
+        `, [regioni]);
         const noteMap = {};
         for (const r of noteResult.rows) {
             noteMap[r.contatto_id] = parseInt(r.num_note);
@@ -3544,9 +3550,9 @@ app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
                    COUNT(*) FILTER (WHERE o.data_scadenza <= CURRENT_DATE AND o.vista = false) as num_scadute_non_viste
             FROM crm_opportunita o
             JOIN crm_contatti c ON o.contatto_id = c.id
-            WHERE c.regione = $1
+            WHERE c.regione = ANY($1::text[])
             GROUP BY o.contatto_id
-        `, [regione]);
+        `, [regioni]);
         const oppMap = {};
         const oppScaduteMap = {};
         for (const r of oppResult.rows) {
@@ -3837,7 +3843,7 @@ app.get('/api/crm/audit', requireAdmin, async (req, res) => {
 
 // Conteggio opportunita scadute per dashboard (notifica esterna) - con nomi clienti
 app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
-    const regione = (req.query.regione || '').toUpperCase();
+    const regioni = parseRegioni(req.query.regione || '');
     try {
         let query = `
             SELECT c.regione,
@@ -3848,9 +3854,9 @@ app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
             WHERE o.data_scadenza <= CURRENT_DATE AND o.vista = false
         `;
         const params = [];
-        if (regione) {
-            query += ' AND c.regione = $1';
-            params.push(regione);
+        if (regioni && regioni.length > 0) {
+            query += ' AND c.regione = ANY($1::text[])';
+            params.push(regioni);
         }
         query += ' GROUP BY c.regione';
 
@@ -3867,7 +3873,7 @@ app.get('/api/crm/opportunita/scadute', requireAdmin, async (req, res) => {
 // Score per linea prodotto per tutti i contatti di una regione
 // Combina crm_score_prodotti + crm_score_manuali non sincronizzati
 app.get('/api/crm/score', requireAdmin, async (req, res) => {
-    const regione = (req.query.regione || 'LIGURIA').toUpperCase();
+    const regioni = parseRegioni(req.query.regione || 'LIGURIA');
     try {
         // Score da sync (aggregati da score_eventi)
         const syncScores = await pool.query(`
@@ -3875,8 +3881,8 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                    sp.linea_prodotto, sp.score
             FROM crm_contatti c
             INNER JOIN crm_score_prodotti sp ON sp.contatto_id = c.id
-            WHERE c.regione = $1 AND sp.score > 0
-        `, [regione]);
+            WHERE c.regione = ANY($1::text[]) AND sp.score > 0
+        `, [regioni]);
 
         // Score manuali non ancora sincronizzati
         const manualScores = await pool.query(`
@@ -3884,8 +3890,8 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                    sm.linea_prodotto, sm.punti as score
             FROM crm_contatti c
             INNER JOIN crm_score_manuali sm ON sm.contatto_id = c.id
-            WHERE c.regione = $1 AND sm.sincronizzata = false
-        `, [regione]);
+            WHERE c.regione = ANY($1::text[]) AND sm.sincronizzata = false
+        `, [regioni]);
 
         // Combina e aggrega
         const allRows = [...syncScores.rows, ...manualScores.rows];
@@ -3936,7 +3942,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
         // Estrai tutte le linee prodotto presenti
         const lineeProdotto = [...allLinee].sort();
 
-        const sogliaScore = getSogliaHot(regione);
+        const sogliaScore = getSogliaHot(regioni[0]);
         res.json({ contatti, linee_prodotto: lineeProdotto, soglia_hot: sogliaScore });
     } catch (err) {
         console.error('[CRM Score]', err);
