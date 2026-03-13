@@ -704,7 +704,7 @@ function renderSutureTable() {
                 <td>${tipoBadge}${autoTag}</td>
                 <td><strong>${escapeHtml(item.codice)}</strong></td>
                 <td>${escapeHtml(item.descrizione)}</td>
-                <td style="text-align:right; font-weight:600; color:#ef4444;">${item.quantita}</td>
+                <td style="text-align:right"><input type="number" class="suture-qty-input" data-idx="${i}" value="${item.quantita}" min="1" max="999"></td>
                 <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
                 <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
                 <td style="text-align:center"><button class="btn-remove-sutura" data-idx="${i}" title="Rimuovi">&times;</button></td>
@@ -726,6 +726,26 @@ function renderSutureTable() {
             sutureOrdine.splice(idx, 1);
             renderSutureTable();
             refreshSutureDropdown();
+        });
+    });
+
+    container.querySelectorAll('.suture-qty-input').forEach(input => {
+        input.addEventListener('change', () => {
+            const idx = parseInt(input.dataset.idx);
+            const newQty = parseInt(input.value) || 1;
+            if (newQty < 1) { input.value = 1; sutureOrdine[idx].quantita = 1; }
+            else { sutureOrdine[idx].quantita = newQty; }
+            // Aggiorna valore e totale senza ridisegnare tutto
+            const row = input.closest('tr');
+            const valoreCell = row.querySelectorAll('td')[5];
+            const valore = Math.round(newQty * sutureOrdine[idx].prezzo * 100) / 100;
+            valoreCell.textContent = valore.toFixed(2) + ' €';
+            // Ricalcola totale
+            const tot = sutureOrdine.reduce((s, i) => s + Math.round(i.quantita * i.prezzo * 100) / 100, 0);
+            const footerTd = container.querySelector('#suture-table tfoot td:first-child');
+            if (footerTd) footerTd.textContent = `TOTALE DA ORDINARE (${sutureOrdine.length} righe)`;
+            const footerVal = container.querySelector('#suture-table tfoot td:nth-child(2)');
+            if (footerVal) footerVal.textContent = tot.toFixed(2) + ' €';
         });
     });
 }
