@@ -2841,3 +2841,77 @@ nav {
     margin-left: 4px;
     vertical-align: middle;
 }
+
+/* Tabella In Arrivo (PO confermati) */
+#suture-table-arrivo {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+#suture-table-arrivo th {
+    background: #065f46;
+    color: white;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#suture-table-arrivo td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #d1fae5;
+}
+
+.suture-row-arrivo { background: #ecfdf5; }
+.suture-row-arrivo:hover { background: #d1fae5; }
+
+.badge-arrivo {
+    display: inline-block;
+    background: #10b981;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+}
+
+/* Tabella In Bozza (PO draft) */
+#suture-table-bozza {
+    border-collapse: collapse;
+    width: 100%;
+    font-size: 0.9rem;
+}
+
+#suture-table-bozza th {
+    background: #92400e;
+    color: white;
+    padding: 10px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+#suture-table-bozza td {
+    padding: 8px 12px;
+    border-bottom: 1px solid #fef3c7;
+}
+
+.suture-row-bozza { background: #fffbeb; }
+.suture-row-bozza:hover { background: #fef3c7; }
+
+.badge-bozza {
+    display: inline-block;
+    background: #f59e0b;
+    color: white;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 0.6rem;
+    font-weight: 700;
+    margin-left: 4px;
+    vertical-align: middle;
+}

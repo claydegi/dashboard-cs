@@ -959,13 +959,17 @@ async function initDB() {
                 giacenza NUMERIC(10,2) DEFAULT 0,
                 impegnato NUMERIC(10,2) DEFAULT 0,
                 in_ordine NUMERIC(10,2) DEFAULT 0,
+                in_bozza NUMERIC(10,2) DEFAULT 0,
+                in_arrivo NUMERIC(10,2) DEFAULT 0,
                 costo_acquisto NUMERIC(10,4) DEFAULT 0,
                 best_of BOOLEAN DEFAULT false,
                 last_sync TIMESTAMPTZ DEFAULT NOW()
             )
         `);
-        // Migrazione: aggiunge colonna in_ordine se non esiste
+        // Migrazione: aggiunge colonne se non esistono
         await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_ordine NUMERIC(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_bozza NUMERIC(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_arrivo NUMERIC(10,2) DEFAULT 0`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_codice ON suture_stock(codice)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_best_of ON suture_stock(best_of)`);
 
@@ -1084,16 +1088,36 @@ async function syncSutureFromOdoo() {
             commitMap[pid] = (commitMap[pid] || 0) + (line.qty_to_deliver || 0);
         }
 
-        // 4) In ordine da purchase.order.line (bozze + confermati)
+        // 4) In ordine da purchase.order.line — separa bozze vs confermati
         const polLines = await odooExecute(uid, 'purchase.order.line', 'search_read',
             [[['product_id', 'in', productIds], ['order_id.state', 'in', ['draft', 'purchase']]]],
-            { fields: ['product_id', 'product_qty', 'qty_received'], context: { allowed_company_ids: [1], force_company: 1 } }
+            { fields: ['product_id', 'product_qty', 'qty_received', 'order_id'], context: { allowed_company_ids: [1], force_company: 1 } }
         );
+        // Leggi lo stato di ogni PO per distinguere draft vs purchase
+        const poIds = [...new Set(polLines.map(l => l.order_id[0]))];
+        const poStates = {};
+        if (poIds.length > 0) {
+            const poData = await odooExecute(uid, 'purchase.order', 'read',
+                [poIds, ['state']],
+                { context: { allowed_company_ids: [1] } }
+            );
+            for (const po of poData) poStates[po.id] = po.state;
+        }
+        const bozzaMap = {};
+        const arrivoMap = {};
         const poMap = {};
         for (const line of polLines) {
             const pid = line.product_id[0];
             const pendente = (line.product_qty || 0) - (line.qty_received || 0);
-            if (pendente > 0) poMap[pid] = (poMap[pid] || 0) + pendente;
+            if (pendente > 0) {
+                const stato = poStates[line.order_id[0]] || 'draft';
+                if (stato === 'draft') {
+                    bozzaMap[pid] = (bozzaMap[pid] || 0) + pendente;
+                } else {
+                    arrivoMap[pid] = (arrivoMap[pid] || 0) + pendente;
+                }
+                poMap[pid] = (poMap[pid] || 0) + pendente;
+            }
         }
 
         // 5) UPSERT in suture_stock
@@ -1106,18 +1130,20 @@ async function syncSutureFromOdoo() {
                 const giacenza = quantMap[prod.id] ? quantMap[prod.id].qty : 0;
                 const impegnato = commitMap[prod.id] || 0;
                 const inOrdine = poMap[prod.id] || 0;
+                const inBozza = bozzaMap[prod.id] || 0;
+                const inArrivo = arrivoMap[prod.id] || 0;
                 const costo = prod.standard_price || 0;
 
                 await client.query(`
-                    INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, in_ordine, costo_acquisto, best_of, last_sync)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW())
+                    INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, in_ordine, in_bozza, in_arrivo, costo_acquisto, best_of, last_sync)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                     ON CONFLICT (product_id) DO UPDATE SET
                         codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
                         giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
-                        in_ordine = EXCLUDED.in_ordine,
+                        in_ordine = EXCLUDED.in_ordine, in_bozza = EXCLUDED.in_bozza, in_arrivo = EXCLUDED.in_arrivo,
                         costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
                         last_sync = NOW()
-                `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, costo, isBestOf]);
+                `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
             }
             await client.query('COMMIT');
         } catch (err) {
@@ -8120,15 +8146,19 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const meta = metaResult.rows[0] || { last_sync: null, status: 'unknown', error_message: null };
 
         const result = await pool.query(`
-            SELECT product_id, codice, descrizione, giacenza, impegnato, in_ordine, costo_acquisto, best_of
+            SELECT product_id, codice, descrizione, giacenza, impegnato, in_bozza, in_arrivo, costo_acquisto, best_of
             FROM suture_stock ORDER BY best_of DESC, codice ASC
         `);
 
-        const items = [];
+        const inArrivoItems = [];
+        const inBozzaItems = [];
+        const daOrdinareItems = [];
+
         for (const row of result.rows) {
             const giacenza = parseFloat(row.giacenza) || 0;
             const impegnato = parseFloat(row.impegnato) || 0;
-            const inOrdine = parseFloat(row.in_ordine) || 0;
+            const inBozza = parseFloat(row.in_bozza) || 0;
+            const inArrivo = parseFloat(row.in_arrivo) || 0;
             const costo = parseFloat(row.costo_acquisto) || 0;
             let fabbisogno = 0;
 
@@ -8138,27 +8168,41 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                 fabbisogno = Math.max(0, impegnato - giacenza);
             }
 
-            if (fabbisogno > 0 || inOrdine > 0) {
-                const daOrdinare = Math.max(0, fabbisogno - inOrdine);
-                items.push({
-                    product_id: row.product_id,
-                    codice: row.codice,
-                    descrizione: row.descrizione,
-                    giacenza, impegnato,
-                    fabbisogno,
-                    in_ordine: inOrdine,
-                    da_ordinare: daOrdinare,
-                    costo_acquisto: costo,
-                    valore: Math.round(daOrdinare * costo * 100) / 100,
-                    best_of: row.best_of
+            if (inArrivo > 0) {
+                inArrivoItems.push({
+                    product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
+                    quantita: inArrivo, costo_acquisto: costo,
+                    valore: Math.round(inArrivo * costo * 100) / 100, best_of: row.best_of
+                });
+            }
+            if (inBozza > 0) {
+                inBozzaItems.push({
+                    product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
+                    quantita: inBozza, costo_acquisto: costo,
+                    valore: Math.round(inBozza * costo * 100) / 100, best_of: row.best_of
+                });
+            }
+            const coperto = inBozza + inArrivo;
+            const daOrdinare = Math.max(0, fabbisogno - coperto);
+            if (daOrdinare > 0) {
+                daOrdinareItems.push({
+                    product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
+                    fabbisogno, quantita: daOrdinare, costo_acquisto: costo,
+                    valore: Math.round(daOrdinare * costo * 100) / 100, best_of: row.best_of
                 });
             }
         }
 
-        const totaleValore = items.reduce((sum, item) => sum + item.valore, 0);
+        const totBozza = inBozzaItems.reduce((s, i) => s + i.valore, 0);
+        const totArrivo = inArrivoItems.reduce((s, i) => s + i.valore, 0);
+        const totDaOrdinare = daOrdinareItems.reduce((s, i) => s + i.valore, 0);
         res.json({
-            items,
-            totale_valore: Math.round(totaleValore * 100) / 100,
+            in_arrivo: inArrivoItems,
+            in_bozza: inBozzaItems,
+            da_ordinare: daOrdinareItems,
+            totale_arrivo: Math.round(totArrivo * 100) / 100,
+            totale_bozza: Math.round(totBozza * 100) / 100,
+            totale_da_ordinare: Math.round(totDaOrdinare * 100) / 100,
             last_sync: meta.last_sync,
             sync_status: meta.status,
             sync_error: meta.error_message

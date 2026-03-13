@@ -584,7 +584,8 @@ async function deleteFattura(id, agente) {
 // ==================== SUTURE - SIMULATORE ORDINE ====================
 
 let sutureOrdine = [];
-let sutureOrdinati = [];
+let sutureInArrivo = [];
+let sutureInBozza = [];
 let sutureCatalogo = [];
 
 async function loadSuture() {
@@ -606,25 +607,12 @@ async function loadSuture() {
             syncLabel.textContent = 'Mai sincronizzato';
         }
 
-        // Separa: righe gia ordinate (in_ordine > 0) vs da ordinare (da_ordinare > 0)
-        sutureOrdinati = [];
-        sutureOrdine = [];
-        for (const item of (data.items || [])) {
-            if (item.in_ordine > 0) {
-                sutureOrdinati.push({
-                    product_id: item.product_id, codice: item.codice, descrizione: item.descrizione,
-                    fabbisogno: item.fabbisogno, ordinato: item.in_ordine,
-                    prezzo: item.costo_acquisto, best_of: item.best_of
-                });
-            }
-            if (item.da_ordinare > 0) {
-                sutureOrdine.push({
-                    product_id: item.product_id, codice: item.codice, descrizione: item.descrizione,
-                    quantita: item.da_ordinare, prezzo: item.costo_acquisto,
-                    best_of: item.best_of, auto: true
-                });
-            }
-        }
+        sutureInArrivo = (data.in_arrivo || []).map(i => ({...i, prezzo: i.costo_acquisto}));
+        sutureInBozza = (data.in_bozza || []).map(i => ({...i, prezzo: i.costo_acquisto}));
+        sutureOrdine = (data.da_ordinare || []).map(i => ({
+            product_id: i.product_id, codice: i.codice, descrizione: i.descrizione,
+            quantita: i.quantita, prezzo: i.costo_acquisto, best_of: i.best_of, auto: true
+        }));
 
         renderSutureTable();
         await loadSutureCatalogo();
@@ -634,14 +622,44 @@ async function loadSuture() {
     }
 }
 
+function renderReadOnlyTable(items, tableId, rowClass, badgeClass, badgeText, color) {
+    let html = `<div class="suture-table-wrapper" style="margin-bottom:24px;"><table id="${tableId}">
+        <thead><tr>
+            <th>Tipo</th><th>Codice</th><th>Descrizione</th>
+            <th style="text-align:right">Qtà</th>
+            <th style="text-align:right">Costo Unit.</th>
+            <th style="text-align:right">Valore</th>
+        </tr></thead><tbody>`;
+    let tot = 0;
+    for (const item of items) {
+        const valore = Math.round(item.quantita * item.prezzo * 100) / 100;
+        tot += valore;
+        const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
+        html += `<tr class="${rowClass}">
+            <td>${tipoBadge}</td>
+            <td><strong>${escapeHtml(item.codice)}</strong></td>
+            <td>${escapeHtml(item.descrizione)}</td>
+            <td style="text-align:right; font-weight:600; color:${color};">${item.quantita} <span class="${badgeClass}">${badgeText}</span></td>
+            <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
+            <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
+        </tr>`;
+    }
+    html += `</tbody><tfoot><tr class="suture-row-total">
+        <td colspan="5" style="text-align:right; font-weight:700;">TOTALE</td>
+        <td style="text-align:right; font-weight:700;">${tot.toFixed(2)} &euro;</td>
+    </tr></tfoot></table></div>`;
+    return html;
+}
+
 function renderSutureTable() {
     const container = document.getElementById('suture-table-container');
     const confermaContainer = document.getElementById('suture-conferma-container');
 
-    const hasOrdinati = sutureOrdinati.length > 0;
+    const hasArrivo = sutureInArrivo.length > 0;
+    const hasBozza = sutureInBozza.length > 0;
     const hasOrdine = sutureOrdine.length > 0;
 
-    if (!hasOrdinati && !hasOrdine) {
+    if (!hasArrivo && !hasBozza && !hasOrdine) {
         container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
         confermaContainer.style.display = 'none';
         return;
@@ -649,41 +667,21 @@ function renderSutureTable() {
 
     let html = '';
 
-    // Sezione 1: Suture gia ordinate (read-only, sfondo verde)
-    if (hasOrdinati) {
-        html += `<h3 style="margin:0 0 8px 0; color:#059669; font-size:0.95rem;">Gia ordinate (in PO bozza/confermato)</h3>`;
-        html += `<div class="suture-table-wrapper" style="margin-bottom:24px;"><table id="suture-table-ordinati">
-            <thead><tr>
-                <th>Tipo</th><th>Codice</th><th>Descrizione</th>
-                <th style="text-align:right">Fabbisogno</th>
-                <th style="text-align:right">Ordinato</th>
-                <th style="text-align:right">Costo Unit.</th>
-                <th style="text-align:right">Valore</th>
-            </tr></thead><tbody>`;
-        let totOrd = 0;
-        for (const item of sutureOrdinati) {
-            const valore = Math.round(item.ordinato * item.prezzo * 100) / 100;
-            totOrd += valore;
-            const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
-            html += `<tr class="suture-row-ordinato">
-                <td>${tipoBadge}</td>
-                <td><strong>${escapeHtml(item.codice)}</strong></td>
-                <td>${escapeHtml(item.descrizione)}</td>
-                <td style="text-align:right">${item.fabbisogno}</td>
-                <td style="text-align:right; font-weight:600; color:#059669;">${item.ordinato} <span class="badge-ordinato">ORDINATO</span></td>
-                <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
-                <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
-            </tr>`;
-        }
-        html += `</tbody><tfoot><tr class="suture-row-total">
-            <td colspan="6" style="text-align:right; font-weight:700;">TOTALE ORDINATO</td>
-            <td style="text-align:right; font-weight:700;">${totOrd.toFixed(2)} &euro;</td>
-        </tr></tfoot></table></div>`;
+    // Sezione 1: In arrivo (PO confermati — merce in transito)
+    if (hasArrivo) {
+        html += `<h3 style="margin:0 0 8px 0; color:#059669; font-size:0.95rem;">&#x1f69a; In arrivo (PO confermati)</h3>`;
+        html += renderReadOnlyTable(sutureInArrivo, 'suture-table-arrivo', 'suture-row-arrivo', 'badge-arrivo', 'IN ARRIVO', '#059669');
     }
 
-    // Sezione 2: Da ordinare (editabile)
+    // Sezione 2: In bozza (PO draft — ordinati ma non confermati)
+    if (hasBozza) {
+        html += `<h3 style="margin:0 0 8px 0; color:#f59e0b; font-size:0.95rem;">&#x1f4cb; In bozza (RDP da confermare)</h3>`;
+        html += renderReadOnlyTable(sutureInBozza, 'suture-table-bozza', 'suture-row-bozza', 'badge-bozza', 'BOZZA', '#f59e0b');
+    }
+
+    // Sezione 3: Da ordinare (editabile)
     if (hasOrdine) {
-        html += `<h3 style="margin:0 0 8px 0; color:#ef4444; font-size:0.95rem;">Da ordinare</h3>`;
+        html += `<h3 style="margin:0 0 8px 0; color:#ef4444; font-size:0.95rem;">&#x26a0; Da ordinare</h3>`;
         html += `<div class="suture-table-wrapper"><table id="suture-table">
             <thead><tr>
                 <th>Tipo</th><th>Codice</th><th>Descrizione</th>
@@ -735,12 +733,10 @@ function renderSutureTable() {
             const newQty = parseInt(input.value) || 1;
             if (newQty < 1) { input.value = 1; sutureOrdine[idx].quantita = 1; }
             else { sutureOrdine[idx].quantita = newQty; }
-            // Aggiorna valore e totale senza ridisegnare tutto
             const row = input.closest('tr');
             const valoreCell = row.querySelectorAll('td')[5];
             const valore = Math.round(newQty * sutureOrdine[idx].prezzo * 100) / 100;
             valoreCell.textContent = valore.toFixed(2) + ' €';
-            // Ricalcola totale
             const tot = sutureOrdine.reduce((s, i) => s + Math.round(i.quantita * i.prezzo * 100) / 100, 0);
             const footerTd = container.querySelector('#suture-table tfoot td:first-child');
             if (footerTd) footerTd.textContent = `TOTALE DA ORDINARE (${sutureOrdine.length} righe)`;
