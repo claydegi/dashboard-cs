@@ -198,7 +198,7 @@
                 </div>
             </section>
 
-            <!-- Suture - Ordine da Odoo -->
+            <!-- Suture - Simulatore Ordine -->
             <section id="section-suture" class="reports-section" style="display: none;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 12px;">
                     <h2 style="margin-bottom: 0;">Suture da Ordinare</h2>
@@ -207,8 +207,16 @@
                         <button class="btn btn-primary btn-small" id="btnSyncSuture">Aggiorna da Odoo</button>
                     </div>
                 </div>
+                <div class="suture-add-row">
+                    <select id="suture-add-codice"><option value="">-- Seleziona sutura --</option></select>
+                    <select id="suture-add-qty"></select>
+                    <button class="btn btn-primary btn-small" id="btnAddSutura">Aggiungi</button>
+                </div>
                 <div id="suture-table-container">
                     <p class="loading">Caricamento...</p>
+                </div>
+                <div id="suture-conferma-container" style="display:none; margin-top:16px; text-align:right;">
+                    <button class="btn-conferma-ordine" id="btnConfermaOrdine">Conferma Ordine &rarr; Odoo</button>
                 </div>
             </section>
         </main>

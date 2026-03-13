@@ -544,7 +544,10 @@ async function deleteFattura(id, agente) {
     }
 }
 
-// ==================== SUTURE ====================
+// ==================== SUTURE - SIMULATORE ORDINE ====================
+
+let sutureOrdine = [];
+let sutureCatalogo = [];
 
 async function loadSuture() {
     const container = document.getElementById('suture-table-container');
@@ -556,87 +559,211 @@ async function loadSuture() {
         if (!response.ok) throw new Error('Errore caricamento');
         const data = await response.json();
 
-        // Timestamp ultimo sync
         if (data.last_sync) {
             const syncDate = new Date(data.last_sync);
             syncLabel.textContent = `Ultimo sync: ${syncDate.toLocaleString('it-IT')}`;
-            if (data.sync_status === 'syncing') {
-                syncLabel.textContent += ' (sync in corso...)';
-            } else if (data.sync_status === 'error') {
-                syncLabel.textContent += ' ⚠ Errore';
-                syncLabel.title = data.sync_error || '';
-            }
+            if (data.sync_status === 'syncing') syncLabel.textContent += ' (sync in corso...)';
+            else if (data.sync_status === 'error') { syncLabel.textContent += ' ⚠ Errore'; syncLabel.title = data.sync_error || ''; }
         } else {
             syncLabel.textContent = 'Mai sincronizzato';
         }
 
-        if (!data.items || data.items.length === 0) {
-            container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
-            return;
-        }
+        sutureOrdine = (data.items || []).map(item => ({
+            product_id: item.product_id,
+            codice: item.codice,
+            descrizione: item.descrizione,
+            quantita: item.da_ordinare,
+            prezzo: item.costo_acquisto,
+            best_of: item.best_of,
+            auto: true
+        }));
 
-        let html = `<div class="suture-table-wrapper"><table id="suture-table">
-            <thead><tr>
-                <th>Tipo</th>
-                <th>Codice</th>
-                <th>Descrizione</th>
-                <th style="text-align:right">Giacenza</th>
-                <th style="text-align:right">Impegnato</th>
-                <th style="text-align:right">Da Ordinare</th>
-                <th style="text-align:right">Costo Acq.</th>
-                <th style="text-align:right">Valore</th>
-            </tr></thead><tbody>`;
-
-        for (const item of data.items) {
-            const rowClass = item.best_of ? 'suture-row-bestof' : '';
-            const tipoBadge = item.best_of
-                ? '<span class="badge-bestof">BEST OF</span>'
-                : '<span class="badge-other">ALTRO</span>';
-            html += `<tr class="${rowClass}">
-                <td>${tipoBadge}</td>
-                <td><strong>${escapeHtml(item.codice)}</strong></td>
-                <td>${escapeHtml(item.descrizione)}</td>
-                <td style="text-align:right">${item.giacenza}</td>
-                <td style="text-align:right">${item.impegnato}</td>
-                <td style="text-align:right; font-weight:600; color:#ef4444;">${item.da_ordinare}</td>
-                <td style="text-align:right">${item.costo_acquisto.toFixed(2)} &euro;</td>
-                <td style="text-align:right">${item.valore.toFixed(2)} &euro;</td>
-            </tr>`;
-        }
-
-        html += `</tbody><tfoot><tr class="suture-row-total">
-            <td colspan="7" style="text-align:right; font-weight:700;">TOTALE ORDINE</td>
-            <td style="text-align:right; font-weight:700; font-size:1.05rem;">${data.totale_valore.toFixed(2)} &euro;</td>
-        </tr></tfoot></table></div>`;
-
-        container.innerHTML = html;
+        renderSutureTable();
+        await loadSutureCatalogo();
     } catch (error) {
         console.error('Errore caricamento suture:', error);
         container.innerHTML = '<div class="empty-state"><p>Errore di connessione</p></div>';
     }
 }
 
-// Sync suture button handler
+function renderSutureTable() {
+    const container = document.getElementById('suture-table-container');
+    const confermaContainer = document.getElementById('suture-conferma-container');
+
+    if (sutureOrdine.length === 0) {
+        container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Usa il dropdown per aggiungere prodotti.</p></div>';
+        confermaContainer.style.display = 'none';
+        return;
+    }
+
+    let html = `<div class="suture-table-wrapper"><table id="suture-table">
+        <thead><tr>
+            <th>Tipo</th>
+            <th>Codice</th>
+            <th>Descrizione</th>
+            <th style="text-align:right">Qtà</th>
+            <th style="text-align:right">Costo Unit.</th>
+            <th style="text-align:right">Valore</th>
+            <th style="text-align:center;width:50px"></th>
+        </tr></thead><tbody>`;
+
+    let totale = 0;
+    for (let i = 0; i < sutureOrdine.length; i++) {
+        const item = sutureOrdine[i];
+        const valore = Math.round(item.quantita * item.prezzo * 100) / 100;
+        totale += valore;
+        const rowClass = item.best_of ? 'suture-row-bestof' : '';
+        const tipoBadge = item.best_of ? '<span class="badge-bestof">BEST OF</span>' : '<span class="badge-other">ALTRO</span>';
+        const autoTag = item.auto ? ' <span class="badge-auto">AUTO</span>' : ' <span class="badge-manual">MANUALE</span>';
+        html += `<tr class="${rowClass}">
+            <td>${tipoBadge}${autoTag}</td>
+            <td><strong>${escapeHtml(item.codice)}</strong></td>
+            <td>${escapeHtml(item.descrizione)}</td>
+            <td style="text-align:right; font-weight:600; color:#ef4444;">${item.quantita}</td>
+            <td style="text-align:right">${item.prezzo.toFixed(2)} &euro;</td>
+            <td style="text-align:right">${valore.toFixed(2)} &euro;</td>
+            <td style="text-align:center"><button class="btn-remove-sutura" data-idx="${i}" title="Rimuovi">&times;</button></td>
+        </tr>`;
+    }
+
+    html += `</tbody><tfoot><tr class="suture-row-total">
+        <td colspan="5" style="text-align:right; font-weight:700;">TOTALE ORDINE (${sutureOrdine.length} righe)</td>
+        <td style="text-align:right; font-weight:700; font-size:1.05rem;">${totale.toFixed(2)} &euro;</td>
+        <td></td>
+    </tr></tfoot></table></div>`;
+
+    container.innerHTML = html;
+    confermaContainer.style.display = 'block';
+
+    container.querySelectorAll('.btn-remove-sutura').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const idx = parseInt(btn.dataset.idx);
+            sutureOrdine.splice(idx, 1);
+            renderSutureTable();
+            refreshSutureDropdown();
+        });
+    });
+}
+
+async function loadSutureCatalogo() {
+    try {
+        const response = await fetch(`${API_URL}/suture/catalogo?key=${ADMIN_KEY}`);
+        if (!response.ok) throw new Error('Errore');
+        const data = await response.json();
+        sutureCatalogo = data.items || [];
+        refreshSutureDropdown();
+
+        const qtySelect = document.getElementById('suture-add-qty');
+        if (qtySelect && qtySelect.options.length <= 1) {
+            qtySelect.innerHTML = '';
+            for (let i = 1; i <= 50; i++) {
+                qtySelect.innerHTML += `<option value="${i}">${i}</option>`;
+            }
+        }
+    } catch (e) {
+        console.error('Errore caricamento catalogo suture:', e);
+    }
+}
+
+function refreshSutureDropdown() {
+    const select = document.getElementById('suture-add-codice');
+    if (!select) return;
+    const codiciInOrdine = new Set(sutureOrdine.map(s => s.codice));
+
+    const bestOf = sutureCatalogo.filter(s => s.best_of && !codiciInOrdine.has(s.codice));
+    const altri = sutureCatalogo.filter(s => !s.best_of && !codiciInOrdine.has(s.codice));
+
+    let html = '<option value="">-- Seleziona sutura --</option>';
+    if (bestOf.length > 0) {
+        html += '<optgroup label="BEST OF">';
+        for (const s of bestOf) html += `<option value="${s.product_id}" data-codice="${escapeHtml(s.codice)}" data-desc="${escapeHtml(s.descrizione)}" data-prezzo="${s.costo_acquisto}" data-bestof="1">${s.codice} — ${s.descrizione} (€${s.costo_acquisto.toFixed(2)})</option>`;
+        html += '</optgroup>';
+    }
+    if (altri.length > 0) {
+        html += '<optgroup label="ALTRO">';
+        for (const s of altri) html += `<option value="${s.product_id}" data-codice="${escapeHtml(s.codice)}" data-desc="${escapeHtml(s.descrizione)}" data-prezzo="${s.costo_acquisto}" data-bestof="0">${s.codice} — ${s.descrizione} (€${s.costo_acquisto.toFixed(2)})</option>`;
+        html += '</optgroup>';
+    }
+    select.innerHTML = html;
+}
+
+// Event handlers suture
 (function() {
-    const btn = document.getElementById('btnSyncSuture');
-    if (btn) {
-        btn.addEventListener('click', async () => {
-            btn.disabled = true;
-            btn.textContent = 'Sincronizzazione...';
+    const btnAdd = document.getElementById('btnAddSutura');
+    if (btnAdd) {
+        btnAdd.addEventListener('click', () => {
+            const sel = document.getElementById('suture-add-codice');
+            const qty = document.getElementById('suture-add-qty');
+            if (!sel.value) { showToast('Seleziona una sutura', 'error'); return; }
+            const opt = sel.options[sel.selectedIndex];
+            sutureOrdine.push({
+                product_id: parseInt(sel.value),
+                codice: opt.dataset.codice,
+                descrizione: opt.dataset.desc,
+                quantita: parseInt(qty.value),
+                prezzo: parseFloat(opt.dataset.prezzo),
+                best_of: opt.dataset.bestof === '1',
+                auto: false
+            });
+            renderSutureTable();
+            refreshSutureDropdown();
+        });
+    }
+
+    const btnSync = document.getElementById('btnSyncSuture');
+    if (btnSync) {
+        btnSync.addEventListener('click', async () => {
+            btnSync.disabled = true;
+            btnSync.textContent = 'Sincronizzazione...';
             try {
                 await fetch(`${API_URL}/suture/sync?key=${ADMIN_KEY}`, { method: 'POST' });
                 showToast('Sincronizzazione avviata', 'success');
                 setTimeout(() => {
                     loadSuture();
-                    btn.disabled = false;
-                    btn.textContent = 'Aggiorna da Odoo';
+                    btnSync.disabled = false;
+                    btnSync.textContent = 'Aggiorna da Odoo';
                 }, 5000);
             } catch (error) {
                 console.error('Errore sync suture:', error);
                 showToast('Errore nella sincronizzazione', 'error');
-                btn.disabled = false;
-                btn.textContent = 'Aggiorna da Odoo';
+                btnSync.disabled = false;
+                btnSync.textContent = 'Aggiorna da Odoo';
             }
+        });
+    }
+
+    const btnConferma = document.getElementById('btnConfermaOrdine');
+    if (btnConferma) {
+        btnConferma.addEventListener('click', async () => {
+            if (sutureOrdine.length === 0) { showToast('Nessun articolo nell\'ordine', 'error'); return; }
+            const totale = sutureOrdine.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
+            if (!confirm(`Creare bozza ordine acquisto VITREX in Odoo?\n\n${sutureOrdine.length} righe — Totale: €${totale}\n\nL'ordine sarà in stato BOZZA.`)) return;
+
+            btnConferma.disabled = true;
+            btnConferma.textContent = 'Creazione in corso...';
+            try {
+                const payload = { items: sutureOrdine.map(i => ({
+                    product_id: i.product_id,
+                    codice: i.codice,
+                    descrizione: i.descrizione,
+                    quantita: i.quantita,
+                    prezzo_unitario: i.prezzo
+                }))};
+                const resp = await fetch(`${API_URL}/suture/conferma-ordine?key=${ADMIN_KEY}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const result = await resp.json();
+                if (!resp.ok) throw new Error(result.error || 'Errore');
+                showToast(`Bozza ordine ${result.po_name} creata in Odoo!`, 'success');
+                setTimeout(() => loadSuture(), 2000);
+            } catch (error) {
+                console.error('Errore conferma ordine:', error);
+                showToast(`Errore: ${error.message}`, 'error');
+            }
+            btnConferma.disabled = false;
+            btnConferma.textContent = 'Conferma Ordine → Odoo';
         });
     }
 })();

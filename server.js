@@ -8097,7 +8097,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const meta = metaResult.rows[0] || { last_sync: null, status: 'unknown', error_message: null };
 
         const result = await pool.query(`
-            SELECT codice, descrizione, giacenza, impegnato, costo_acquisto, best_of
+            SELECT product_id, codice, descrizione, giacenza, impegnato, costo_acquisto, best_of
             FROM suture_stock ORDER BY best_of DESC, codice ASC
         `);
 
@@ -8116,6 +8116,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
 
             if (daOrdinare > 0) {
                 items.push({
+                    product_id: row.product_id,
                     codice: row.codice,
                     descrizione: row.descrizione,
                     giacenza, impegnato,
@@ -8153,6 +8154,78 @@ app.post('/api/suture/sync', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[Suture API] Errore sync:', err.message);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// GET /api/suture/catalogo — Tutti i prodotti suture per dropdown
+app.get('/api/suture/catalogo', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT product_id, codice, descrizione, costo_acquisto, best_of
+            FROM suture_stock ORDER BY best_of DESC, codice ASC
+        `);
+        res.json({ items: result.rows.map(r => ({
+            product_id: r.product_id,
+            codice: r.codice,
+            descrizione: r.descrizione,
+            costo_acquisto: parseFloat(r.costo_acquisto) || 0,
+            best_of: r.best_of
+        }))});
+    } catch (err) {
+        console.error('[Suture API] Errore catalogo:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// POST /api/suture/conferma-ordine — Crea bozza PO in Odoo verso VITREX
+app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
+    try {
+        const { items } = req.body;
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Nessun articolo nell\'ordine' });
+        }
+        if (!CONFIG.ODOO_API_KEY) {
+            return res.status(500).json({ error: 'ODOO_API_KEY non configurata' });
+        }
+
+        const uid = await odooAuthenticate();
+
+        // Cerca VITREX MEDICAL A/S
+        const partners = await odooExecute(uid, 'res.partner', 'search',
+            [[['name', 'ilike', 'VITREX MEDICAL']]],
+            { limit: 1, context: { allowed_company_ids: [1] } }
+        );
+        if (!partners || partners.length === 0) {
+            return res.status(404).json({ error: 'Fornitore VITREX MEDICAL A/S non trovato in Odoo' });
+        }
+        const partnerId = partners[0];
+
+        // Costruisci order_line
+        const orderLines = items.map(item => [0, 0, {
+            product_id: item.product_id,
+            product_qty: item.quantita,
+            price_unit: item.prezzo_unitario,
+            name: `[${item.codice}] ${item.descrizione || ''}`
+        }]);
+
+        // Crea purchase.order in draft
+        const poId = await odooExecute(uid, 'purchase.order', 'create',
+            [{ partner_id: partnerId, company_id: 1, order_line: orderLines }],
+            { context: { allowed_company_ids: [1], force_company: 1 } }
+        );
+
+        // Leggi il nome/numero dell'ordine creato
+        const poData = await odooExecute(uid, 'purchase.order', 'read',
+            [[poId], ['name']],
+            { context: { allowed_company_ids: [1] } }
+        );
+        const poName = poData && poData[0] ? poData[0].name : `PO #${poId}`;
+
+        console.log(`[Suture] Bozza PO creata: ${poName} (ID: ${poId}) - ${items.length} righe`);
+        res.json({ success: true, po_id: poId, po_name: poName, righe: items.length });
+    } catch (err) {
+        console.error('[Suture API] Errore creazione PO:', err.message);
+        res.status(500).json({ error: `Errore creazione ordine: ${err.message}` });
     }
 });
 
