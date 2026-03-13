@@ -8138,16 +8138,15 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                 fabbisogno = Math.max(0, impegnato - giacenza);
             }
 
-            if (fabbisogno > 0) {
+            if (fabbisogno > 0 || inOrdine > 0) {
                 const daOrdinare = Math.max(0, fabbisogno - inOrdine);
-                const ordinato = Math.min(inOrdine, fabbisogno);
                 items.push({
                     product_id: row.product_id,
                     codice: row.codice,
                     descrizione: row.descrizione,
                     giacenza, impegnato,
                     fabbisogno,
-                    in_ordine: ordinato,
+                    in_ordine: inOrdine,
                     da_ordinare: daOrdinare,
                     costo_acquisto: costo,
                     valore: Math.round(daOrdinare * costo * 100) / 100,
