@@ -8356,6 +8356,38 @@ app.get('/api/suture/catalogo', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/suture/sposta-in-bozza — Sposta items "da ordinare" nella bozza locale (senza toccare Odoo)
+// Aggiorna suture_stock.in_bozza per i prodotti indicati. L'utente poi sincronizza su Odoo con "Aggiorna Bozza".
+app.post('/api/suture/sposta-in-bozza', requireAdmin, async (req, res) => {
+    try {
+        const { items } = req.body; // [{ product_id, quantita }]
+        if (!items || !Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Nessun articolo da spostare' });
+        }
+        const client = await pool.connect();
+        try {
+            await client.query('BEGIN');
+            for (const item of items) {
+                await client.query(
+                    `UPDATE suture_stock SET in_bozza = COALESCE(in_bozza, 0) + $1 WHERE product_id = $2`,
+                    [item.quantita, item.product_id]
+                );
+            }
+            await client.query('COMMIT');
+            console.log(`[Suture] Spostati in bozza: ${items.length} prodotti`);
+            res.json({ success: true, spostati: items.length });
+        } catch (e) {
+            await client.query('ROLLBACK');
+            throw e;
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('[Suture API] Errore sposta-in-bozza:', err.message);
+        res.status(500).json({ error: `Errore: ${err.message}` });
+    }
+});
+
 // PUT /api/suture/aggiorna-bozza — Sincronizza bozza dashboard ↔ Odoo (unica fonte di verità)
 // La dashboard è la fonte di verità: il PO draft in Odoo deve rispecchiare esattamente gli items ricevuti.
 // Se non esiste un draft PO e ci sono items, ne crea uno nuovo.

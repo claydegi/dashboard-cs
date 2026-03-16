@@ -977,60 +977,31 @@ function refreshSutureDropdown() {
         btnConferma.addEventListener('click', async () => {
             if (sutureOrdine.length === 0) { showToast('Nessun articolo nell\'ordine', 'error'); return; }
 
-            // Merge: unisci "Da ordinare" nella bozza locale (se stesso prodotto, somma quantità)
-            const mergedBozza = [...sutureInBozza];
-            for (const item of sutureOrdine) {
-                const existing = mergedBozza.find(b => b.product_id === item.product_id);
-                if (existing) {
-                    existing.quantita += item.quantita;
-                } else {
-                    mergedBozza.push({
-                        product_id: item.product_id, codice: item.codice,
-                        descrizione: item.descrizione, quantita: item.quantita,
-                        prezzo: item.prezzo, best_of: item.best_of
-                    });
-                }
-            }
-
-            const totale = mergedBozza.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
-            const msgConferma = sutureInBozza.length > 0
-                ? `Aggiornare la bozza in Odoo?\n\n${mergedBozza.length} righe totali — Totale: €${totale}\n\n(${sutureOrdine.length} nuove righe verranno aggiunte alla bozza)`
-                : `Creare nuova bozza ordine VITREX in Odoo?\n\n${mergedBozza.length} righe — Totale: €${totale}`;
-            if (!confirm(msgConferma)) return;
+            const riepilogo = sutureOrdine.map(i => `${i.codice} x${i.quantita}`).join(', ');
+            if (!confirm(`Aggiungere alla bozza locale:\n\n${riepilogo}\n\nPoi clicca "Aggiorna Bozza → Odoo" per sincronizzare.`)) return;
 
             btnConferma.disabled = true;
-            btnConferma.textContent = 'Aggiornamento in corso...';
+            btnConferma.textContent = 'Spostamento in corso...';
             try {
-                const payload = { items: mergedBozza.map(i => ({
+                const payload = { items: sutureOrdine.map(i => ({
                     product_id: i.product_id,
-                    codice: i.codice,
-                    descrizione: i.descrizione,
-                    quantita: i.quantita,
-                    prezzo_unitario: i.prezzo
+                    quantita: i.quantita
                 }))};
-                // Usa aggiorna-bozza (diff-based) — unico endpoint per sincronizzare
-                const resp = await fetch(`${API_URL}/suture/aggiorna-bozza?key=${ADMIN_KEY}`, {
-                    method: 'PUT',
+                const resp = await fetch(`${API_URL}/suture/sposta-in-bozza?key=${ADMIN_KEY}`, {
+                    method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
                 const result = await resp.json();
                 if (!resp.ok) throw new Error(result.error || 'Errore');
-                let msg = `Bozza ${result.po_names} sincronizzata!`;
-                if (result.created) msg = `Nuova bozza ${result.po_names} creata con ${result.added} righe!`;
-                else {
-                    if (result.added > 0) msg += ` ${result.added} aggiunte.`;
-                    if (result.updated > 0) msg += ` ${result.updated} aggiornate.`;
-                    if (result.removed > 0) msg += ` ${result.removed} rimosse.`;
-                }
-                showToast(msg, 'success');
-                setTimeout(() => loadSuture(), 2000);
+                showToast(`${result.spostati} righe aggiunte alla bozza. Clicca "Aggiorna Bozza → Odoo" per sincronizzare.`, 'success');
+                setTimeout(() => loadSuture(), 1000);
             } catch (error) {
                 console.error('Errore conferma ordine:', error);
                 showToast(`Errore: ${error.message}`, 'error');
             }
             btnConferma.disabled = false;
-            btnConferma.textContent = 'Conferma Ordine → Odoo';
+            btnConferma.textContent = 'Conferma Ordine → Bozza';
         });
     }
 })();
