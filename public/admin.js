@@ -708,7 +708,7 @@ function renderSutureTable() {
         </tr></tfoot></table></div>`;
     } else {
         html += `<div style="background:#f5f3ff; border:1px solid #c4b5fd; border-radius:8px; padding:16px 20px; margin-bottom:24px; text-align:center; color:#5b21b6;">
-            <strong>Non ci sono ordini di suture da consegnare verso clienti</strong>
+            <strong>Nessun ordine cliente in attesa di approvvigionamento</strong>
         </div>`;
     }
 
