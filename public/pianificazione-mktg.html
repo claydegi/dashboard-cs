@@ -717,24 +717,23 @@
         });
 
         // Totali (su campagne filtrate)
-        let totSpesa = 0, totConv = 0;
+        let totSpesa = 0, totClick = 0;
         conSpesa.forEach(c => {
             totSpesa += parseInt(c.totale_costo_micros || 0);
-            totConv += parseFloat(c.totale_conversioni || 0);
+            totClick += parseInt(c.totale_clic || 0);
         });
         const spesaEur = (totSpesa / 1000000).toFixed(2);
-        const cpaEur = totConv > 0 ? (totSpesa / totConv / 1000000).toFixed(2) : '—';
 
         // Righe
         let righe = '';
         conSpesa.forEach(c => {
             const costo = (parseInt(c.totale_costo_micros || 0) / 1000000).toFixed(2);
-            const conv = parseFloat(c.totale_conversioni || 0);
+            const click = parseInt(c.totale_clic || 0);
             const nome = c.campaign_name || '';
             const tipo = c.campaign_type || '';
-            const convLabel = conv > 0
-                ? `<span style="font-weight:600; color:#059669;">${conv.toFixed(0)} conv.</span>`
-                : `<span style="color:var(--gray-400, #9ca3af);">0 conv.</span>`;
+            const clickLabel = click > 0
+                ? `<span style="font-weight:600; color:#1a73e8;">${click} click</span>`
+                : `<span style="color:var(--gray-400, #9ca3af);">0 click</span>`;
             const isEnabled = c.status === 'ENABLED';
             const statusDot = isEnabled
                 ? '<span style="color:#059669; font-size:0.7rem;">●</span>'
@@ -748,7 +747,7 @@
                     <td style="padding:5px 6px; font-size:0.73rem; color:var(--gray-400, #9ca3af);">${tipo}</td>
                     <td style="padding:5px 6px; text-align:center; font-size:0.73rem; white-space:nowrap;">${statusDot} ${statusLabel}</td>
                     <td style="padding:5px 0; text-align:right; font-size:0.78rem;">&euro; ${costo}</td>
-                    <td style="padding:5px 0 5px 8px; text-align:right; font-size:0.78rem;">${convLabel}</td>
+                    <td style="padding:5px 0 5px 8px; text-align:right; font-size:0.78rem;">${clickLabel}</td>
                 </tr>`;
         });
 
@@ -763,12 +762,8 @@
                         <span class="wc-label">Speso totale</span>
                     </div>
                     <div class="wc-item">
-                        <span class="wc-num" style="color:#1a73e8;">${totConv.toFixed(0)}</span>
-                        <span class="wc-label">Conversioni</span>
-                    </div>
-                    <div class="wc-item">
-                        <span class="wc-num" style="color:#1a73e8;">&euro; ${cpaEur}</span>
-                        <span class="wc-label">Costo/conv.</span>
+                        <span class="wc-num" style="color:#1a73e8;">${totClick}</span>
+                        <span class="wc-label">Click totali</span>
                     </div>
                 </div>
                 <table style="width:100%; margin-top:10px; font-size:0.82rem; color:var(--gray-600, #4b5563); border-collapse:collapse;">
@@ -778,7 +773,7 @@
                             <th style="padding:4px 6px; text-align:left; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Tipo</th>
                             <th style="padding:4px 6px; text-align:center; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Stato</th>
                             <th style="padding:4px 0; text-align:right; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Spesa</th>
-                            <th style="padding:4px 0 4px 8px; text-align:right; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Conv.</th>
+                            <th style="padding:4px 0 4px 8px; text-align:right; font-size:0.72rem; font-weight:600; color:var(--gray-400, #9ca3af); text-transform:uppercase;">Click</th>
                         </tr>
                     </thead>
                     <tbody>
