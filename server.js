@@ -8235,6 +8235,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const inArrivoItems = [];
         const inBozzaItems = [];
         const daOrdinareItems = [];
+        const prodottiFabbisogno = []; // product_id con fabbisogno > 0
 
         for (const row of result.rows) {
             const giacenza = parseFloat(row.giacenza) || 0;
@@ -8250,6 +8251,11 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                 fabbisogno = Math.max(0, 5 - disponibile);
             } else {
                 fabbisogno = Math.max(0, impegnato - giacenza - inArrivo);
+            }
+
+            // Traccia prodotti con fabbisogno scoperto
+            if (fabbisogno > 0) {
+                prodottiFabbisogno.push(row.product_id);
             }
 
             if (inArrivo > 0) {
@@ -8283,14 +8289,20 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const totArrivo = inArrivoItems.reduce((s, i) => s + i.valore, 0);
         const totDaOrdinare = daOrdinareItems.reduce((s, i) => s + i.valore, 0);
 
-        // Ordini clienti in sospeso (backorders)
-        const ordCliResult = await pool.query(`
-            SELECT sale_order_name, partner_name, codice, date_order, qty_to_deliver
-            FROM suture_ordini_clienti ORDER BY date_order ASC, sale_order_name ASC
-        `);
+        // Ordini clienti in sospeso — solo per prodotti con fabbisogno scoperto
+        let ordCliRows = [];
+        if (prodottiFabbisogno.length > 0) {
+            const ordCliResult = await pool.query(`
+                SELECT sale_order_name, partner_name, codice, date_order, qty_to_deliver
+                FROM suture_ordini_clienti
+                WHERE product_id = ANY($1)
+                ORDER BY date_order ASC, sale_order_name ASC
+            `, [prodottiFabbisogno]);
+            ordCliRows = ordCliResult.rows;
+        }
 
         res.json({
-            ordini_clienti: ordCliResult.rows,
+            ordini_clienti: ordCliRows,
             in_arrivo: inArrivoItems,
             in_bozza: inBozzaItems,
             da_ordinare: daOrdinareItems,
