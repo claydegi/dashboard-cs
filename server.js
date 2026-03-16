@@ -1132,19 +1132,31 @@ async function syncSutureFromOdoo() {
             quantMap[pid].reserved += q.reserved_quantity || 0;
         }
 
-        // 3) Impegnato da sale.order.line (ordini confermati, qty da consegnare > 0)
+        // 3) Impegnato da sale.order.line (ordini confermati, non completamente consegnati)
+        //    qty_to_deliver e' un campo computed di Odoo che puo' essere desincronizzato,
+        //    quindi leggiamo product_uom_qty e qty_delivered e calcoliamo il pendente noi.
         const solLines = await odooExecute(uid, 'sale.order.line', 'search_read',
-            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale']], ['qty_to_deliver', '>', 0]]],
-            { fields: ['product_id', 'qty_to_deliver', 'order_id'], context: { allowed_company_ids: [1], force_company: 1 } }
+            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale']]]],
+            { fields: ['product_id', 'product_uom_qty', 'qty_delivered', 'order_id'], context: { allowed_company_ids: [1], force_company: 1 } }
         );
         const commitMap = {};
+        // Filtra solo righe con pendente reale > 0
+        const solLinesPendenti = [];
         for (const line of solLines) {
-            const pid = line.product_id[0];
-            commitMap[pid] = (commitMap[pid] || 0) + (line.qty_to_deliver || 0);
+            const qtyOrdinata = line.product_uom_qty || 0;
+            const qtyConsegnata = line.qty_delivered || 0;
+            const pendente = qtyOrdinata - qtyConsegnata;
+            if (pendente > 0) {
+                line._pendente = pendente;
+                solLinesPendenti.push(line);
+                const pid = line.product_id[0];
+                commitMap[pid] = (commitMap[pid] || 0) + pendente;
+            }
         }
+        console.log(`[Suture Sync] ${solLines.length} sale.order.line trovate, ${solLinesPendenti.length} con pendente > 0`);
 
         // 3b) Dettaglio ordini clienti (nome ordine, cliente, data)
-        const soIds = [...new Set(solLines.filter(l => l.order_id).map(l => l.order_id[0]))];
+        const soIds = [...new Set(solLinesPendenti.filter(l => l.order_id).map(l => l.order_id[0]))];
         let soDataMap = {};
         if (soIds.length > 0) {
             const soData = await odooExecute(uid, 'sale.order', 'read',
@@ -1212,9 +1224,9 @@ async function syncSutureFromOdoo() {
                 `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
             }
 
-            // Ripopola ordini clienti in sospeso (backorders)
+            // Ripopola ordini clienti in sospeso (solo con pendente reale > 0)
             await client.query('DELETE FROM suture_ordini_clienti');
-            for (const line of solLines) {
+            for (const line of solLinesPendenti) {
                 if (!line.order_id) continue;
                 const pid = line.product_id[0];
                 const soId = line.order_id[0];
@@ -1224,7 +1236,7 @@ async function syncSutureFromOdoo() {
                 await client.query(`
                     INSERT INTO suture_ordini_clienti (sale_order_id, sale_order_name, partner_name, product_id, codice, date_order, qty_to_deliver, last_sync)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
-                `, [soId, so.name || `SO-${soId}`, so.partner_id ? so.partner_id[1] : 'Sconosciuto', pid, codOrd, so.date_order || null, line.qty_to_deliver || 0]);
+                `, [soId, so.name || `SO-${soId}`, so.partner_id ? so.partner_id[1] : 'Sconosciuto', pid, codOrd, so.date_order || null, line._pendente]);
             }
 
             await client.query('COMMIT');
