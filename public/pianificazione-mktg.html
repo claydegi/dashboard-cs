@@ -694,15 +694,18 @@
             panel.innerHTML = `
                 <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                     <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                        Google Ads
+                        Campagne 2026
                     </div>
                     <div class="empty-state"><p>Nessuna campagna sincronizzata</p></div>
                 </div>`;
             return;
         }
 
-        // Filtra: solo campagne con spesa > 0
-        const conSpesa = campagne.filter(c => parseInt(c.totale_costo_micros || 0) > 0);
+        // Filtra: solo campagne 2026 con spesa > 0
+        const conSpesa = campagne.filter(c =>
+            parseInt(c.totale_costo_micros || 0) > 0 &&
+            (c.start_date || '').startsWith('2026')
+        );
 
         // Ordina: ENABLED prima, poi PAUSED, poi resto. A parita' di status, per spesa decrescente
         const statusOrder = { ENABLED: 0, PAUSED: 1 };
@@ -752,7 +755,7 @@
         panel.innerHTML = `
             <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                 <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                    Google Ads
+                    Campagne 2026
                 </div>
                 <div class="webinar-counter">
                     <div class="wc-item">
