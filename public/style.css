@@ -2950,6 +2950,27 @@ nav {
     vertical-align: middle;
 }
 
+/* Tabella Ordini Clienti in Sospeso */
+#suture-table-ordini-clienti { border-collapse: collapse; width: 100%; font-size: 0.9rem; }
+#suture-table-ordini-clienti th {
+    background: #5b21b6; color: white; padding: 10px 12px;
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+}
+#suture-table-ordini-clienti td { padding: 8px 12px; border-bottom: 1px solid #ede9fe; }
+.suture-row-ordine-cliente { background: #f5f3ff; }
+.suture-row-ordine-cliente:hover { background: #ede9fe; }
+
+.badge-overdue {
+    display: inline-block; background: #ef4444; color: white;
+    padding: 1px 6px; border-radius: 3px; font-size: 0.6rem;
+    font-weight: 700; margin-left: 4px; vertical-align: middle;
+}
+.badge-warning-days {
+    display: inline-block; background: #f59e0b; color: white;
+    padding: 1px 6px; border-radius: 3px; font-size: 0.6rem;
+    font-weight: 700; margin-left: 4px; vertical-align: middle;
+}
+
 /* ==================== UPWORK ==================== */
 
 .nav-badge {

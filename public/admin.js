@@ -592,6 +592,7 @@ async function deleteFattura(id, agente) {
 let sutureOrdine = [];
 let sutureInArrivo = [];
 let sutureInBozza = [];
+let sutureOrdiniClienti = [];
 let sutureCatalogo = [];
 
 async function loadSuture() {
@@ -615,6 +616,7 @@ async function loadSuture() {
 
         sutureInArrivo = (data.in_arrivo || []).map(i => ({...i, prezzo: i.costo_acquisto}));
         sutureInBozza = (data.in_bozza || []).map(i => ({...i, prezzo: i.costo_acquisto}));
+        sutureOrdiniClienti = data.ordini_clienti || [];
         sutureOrdine = (data.da_ordinare || []).map(i => ({
             product_id: i.product_id, codice: i.codice, descrizione: i.descrizione,
             quantita: i.quantita, prezzo: i.costo_acquisto, best_of: i.best_of, auto: true
@@ -664,14 +666,49 @@ function renderSutureTable() {
     const hasArrivo = sutureInArrivo.length > 0;
     const hasBozza = sutureInBozza.length > 0;
     const hasOrdine = sutureOrdine.length > 0;
+    const hasOrdiniClienti = sutureOrdiniClienti.length > 0;
 
-    if (!hasArrivo && !hasBozza && !hasOrdine) {
+    if (!hasOrdiniClienti && !hasArrivo && !hasBozza && !hasOrdine) {
         container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
         confermaContainer.style.display = 'none';
         return;
     }
 
     let html = '';
+
+    // Sezione 0: Ordini clienti in sospeso (backorders)
+    if (hasOrdiniClienti) {
+        const totPezzi = sutureOrdiniClienti.reduce((s, i) => s + (parseFloat(i.qty_to_deliver) || 0), 0);
+        html += `<h3 style="margin:0 0 8px 0; color:#7c3aed; font-size:0.95rem;">&#x1f4e6; Ordini clienti in sospeso (${sutureOrdiniClienti.length} righe &mdash; ${totPezzi} pz totali)</h3>`;
+        html += `<div class="suture-table-wrapper" style="margin-bottom:24px;"><table id="suture-table-ordini-clienti">
+            <thead><tr>
+                <th>Ordine</th><th>Cliente</th><th>Codice Sutura</th>
+                <th>Data Ordine</th>
+                <th style="text-align:right">Qt&agrave; da Consegnare</th>
+            </tr></thead><tbody>`;
+        for (const item of sutureOrdiniClienti) {
+            const dataOrdine = item.date_order
+                ? new Date(item.date_order).toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' })
+                : '—';
+            let daysBadge = '';
+            if (item.date_order) {
+                const days = Math.floor((Date.now() - new Date(item.date_order).getTime()) / 86400000);
+                if (days > 30) daysBadge = ` <span class="badge-overdue">${days}gg</span>`;
+                else if (days > 14) daysBadge = ` <span class="badge-warning-days">${days}gg</span>`;
+            }
+            html += `<tr class="suture-row-ordine-cliente">
+                <td><strong>${escapeHtml(item.sale_order_name)}</strong></td>
+                <td>${escapeHtml(item.partner_name)}</td>
+                <td>${escapeHtml(item.codice)}</td>
+                <td>${dataOrdine}${daysBadge}</td>
+                <td style="text-align:right; font-weight:600; color:#7c3aed;">${parseFloat(item.qty_to_deliver) || 0}</td>
+            </tr>`;
+        }
+        html += `</tbody><tfoot><tr class="suture-row-total">
+            <td colspan="4" style="text-align:right; font-weight:700;">TOTALE PEZZI IN SOSPESO</td>
+            <td style="text-align:right; font-weight:700; color:#7c3aed;">${totPezzi}</td>
+        </tr></tfoot></table></div>`;
+    }
 
     // Sezione 1: In arrivo (PO confermati — merce in transito)
     if (hasArrivo) {

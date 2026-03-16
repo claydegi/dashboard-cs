@@ -985,6 +985,22 @@ async function initDB() {
         `);
         await client.query(`INSERT INTO suture_sync_meta (id) VALUES (1) ON CONFLICT DO NOTHING`);
 
+        // Tabella ordini clienti in sospeso (backorders suture)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS suture_ordini_clienti (
+                id SERIAL PRIMARY KEY,
+                sale_order_id INTEGER NOT NULL,
+                sale_order_name TEXT NOT NULL,
+                partner_name TEXT NOT NULL,
+                product_id INTEGER NOT NULL,
+                codice TEXT NOT NULL,
+                date_order TIMESTAMPTZ,
+                qty_to_deliver NUMERIC(10,2) NOT NULL,
+                last_sync TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_soc_date ON suture_ordini_clienti(date_order)`);
+
         // ==================== UPWORK ====================
         await client.query(`
             CREATE TABLE IF NOT EXISTS upwork_jobs (
@@ -1119,12 +1135,23 @@ async function syncSutureFromOdoo() {
         // 3) Impegnato da sale.order.line (ordini confermati, qty da consegnare > 0)
         const solLines = await odooExecute(uid, 'sale.order.line', 'search_read',
             [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale']], ['qty_to_deliver', '>', 0]]],
-            { fields: ['product_id', 'qty_to_deliver'], context: { allowed_company_ids: [1], force_company: 1 } }
+            { fields: ['product_id', 'qty_to_deliver', 'order_id'], context: { allowed_company_ids: [1], force_company: 1 } }
         );
         const commitMap = {};
         for (const line of solLines) {
             const pid = line.product_id[0];
             commitMap[pid] = (commitMap[pid] || 0) + (line.qty_to_deliver || 0);
+        }
+
+        // 3b) Dettaglio ordini clienti (nome ordine, cliente, data)
+        const soIds = [...new Set(solLines.filter(l => l.order_id).map(l => l.order_id[0]))];
+        let soDataMap = {};
+        if (soIds.length > 0) {
+            const soData = await odooExecute(uid, 'sale.order', 'read',
+                [soIds, ['name', 'partner_id', 'date_order']],
+                { context: { allowed_company_ids: [1] } }
+            );
+            for (const so of soData) soDataMap[so.id] = so;
         }
 
         // 4) In ordine da purchase.order.line — separa bozze vs confermati
@@ -1184,6 +1211,22 @@ async function syncSutureFromOdoo() {
                         last_sync = NOW()
                 `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
             }
+
+            // Ripopola ordini clienti in sospeso (backorders)
+            await client.query('DELETE FROM suture_ordini_clienti');
+            for (const line of solLines) {
+                if (!line.order_id) continue;
+                const pid = line.product_id[0];
+                const soId = line.order_id[0];
+                const so = soDataMap[soId];
+                if (!so) continue;
+                const codOrd = prodMap[pid] ? (prodMap[pid].default_code || `ID-${pid}`) : `ID-${pid}`;
+                await client.query(`
+                    INSERT INTO suture_ordini_clienti (sale_order_id, sale_order_name, partner_name, product_id, codice, date_order, qty_to_deliver, last_sync)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
+                `, [soId, so.name || `SO-${soId}`, so.partner_id ? so.partner_id[1] : 'Sconosciuto', pid, codOrd, so.date_order || null, line.qty_to_deliver || 0]);
+            }
+
             await client.query('COMMIT');
         } catch (err) {
             await client.query('ROLLBACK');
@@ -8239,7 +8282,15 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const totBozza = inBozzaItems.reduce((s, i) => s + i.valore, 0);
         const totArrivo = inArrivoItems.reduce((s, i) => s + i.valore, 0);
         const totDaOrdinare = daOrdinareItems.reduce((s, i) => s + i.valore, 0);
+
+        // Ordini clienti in sospeso (backorders)
+        const ordCliResult = await pool.query(`
+            SELECT sale_order_name, partner_name, codice, date_order, qty_to_deliver
+            FROM suture_ordini_clienti ORDER BY date_order ASC, sale_order_name ASC
+        `);
+
         res.json({
+            ordini_clienti: ordCliResult.rows,
             in_arrivo: inArrivoItems,
             in_bozza: inBozzaItems,
             da_ordinare: daOrdinareItems,
