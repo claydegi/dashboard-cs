@@ -668,15 +668,13 @@ function renderSutureTable() {
     const hasOrdine = sutureOrdine.length > 0;
     const hasOrdiniClienti = sutureOrdiniClienti.length > 0;
 
-    if (!hasOrdiniClienti && !hasArrivo && !hasBozza && !hasOrdine) {
-        container.innerHTML = '<div class="empty-state"><p>Nessuna sutura da ordinare. Giacenze sufficienti.</p></div>';
+    if (!hasArrivo && !hasBozza && !hasOrdine) {
         confermaContainer.style.display = 'none';
-        return;
     }
 
     let html = '';
 
-    // Sezione 0: Ordini clienti in sospeso (backorders)
+    // Sezione 0: Ordini clienti in sospeso (backorders) — sempre visibile
     if (hasOrdiniClienti) {
         const totPezzi = sutureOrdiniClienti.reduce((s, i) => s + (parseFloat(i.qty_to_deliver) || 0), 0);
         html += `<h3 style="margin:0 0 8px 0; color:#7c3aed; font-size:0.95rem;">&#x1f4e6; Ordini clienti in sospeso (${sutureOrdiniClienti.length} righe &mdash; ${totPezzi} pz totali)</h3>`;
@@ -708,6 +706,10 @@ function renderSutureTable() {
             <td colspan="4" style="text-align:right; font-weight:700;">TOTALE PEZZI IN SOSPESO</td>
             <td style="text-align:right; font-weight:700; color:#7c3aed;">${totPezzi}</td>
         </tr></tfoot></table></div>`;
+    } else {
+        html += `<div style="background:#f5f3ff; border:1px solid #c4b5fd; border-radius:8px; padding:16px 20px; margin-bottom:24px; text-align:center; color:#5b21b6;">
+            <strong>Non ci sono ordini di suture da consegnare verso clienti</strong>
+        </div>`;
     }
 
     // Sezione 1: In arrivo (PO confermati — merce in transito)
