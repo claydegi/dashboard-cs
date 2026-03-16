@@ -701,9 +701,8 @@
             return;
         }
 
-        // Filtra: solo campagne 2026 con spesa > 0
+        // Filtra: solo campagne 2026
         const conSpesa = campagne.filter(c =>
-            parseInt(c.totale_costo_micros || 0) > 0 &&
             (c.start_date || '').startsWith('2026')
         );
 
@@ -717,10 +716,9 @@
         });
 
         // Totali (su campagne filtrate)
-        let totSpesa = 0, totClick = 0;
+        let totSpesa = 0;
         conSpesa.forEach(c => {
             totSpesa += parseInt(c.totale_costo_micros || 0);
-            totClick += parseInt(c.totale_clic || 0);
         });
         const spesaEur = (totSpesa / 1000000).toFixed(2);
 
@@ -760,10 +758,6 @@
                     <div class="wc-item">
                         <span class="wc-num" style="color:#059669;">&euro; ${spesaEur}</span>
                         <span class="wc-label">Speso totale</span>
-                    </div>
-                    <div class="wc-item">
-                        <span class="wc-num" style="color:#1a73e8;">${totClick}</span>
-                        <span class="wc-label">Click totali</span>
                     </div>
                 </div>
                 <table style="width:100%; margin-top:10px; font-size:0.82rem; color:var(--gray-600, #4b5563); border-collapse:collapse;">
