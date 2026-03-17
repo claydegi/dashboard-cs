@@ -2971,7 +2971,7 @@ nav {
     font-weight: 700; margin-left: 4px; vertical-align: middle;
 }
 
-/* ==================== UPWORK ==================== */
+/* ==================== FREELANCER ==================== */
 
 .nav-badge {
     display: inline-block;
@@ -2985,7 +2985,7 @@ nav {
     vertical-align: middle;
 }
 
-.upwork-tabs {
+.freelancer-tabs {
     display: flex;
     gap: 4px;
     margin-bottom: 20px;
@@ -2993,7 +2993,7 @@ nav {
     padding-bottom: 0;
 }
 
-.upwork-tab {
+.freelancer-tab {
     padding: 10px 20px;
     background: none;
     border: none;
@@ -3005,14 +3005,14 @@ nav {
     transition: all 0.2s;
 }
 
-.upwork-tab:hover { color: #111827; }
+.freelancer-tab:hover { color: #111827; }
 
-.upwork-tab.active {
+.freelancer-tab.active {
     color: #3b82f6;
     border-bottom-color: #3b82f6;
 }
 
-.upwork-form-card {
+.freelancer-form-card {
     background: #f9fafb;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -3020,7 +3020,7 @@ nav {
     margin-bottom: 24px;
 }
 
-.upwork-dropzone {
+.freelancer-dropzone {
     border: 2px dashed #d1d5db;
     border-radius: 8px;
     padding: 32px;
@@ -3030,20 +3030,20 @@ nav {
     color: #6b7280;
 }
 
-.upwork-dropzone:hover, .upwork-dropzone.dragover {
+.freelancer-dropzone:hover, .freelancer-dropzone.dragover {
     border-color: #3b82f6;
     background: #eff6ff;
     color: #3b82f6;
 }
 
-.upwork-file-list {
+.freelancer-file-list {
     display: flex;
     flex-direction: column;
     gap: 6px;
     margin-top: 8px;
 }
 
-.upwork-file-item {
+.freelancer-file-item {
     display: flex;
     justify-content: space-between;
     align-items: center;
@@ -3054,7 +3054,7 @@ nav {
     font-size: 0.9rem;
 }
 
-.upwork-job-card {
+.freelancer-job-card {
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -3064,21 +3064,21 @@ nav {
     transition: all 0.2s;
 }
 
-.upwork-job-card:hover {
+.freelancer-job-card:hover {
     border-color: #3b82f6;
     box-shadow: 0 2px 8px rgba(59, 130, 246, 0.1);
 }
 
-.upwork-job-header {
+.freelancer-job-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
 }
 
-.upwork-job-header h3 { margin: 0; font-size: 1.1rem; }
+.freelancer-job-header h3 { margin: 0; font-size: 1.1rem; }
 
-.upwork-stato {
+.freelancer-stato {
     display: inline-block;
     color: white;
     font-size: 0.75rem;
@@ -3088,24 +3088,24 @@ nav {
     text-transform: uppercase;
 }
 
-.upwork-job-desc {
+.freelancer-job-desc {
     color: #6b7280;
     font-size: 0.9rem;
     margin: 0 0 12px 0;
     line-height: 1.4;
 }
 
-.upwork-job-footer {
+.freelancer-job-footer {
     display: flex;
     gap: 16px;
     font-size: 0.85rem;
     color: #9ca3af;
 }
 
-.upwork-detail { padding: 0; }
-.upwork-detail h2 { margin: 16px 0 8px; }
+.freelancer-detail { padding: 0; }
+.freelancer-detail h2 { margin: 16px 0 8px; }
 
-.upwork-detail-meta {
+.freelancer-detail-meta {
     display: flex;
     gap: 16px;
     align-items: center;
@@ -3114,9 +3114,9 @@ nav {
     font-size: 0.9rem;
 }
 
-.upwork-detail-desc,
-.upwork-detail-attachments,
-.upwork-detail-approvals {
+.freelancer-detail-desc,
+.freelancer-detail-attachments,
+.freelancer-detail-approvals {
     background: #f9fafb;
     border: 1px solid #e5e7eb;
     border-radius: 10px;
@@ -3124,14 +3124,14 @@ nav {
     margin-bottom: 16px;
 }
 
-.upwork-detail-desc h3,
-.upwork-detail-attachments h3,
-.upwork-detail-approvals h3 {
+.freelancer-detail-desc h3,
+.freelancer-detail-attachments h3,
+.freelancer-detail-approvals h3 {
     margin: 0 0 12px 0;
     font-size: 1rem;
 }
 
-.upwork-approval-card {
+.freelancer-approval-card {
     background: white;
     border: 1px solid #e5e7eb;
     border-radius: 12px;
@@ -3139,14 +3139,14 @@ nav {
     margin-bottom: 12px;
 }
 
-.upwork-approval-header {
+.freelancer-approval-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 8px;
 }
 
-.upwork-modulo-tag {
+.freelancer-modulo-tag {
     display: inline-block;
     background: #dbeafe;
     color: #1d4ed8;
@@ -3157,13 +3157,13 @@ nav {
     text-transform: capitalize;
 }
 
-.upwork-approval-action {
+.freelancer-approval-action {
     font-size: 1rem;
     font-weight: 500;
     margin: 0 0 8px 0;
 }
 
-.upwork-approval-details {
+.freelancer-approval-details {
     background: #f3f4f6;
     border-radius: 6px;
     padding: 12px;
@@ -3172,18 +3172,18 @@ nav {
     max-height: 200px;
 }
 
-.upwork-approval-item {
+.freelancer-approval-item {
     padding: 8px 12px;
     border-radius: 6px;
     margin-bottom: 6px;
     font-size: 0.9rem;
 }
 
-.upwork-approval-item.warning { background: #fef3c7; }
-.upwork-approval-item.success { background: #d1fae5; }
-.upwork-approval-item.danger { background: #fee2e2; }
+.freelancer-approval-item.warning { background: #fef3c7; }
+.freelancer-approval-item.success { background: #d1fae5; }
+.freelancer-approval-item.danger { background: #fee2e2; }
 
-.upwork-approval-stato {
+.freelancer-approval-stato {
     float: right;
     font-weight: 700;
     text-transform: uppercase;

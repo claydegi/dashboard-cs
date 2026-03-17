@@ -145,12 +145,12 @@ function switchSection(section) {
     document.getElementById('section-report-massimo').style.display = section === 'report-massimo' ? 'block' : 'none';
     document.getElementById('section-suture').style.display = section === 'suture' ? 'block' : 'none';
     document.getElementById('section-crm').style.display = section === 'crm' ? 'block' : 'none';
-    document.getElementById('section-upwork').style.display = section === 'upwork' ? 'block' : 'none';
+    document.getElementById('section-freelancer').style.display = section === 'freelancer' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'upwork') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {
@@ -169,9 +169,9 @@ function switchSection(section) {
         loadSuture();
     } else if (section === 'crm') {
         loadCrmRiepilogo();
-    } else if (section === 'upwork') {
-        loadUpworkJobs();
-        loadUpworkApprovals();
+    } else if (section === 'freelancer') {
+        loadFreelancerJobs();
+        loadFreelancerApprovals();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -1069,33 +1069,33 @@ async function loadCrmRiepilogo() {
     }
 }
 
-// ==================== UPWORK ====================
+// ==================== FREELANCER ====================
 
-let upworkPendingFiles = [];
+let freelancerPendingFiles = [];
 
 // Sub-tab switching
-document.querySelectorAll('.upwork-tab').forEach(tab => {
+document.querySelectorAll('.freelancer-tab').forEach(tab => {
     tab.addEventListener('click', () => {
-        document.querySelectorAll('.upwork-tab').forEach(t => t.classList.remove('active'));
-        document.querySelectorAll('.upwork-tab-content').forEach(c => c.style.display = 'none');
+        document.querySelectorAll('.freelancer-tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.freelancer-tab-content').forEach(c => c.style.display = 'none');
         tab.classList.add('active');
-        document.getElementById(`upwork-tab-${tab.dataset.upworkTab}`).style.display = 'block';
+        document.getElementById(`freelancer-tab-${tab.dataset.freelancerTab}`).style.display = 'block';
     });
 });
 
 // Toggle form nuovo progetto
 document.getElementById('btnNuovoJob').addEventListener('click', () => {
-    const form = document.getElementById('upwork-job-form');
+    const form = document.getElementById('freelancer-job-form');
     form.style.display = form.style.display === 'none' ? 'block' : 'none';
 });
 document.getElementById('btnAnnullaJob').addEventListener('click', () => {
-    document.getElementById('upwork-job-form').style.display = 'none';
-    resetUpworkForm();
+    document.getElementById('freelancer-job-form').style.display = 'none';
+    resetFreelancerForm();
 });
 
 // Drag & drop zone
-const dropzone = document.getElementById('upwork-dropzone');
-const fileInput = document.getElementById('upwork-files');
+const dropzone = document.getElementById('freelancer-dropzone');
+const fileInput = document.getElementById('freelancer-files');
 
 dropzone.addEventListener('click', () => fileInput.click());
 dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
@@ -1103,11 +1103,11 @@ dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover
 dropzone.addEventListener('drop', (e) => {
     e.preventDefault();
     dropzone.classList.remove('dragover');
-    handleUpworkFiles(e.dataTransfer.files);
+    handleFreelancerFiles(e.dataTransfer.files);
 });
-fileInput.addEventListener('change', () => handleUpworkFiles(fileInput.files));
+fileInput.addEventListener('change', () => handleFreelancerFiles(fileInput.files));
 
-function handleUpworkFiles(files) {
+function handleFreelancerFiles(files) {
     Array.from(files).forEach(file => {
         if (file.size > 8 * 1024 * 1024) {
             showToast(`${file.name} troppo grande (max 8MB)`, 'error');
@@ -1115,65 +1115,65 @@ function handleUpworkFiles(files) {
         }
         const reader = new FileReader();
         reader.onload = () => {
-            upworkPendingFiles.push({ nome_file: file.name, tipo_file: file.type, file_base64: reader.result });
-            renderUpworkFileList();
+            freelancerPendingFiles.push({ nome_file: file.name, tipo_file: file.type, file_base64: reader.result });
+            renderFreelancerFileList();
         };
         reader.readAsDataURL(file);
     });
 }
 
-function renderUpworkFileList() {
-    const list = document.getElementById('upwork-file-list');
-    list.innerHTML = upworkPendingFiles.map((f, i) => `
-        <div class="upwork-file-item">
+function renderFreelancerFileList() {
+    const list = document.getElementById('freelancer-file-list');
+    list.innerHTML = freelancerPendingFiles.map((f, i) => `
+        <div class="freelancer-file-item">
             <span>${f.nome_file}</span>
-            <button class="btn-small btn-danger" onclick="removeUpworkFile(${i})">&times;</button>
+            <button class="btn-small btn-danger" onclick="removeFreelancerFile(${i})">&times;</button>
         </div>
     `).join('');
 }
 
-function removeUpworkFile(index) {
-    upworkPendingFiles.splice(index, 1);
-    renderUpworkFileList();
+function removeFreelancerFile(index) {
+    freelancerPendingFiles.splice(index, 1);
+    renderFreelancerFileList();
 }
 
-function resetUpworkForm() {
-    document.getElementById('upwork-titolo').value = '';
-    document.getElementById('upwork-descrizione').value = '';
-    document.getElementById('upwork-budget').value = '';
-    upworkPendingFiles = [];
-    renderUpworkFileList();
+function resetFreelancerForm() {
+    document.getElementById('freelancer-titolo').value = '';
+    document.getElementById('freelancer-descrizione').value = '';
+    document.getElementById('freelancer-budget').value = '';
+    freelancerPendingFiles = [];
+    renderFreelancerFileList();
 }
 
 // Salva progetto
 document.getElementById('btnSalvaJob').addEventListener('click', async () => {
-    const titolo = document.getElementById('upwork-titolo').value.trim();
-    const descrizione_testo = document.getElementById('upwork-descrizione').value.trim();
-    const budget_max = document.getElementById('upwork-budget').value || null;
+    const titolo = document.getElementById('freelancer-titolo').value.trim();
+    const descrizione_testo = document.getElementById('freelancer-descrizione').value.trim();
+    const budget_max = document.getElementById('freelancer-budget').value || null;
 
     if (!titolo) { showToast('Titolo obbligatorio', 'error'); return; }
 
     try {
-        const res = await fetch(`${API_URL}/upwork/jobs?key=${ADMIN_KEY}`, {
+        const res = await fetch(`${API_URL}/freelancer/jobs?key=${ADMIN_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ titolo, descrizione_testo, budget_max, allegati: upworkPendingFiles })
+            body: JSON.stringify({ titolo, descrizione_testo, budget_max, allegati: freelancerPendingFiles })
         });
         if (!res.ok) throw new Error((await res.json()).error);
         showToast('Progetto creato');
-        document.getElementById('upwork-job-form').style.display = 'none';
-        resetUpworkForm();
-        loadUpworkJobs();
+        document.getElementById('freelancer-job-form').style.display = 'none';
+        resetFreelancerForm();
+        loadFreelancerJobs();
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }
 });
 
 // Carica lista progetti
-async function loadUpworkJobs() {
-    const container = document.getElementById('upwork-jobs-list');
+async function loadFreelancerJobs() {
+    const container = document.getElementById('freelancer-jobs-list');
     try {
-        const res = await fetch(`${API_URL}/upwork/jobs?key=${ADMIN_KEY}`);
+        const res = await fetch(`${API_URL}/freelancer/jobs?key=${ADMIN_KEY}`);
         if (!res.ok) throw new Error('Errore caricamento');
         const jobs = await res.json();
 
@@ -1187,13 +1187,13 @@ async function loadUpworkJobs() {
             const color = statoColors[j.stato] || '#6b7280';
             const pending = j.num_pending > 0 ? `<span class="nav-badge">${j.num_pending}</span>` : '';
             return `
-                <div class="upwork-job-card" onclick="openUpworkJob(${j.id})">
-                    <div class="upwork-job-header">
+                <div class="freelancer-job-card" onclick="openFreelancerJob(${j.id})">
+                    <div class="freelancer-job-header">
                         <h3>${j.titolo}</h3>
-                        <span class="upwork-stato" style="background:${color}">${j.stato}</span>
+                        <span class="freelancer-stato" style="background:${color}">${j.stato}</span>
                     </div>
-                    <p class="upwork-job-desc">${(j.descrizione_testo || '').substring(0, 150)}${(j.descrizione_testo || '').length > 150 ? '...' : ''}</p>
-                    <div class="upwork-job-footer">
+                    <p class="freelancer-job-desc">${(j.descrizione_testo || '').substring(0, 150)}${(j.descrizione_testo || '').length > 150 ? '...' : ''}</p>
+                    <div class="freelancer-job-footer">
                         <span>${j.budget_max ? '€' + Number(j.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
                         <span>${j.num_allegati} allegati</span>
                         <span>${pending} ${new Date(j.created_at).toLocaleDateString('it')}</span>
@@ -1207,53 +1207,53 @@ async function loadUpworkJobs() {
 }
 
 // Apri dettaglio progetto
-async function openUpworkJob(id) {
-    const container = document.getElementById('upwork-jobs-list');
+async function openFreelancerJob(id) {
+    const container = document.getElementById('freelancer-jobs-list');
     try {
-        const res = await fetch(`${API_URL}/upwork/jobs/${id}?key=${ADMIN_KEY}`);
+        const res = await fetch(`${API_URL}/freelancer/jobs/${id}?key=${ADMIN_KEY}`);
         if (!res.ok) throw new Error('Errore caricamento');
         const job = await res.json();
 
         const allegatiHtml = job.allegati.map(a => `
-            <div class="upwork-file-item">
+            <div class="freelancer-file-item">
                 <span>${a.nome_file} (${a.dimensione_kb} KB)</span>
-                <button class="btn-small btn-danger" onclick="deleteUpworkAttachment(${id}, ${a.id})">&times;</button>
+                <button class="btn-small btn-danger" onclick="deleteFreelancerAttachment(${id}, ${a.id})">&times;</button>
             </div>
         `).join('') || '<p style="color:#6b7280;">Nessun allegato</p>';
 
         const approvazioniHtml = job.approvazioni.map(a => {
             const statoClass = a.stato === 'pending' ? 'warning' : a.stato === 'approved' ? 'success' : 'danger';
             return `
-                <div class="upwork-approval-item ${statoClass}">
+                <div class="freelancer-approval-item ${statoClass}">
                     <strong>[${a.modulo}]</strong> ${a.azione}
-                    <span class="upwork-approval-stato">${a.stato}</span>
+                    <span class="freelancer-approval-stato">${a.stato}</span>
                 </div>
             `;
         }).join('') || '<p style="color:#6b7280;">Nessuna approvazione richiesta</p>';
 
         container.innerHTML = `
-            <div class="upwork-detail">
-                <button class="btn" onclick="loadUpworkJobs()">&larr; Torna alla lista</button>
+            <div class="freelancer-detail">
+                <button class="btn" onclick="loadFreelancerJobs()">&larr; Torna alla lista</button>
                 <h2>${job.titolo}</h2>
-                <div class="upwork-detail-meta">
-                    <span class="upwork-stato" style="background:${job.stato === 'bozza' ? '#6b7280' : '#3b82f6'}">${job.stato}</span>
+                <div class="freelancer-detail-meta">
+                    <span class="freelancer-stato" style="background:${job.stato === 'bozza' ? '#6b7280' : '#3b82f6'}">${job.stato}</span>
                     <span>${job.budget_max ? '€' + Number(job.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
                     <span>Creato: ${new Date(job.created_at).toLocaleDateString('it')}</span>
                 </div>
-                <div class="upwork-detail-desc">
+                <div class="freelancer-detail-desc">
                     <h3>Descrizione</h3>
                     <p>${(job.descrizione_testo || 'Nessuna descrizione').replace(/\n/g, '<br>')}</p>
                 </div>
-                <div class="upwork-detail-attachments">
+                <div class="freelancer-detail-attachments">
                     <h3>Allegati</h3>
                     ${allegatiHtml}
                 </div>
-                <div class="upwork-detail-approvals">
+                <div class="freelancer-detail-approvals">
                     <h3>Approvazioni</h3>
                     ${approvazioniHtml}
                 </div>
                 <div class="form-actions" style="margin-top:20px;">
-                    <button class="btn btn-danger" onclick="deleteUpworkJob(${id})">Elimina Progetto</button>
+                    <button class="btn btn-danger" onclick="deleteFreelancerJob(${id})">Elimina Progetto</button>
                 </div>
             </div>
         `;
@@ -1262,41 +1262,41 @@ async function openUpworkJob(id) {
     }
 }
 
-async function deleteUpworkJob(id) {
+async function deleteFreelancerJob(id) {
     if (!confirm('Eliminare questo progetto e tutti i suoi allegati?')) return;
     try {
-        const res = await fetch(`${API_URL}/upwork/jobs/${id}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/freelancer/jobs/${id}?key=${ADMIN_KEY}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Errore eliminazione');
         showToast('Progetto eliminato');
-        loadUpworkJobs();
+        loadFreelancerJobs();
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }
 }
 
-async function deleteUpworkAttachment(jobId, attachmentId) {
+async function deleteFreelancerAttachment(jobId, attachmentId) {
     if (!confirm('Rimuovere questo allegato?')) return;
     try {
-        const res = await fetch(`${API_URL}/upwork/jobs/${jobId}/attachments/${attachmentId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/attachments/${attachmentId}?key=${ADMIN_KEY}`, { method: 'DELETE' });
         if (!res.ok) throw new Error('Errore eliminazione');
         showToast('Allegato rimosso');
-        openUpworkJob(jobId);
+        openFreelancerJob(jobId);
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }
 }
 
 // Approvazioni
-async function loadUpworkApprovals() {
-    const container = document.getElementById('upwork-approvals-list');
+async function loadFreelancerApprovals() {
+    const container = document.getElementById('freelancer-approvals-list');
     try {
-        const res = await fetch(`${API_URL}/upwork/approvals?key=${ADMIN_KEY}`);
+        const res = await fetch(`${API_URL}/freelancer/approvals?key=${ADMIN_KEY}`);
         if (!res.ok) throw new Error('Errore caricamento');
         const approvals = await res.json();
 
         // Badge
-        const badge = document.getElementById('upwork-badge');
-        const countBadge = document.getElementById('upwork-approvals-count');
+        const badge = document.getElementById('freelancer-badge');
+        const countBadge = document.getElementById('freelancer-approvals-count');
         if (approvals.length > 0) {
             badge.textContent = approvals.length;
             badge.style.display = 'inline';
@@ -1313,19 +1313,19 @@ async function loadUpworkApprovals() {
         }
 
         container.innerHTML = approvals.map(a => `
-            <div class="upwork-approval-card">
-                <div class="upwork-approval-header">
-                    <span class="upwork-modulo-tag">${a.modulo.replace('_', ' ')}</span>
+            <div class="freelancer-approval-card">
+                <div class="freelancer-approval-header">
+                    <span class="freelancer-modulo-tag">${a.modulo.replace('_', ' ')}</span>
                     <span style="color:#6b7280;font-size:0.85rem;">${a.job_titolo}</span>
                 </div>
-                <p class="upwork-approval-action">${a.azione}</p>
-                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? `<pre class="upwork-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>` : ''}
+                <p class="freelancer-approval-action">${a.azione}</p>
+                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>` : ''}
                 <div class="form-group" style="margin-top:8px;">
-                    <input type="text" id="upwork-nota-${a.id}" placeholder="Nota (opzionale)">
+                    <input type="text" id="freelancer-nota-${a.id}" placeholder="Nota (opzionale)">
                 </div>
                 <div class="form-actions">
-                    <button class="btn btn-primary" onclick="decideUpworkApproval(${a.id}, 'approved')">Approva</button>
-                    <button class="btn btn-danger" onclick="decideUpworkApproval(${a.id}, 'rejected')">Rifiuta</button>
+                    <button class="btn btn-primary" onclick="decideFreelancerApproval(${a.id}, 'approved')">Approva</button>
+                    <button class="btn btn-danger" onclick="decideFreelancerApproval(${a.id}, 'rejected')">Rifiuta</button>
                 </div>
             </div>
         `).join('');
@@ -1334,29 +1334,29 @@ async function loadUpworkApprovals() {
     }
 }
 
-async function decideUpworkApproval(id, stato) {
-    const nota = document.getElementById(`upwork-nota-${id}`)?.value || '';
+async function decideFreelancerApproval(id, stato) {
+    const nota = document.getElementById(`freelancer-nota-${id}`)?.value || '';
     try {
-        const res = await fetch(`${API_URL}/upwork/approvals/${id}/decide?key=${ADMIN_KEY}`, {
+        const res = await fetch(`${API_URL}/freelancer/approvals/${id}/decide?key=${ADMIN_KEY}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ stato, risposta_imprenditore: nota })
         });
         if (!res.ok) throw new Error((await res.json()).error);
         showToast(stato === 'approved' ? 'Approvato' : 'Rifiutato');
-        loadUpworkApprovals();
+        loadFreelancerApprovals();
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }
 }
 
 // Carica conteggio approvazioni al load
-(async function initUpworkBadge() {
+(async function initFreelancerBadge() {
     try {
-        const res = await fetch(`${API_URL}/upwork/approvals?key=${ADMIN_KEY}`);
+        const res = await fetch(`${API_URL}/freelancer/approvals?key=${ADMIN_KEY}`);
         if (res.ok) {
             const approvals = await res.json();
-            const badge = document.getElementById('upwork-badge');
+            const badge = document.getElementById('freelancer-badge');
             if (approvals.length > 0) {
                 badge.textContent = approvals.length;
                 badge.style.display = 'inline';
