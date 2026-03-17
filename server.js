@@ -1009,10 +1009,16 @@ async function initDB() {
                 descrizione_testo TEXT,
                 stato TEXT DEFAULT 'bozza',
                 budget_max NUMERIC,
+                freelancer_project_id BIGINT,
+                freelancer_url TEXT,
                 created_at TIMESTAMPTZ DEFAULT NOW(),
                 updated_at TIMESTAMPTZ DEFAULT NOW()
             )
         `);
+
+        // Migration: aggiungi colonne Freelancer.com se mancanti
+        await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_project_id BIGINT`).catch(() => {});
+        await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_url TEXT`).catch(() => {});
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS freelancer_attachments (
@@ -8884,6 +8890,121 @@ app.put('/api/freelancer/approvals/:id/decide', requireAdmin, async (req, res) =
     } catch (err) {
         console.error('[Freelancer] Errore decisione approval:', err);
         res.status(500).json({ error: 'Errore decisione approvazione' });
+    }
+});
+
+// ==================== FREELANCER.COM API INTEGRATION ====================
+
+const FREELANCER_API_BASE = 'https://www.freelancer.com/api';
+const FREELANCER_TOKEN = process.env.FREELANCER_TOKEN || '';
+
+async function freelancerApiCall(method, endpoint, body = null) {
+    if (!FREELANCER_TOKEN) throw new Error('FREELANCER_TOKEN non configurato');
+    const opts = {
+        method,
+        headers: { 'Freelancer-OAuth-V1': FREELANCER_TOKEN, 'Content-Type': 'application/json' }
+    };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(`${FREELANCER_API_BASE}${endpoint}`, opts);
+    const data = await res.json();
+    if (data.status !== 'success') throw new Error(data.message || 'Errore API Freelancer.com');
+    return data.result;
+}
+
+// Pubblica progetto su Freelancer.com
+app.post('/api/freelancer/jobs/:id/publish', requireAdmin, async (req, res) => {
+    try {
+        const job = await pool.query('SELECT * FROM freelancer_jobs WHERE id = $1', [req.params.id]);
+        if (job.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+
+        const j = job.rows[0];
+        if (j.freelancer_project_id) return res.status(400).json({ error: 'Progetto gia\' pubblicato su Freelancer.com' });
+
+        const { skill_ids, budget_min } = req.body;
+        const projectData = {
+            title: j.titolo,
+            description: j.descrizione_testo || j.titolo,
+            currency: { id: 3 },
+            budget: { minimum: budget_min || 100, maximum: j.budget_max || 500 },
+            jobs: (skill_ids || [676]).map(id => ({ id })),
+            type: 'fixed'
+        };
+
+        const result = await freelancerApiCall('POST', '/projects/0.1/projects/', projectData);
+
+        await pool.query(`
+            UPDATE freelancer_jobs SET freelancer_project_id = $1, freelancer_url = $2, stato = 'pubblicato', updated_at = NOW()
+            WHERE id = $3
+        `, [result.id, `https://www.freelancer.com/projects/${result.seo_url}`, req.params.id]);
+
+        console.log(`[Freelancer] Progetto ${req.params.id} pubblicato su Freelancer.com: ID ${result.id}`);
+        res.json({ ok: true, freelancer_project_id: result.id, url: `https://www.freelancer.com/projects/${result.seo_url}` });
+    } catch (err) {
+        console.error('[Freelancer] Errore pubblicazione:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Vedi proposte (bids) per un progetto
+app.get('/api/freelancer/jobs/:id/bids', requireAdmin, async (req, res) => {
+    try {
+        const job = await pool.query('SELECT freelancer_project_id FROM freelancer_jobs WHERE id = $1', [req.params.id]);
+        if (job.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+        if (!job.rows[0].freelancer_project_id) return res.status(400).json({ error: 'Progetto non ancora pubblicato su Freelancer.com' });
+
+        const fpid = job.rows[0].freelancer_project_id;
+        const result = await freelancerApiCall('GET', `/projects/0.1/bids/?projects[]=${fpid}&user_details=true&user_reputation_details=true`);
+
+        const bids = (result.bids || []).map(b => ({
+            id: b.id,
+            freelancer_id: b.bidder_id,
+            freelancer_name: result.users?.[b.bidder_id]?.display_name || 'N/A',
+            freelancer_username: result.users?.[b.bidder_id]?.username || 'N/A',
+            amount: b.amount,
+            period: b.period,
+            description: b.description,
+            reputation: result.users?.[b.bidder_id]?.reputation?.entire_history?.overall || 0,
+            reviews_count: result.users?.[b.bidder_id]?.reputation?.entire_history?.all || 0,
+            submitted: b.submitdate
+        }));
+
+        res.json({ bids, total: bids.length });
+    } catch (err) {
+        console.error('[Freelancer] Errore caricamento bids:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Categorie skill Freelancer.com
+app.get('/api/freelancer/skills', requireAdmin, async (req, res) => {
+    try {
+        const q = req.query.q || '';
+        const result = await freelancerApiCall('GET', `/projects/0.1/jobs/?lang=en&count=50${q ? '&job_names[]=' + encodeURIComponent(q) : ''}`);
+        res.json(result || []);
+    } catch (err) {
+        console.error('[Freelancer] Errore caricamento skills:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// Dettaglio progetto da Freelancer.com (stato live, bid count)
+app.get('/api/freelancer/jobs/:id/live', requireAdmin, async (req, res) => {
+    try {
+        const job = await pool.query('SELECT freelancer_project_id FROM freelancer_jobs WHERE id = $1', [req.params.id]);
+        if (job.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+        if (!job.rows[0].freelancer_project_id) return res.status(400).json({ error: 'Non pubblicato' });
+
+        const result = await freelancerApiCall('GET', `/projects/0.1/projects/${job.rows[0].freelancer_project_id}/?full_description=true&user_details=true`);
+        res.json({
+            status: result.status,
+            bid_count: result.bid_stats?.bid_count || 0,
+            bid_avg: result.bid_stats?.bid_avg || null,
+            title: result.title,
+            url: `https://www.freelancer.com/projects/${result.seo_url}`
+        });
+    } catch (err) {
+        console.error('[Freelancer] Errore stato live:', err);
+        res.status(500).json({ error: err.message });
     }
 });
 

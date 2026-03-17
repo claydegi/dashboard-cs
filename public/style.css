@@ -3202,3 +3202,57 @@ nav {
     background: #ef4444;
     color: white;
 }
+
+.freelancer-live-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 16px;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.freelancer-publish-box {
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+}
+
+.freelancer-publish-box h3 { margin: 0 0 12px 0; }
+
+.freelancer-bids-section { margin-top: 16px; }
+.freelancer-bids-section h3 { margin: 0 0 12px 0; }
+
+.freelancer-bid-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 10px;
+}
+
+.freelancer-bid-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+}
+
+.freelancer-bid-amount {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #111827;
+    margin: 4px 0;
+}
+
+.freelancer-bid-desc {
+    color: #6b7280;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    margin: 0;
+}

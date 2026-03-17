@@ -1231,15 +1231,42 @@ async function openFreelancerJob(id) {
             `;
         }).join('') || '<p style="color:#6b7280;">Nessuna approvazione richiesta</p>';
 
+        // Bottone pubblica o link al progetto live
+        let publishHtml = '';
+        if (job.freelancer_project_id) {
+            publishHtml = `
+                <div class="freelancer-live-bar">
+                    <span class="freelancer-stato" style="background:#22c55e">LIVE su Freelancer.com</span>
+                    <a href="${job.freelancer_url}" target="_blank" class="btn btn-primary">Vedi su Freelancer.com &rarr;</a>
+                    <button class="btn" onclick="loadFreelancerBids(${id})">Vedi Proposte</button>
+                </div>
+                <div id="freelancer-bids-${id}"></div>
+            `;
+        } else if (job.stato === 'bozza') {
+            publishHtml = `
+                <div class="freelancer-publish-box">
+                    <h3>Pubblica su Freelancer.com</h3>
+                    <div class="form-group">
+                        <label>Budget minimo (EUR)</label>
+                        <input type="number" id="freelancer-pub-min-${id}" value="100" min="10" step="10">
+                    </div>
+                    <button class="btn btn-primary" onclick="publishToFreelancer(${id})">Pubblica su Freelancer.com</button>
+                </div>
+            `;
+        }
+
+        const statoColors = { bozza: '#6b7280', pubblicato: '#3b82f6', in_corso: '#f59e0b', completato: '#22c55e', annullato: '#ef4444' };
+
         container.innerHTML = `
             <div class="freelancer-detail">
                 <button class="btn" onclick="loadFreelancerJobs()">&larr; Torna alla lista</button>
                 <h2>${job.titolo}</h2>
                 <div class="freelancer-detail-meta">
-                    <span class="freelancer-stato" style="background:${job.stato === 'bozza' ? '#6b7280' : '#3b82f6'}">${job.stato}</span>
-                    <span>${job.budget_max ? '€' + Number(job.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
+                    <span class="freelancer-stato" style="background:${statoColors[job.stato] || '#6b7280'}">${job.stato}</span>
+                    <span>${job.budget_max ? '\u20ac' + Number(job.budget_max).toLocaleString('it') : 'Budget non definito'}</span>
                     <span>Creato: ${new Date(job.created_at).toLocaleDateString('it')}</span>
                 </div>
+                ${publishHtml}
                 <div class="freelancer-detail-desc">
                     <h3>Descrizione</h3>
                     <p>${(job.descrizione_testo || 'Nessuna descrizione').replace(/\n/g, '<br>')}</p>
@@ -1259,6 +1286,62 @@ async function openFreelancerJob(id) {
         `;
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Pubblica progetto su Freelancer.com
+async function publishToFreelancer(jobId) {
+    if (!confirm('Pubblicare questo progetto su Freelancer.com?')) return;
+    const budget_min = document.getElementById(`freelancer-pub-min-${jobId}`)?.value || 100;
+    try {
+        const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/publish?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ budget_min: Number(budget_min) })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        showToast('Pubblicato su Freelancer.com!');
+        openFreelancerJob(jobId);
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Carica proposte (bids) per un progetto
+async function loadFreelancerBids(jobId) {
+    const container = document.getElementById(`freelancer-bids-${jobId}`);
+    if (!container) return;
+    container.innerHTML = '<p class="loading">Caricamento proposte...</p>';
+    try {
+        const res = await fetch(`${API_URL}/freelancer/jobs/${jobId}/bids?key=${ADMIN_KEY}`);
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+
+        if (data.bids.length === 0) {
+            container.innerHTML = '<p style="color:#6b7280;padding:16px;">Nessuna proposta ricevuta ancora.</p>';
+            return;
+        }
+
+        container.innerHTML = `
+            <div class="freelancer-bids-section">
+                <h3>Proposte ricevute (${data.total})</h3>
+                ${data.bids.map(b => `
+                    <div class="freelancer-bid-card">
+                        <div class="freelancer-bid-header">
+                            <strong>${b.freelancer_name}</strong>
+                            <span class="freelancer-modulo-tag">${b.freelancer_username}</span>
+                            <span style="color:#f59e0b;font-weight:700;">\u2605 ${b.reputation.toFixed(1)}</span>
+                            <span style="color:#6b7280;">(${b.reviews_count} recensioni)</span>
+                        </div>
+                        <p class="freelancer-bid-amount">\u20ac${Number(b.amount).toLocaleString('it')} &mdash; ${b.period} giorni</p>
+                        <p class="freelancer-bid-desc">${(b.description || '').substring(0, 300)}${(b.description || '').length > 300 ? '...' : ''}</p>
+                    </div>
+                `).join('')}
+            </div>
+        `;
+    } catch (err) {
+        container.innerHTML = `<p style="color:#dc2626;">Errore: ${err.message}</p>`;
     }
 }
 
