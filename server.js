@@ -7822,6 +7822,35 @@ app.get('/api/youtube/promossi', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/youtube/retention/:video_id — curva retention per video (100 segmenti)
+app.get('/api/youtube/retention/:video_id', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `SELECT segmento_percentuale, audience_watch_ratio, relative_retention, data_snapshot
+             FROM yt_retention
+             WHERE video_id = $1
+             ORDER BY data_snapshot DESC, segmento_percentuale ASC`,
+            [req.params.video_id]
+        );
+        // Prendi solo la snapshot piu' recente
+        if (result.rows.length === 0) {
+            return res.json({ video_id: req.params.video_id, retention: [], nota: 'Nessun dato retention per questo video' });
+        }
+        const latestDate = result.rows[0].data_snapshot;
+        const retention = result.rows
+            .filter(r => r.data_snapshot.toISOString().slice(0,10) === latestDate.toISOString().slice(0,10))
+            .map(r => ({
+                segmento_pct: r.segmento_percentuale,
+                audience_watch_ratio: r.audience_watch_ratio,
+                relative_retention: r.relative_retention
+            }));
+        res.json({ video_id: req.params.video_id, data_snapshot: latestDate, punti: retention.length, retention });
+    } catch (err) {
+        console.error('[YouTube Retention]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== WEBINAR FORUM Q&A ====================
 
 // GET /api/webinar/forum/topics — lista topic per webinar
