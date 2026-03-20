@@ -8996,6 +8996,51 @@ app.put('/api/freelancer/approvals/:id/decide', requireAdmin, async (req, res) =
             }
         }
 
+        // Se talent_scout approvato → esegui Negotiator automaticamente
+        if (stato === 'approved' && approval.modulo === 'talent_scout') {
+            try {
+                const { selected_candidate_rank } = req.body;
+                if (!selected_candidate_rank || ![1, 2, 3].includes(selected_candidate_rank)) {
+                    return res.status(400).json({ error: 'Devi selezionare quale candidato assumere (1, 2, o 3)' });
+                }
+
+                const { runNegotiator } = require('./scripts/negotiator.js');
+                const dettagli = approval.dettagli;
+
+                // Estrai il candidato selezionato (ranking 1, 2, o 3)
+                const selectedCandidate = dettagli.top_3.find(c => c.ranking === selected_candidate_rank);
+                if (!selectedCandidate) {
+                    return res.status(400).json({ error: 'Candidato selezionato non trovato' });
+                }
+
+                console.log(`[Negotiator] Avvio automatico per candidato #${selected_candidate_rank}: @${selectedCandidate.username}`);
+
+                // Esegui Negotiator
+                const negotiatorResult = await runNegotiator(
+                    req.params.id,
+                    selectedCandidate,
+                    pool,
+                    process.env.ANTHROPIC_API_KEY,
+                    freelancerApiCall
+                );
+
+                console.log(`[Negotiator] Progetto assegnato automaticamente a @${selectedCandidate.username}`);
+
+                return res.json({
+                    ...approval,
+                    negotiator_executed: true,
+                    negotiator_details: negotiatorResult
+                });
+
+            } catch (negotiatorErr) {
+                console.error('[Negotiator] Errore esecuzione automatica:', negotiatorErr);
+                return res.json({
+                    ...approval,
+                    negotiator_error: negotiatorErr.message
+                });
+            }
+        }
+
         res.json(approval);
     } catch (err) {
         console.error('[Freelancer] Errore decisione approval:', err);

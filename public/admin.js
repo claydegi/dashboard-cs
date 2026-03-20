@@ -1506,8 +1506,8 @@ function formatJobComposerDetails(dettagli) {
     `;
 }
 
-// Formatta dettagli Talent Scout in modo leggibile
-function formatTalentScoutDetails(dettagli) {
+// Formatta dettagli Talent Scout in modo leggibile (con selezione candidato)
+function formatTalentScoutDetails(dettagli, approvalId) {
     if (!dettagli || !dettagli.top_3) return '';
 
     const candidatesHtml = dettagli.top_3.map((c, idx) => {
@@ -1528,7 +1528,15 @@ function formatTalentScoutDetails(dettagli) {
             <div style="background:#fff;border:2px solid ${medalColors[idx]};border-radius:12px;padding:20px;margin-bottom:16px;position:relative;">
                 <div style="position:absolute;top:12px;right:12px;font-size:2rem;">${medalEmoji[idx]}</div>
 
-                <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">
+                <!-- Radio button per selezione candidato -->
+                <div style="position:absolute;top:12px;left:12px;">
+                    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;background:#fff;padding:8px 12px;border-radius:8px;border:2px solid ${medalColors[idx]};box-shadow:0 2px 4px rgba(0,0,0,0.1);">
+                        <input type="radio" name="talent-scout-candidate-${approvalId}" value="${c.ranking}" ${idx === 0 ? 'checked' : ''} style="width:18px;height:18px;cursor:pointer;">
+                        <span style="font-size:0.85rem;font-weight:700;color:#111827;">Assumi</span>
+                    </label>
+                </div>
+
+                <div style="margin-bottom:12px;padding-bottom:12px;border-top:60px;border-bottom:2px solid #e5e7eb;">
                     <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Candidato #${c.ranking}</div>
                     <div style="font-size:1.2rem;font-weight:700;color:#111827;margin-bottom:4px;">@${escapeHtml(c.username || 'N/A')}</div>
                     <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
@@ -1565,6 +1573,10 @@ function formatTalentScoutDetails(dettagli) {
             <div style="background:#7c3aed;color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:16px;text-align:center;">
                 <div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">🔍 Talent Scout</div>
                 <div style="font-size:1.1rem;font-weight:600;">Top 3 Candidati Selezionati</div>
+            </div>
+
+            <div style="background:#fef3c7;border:1px solid #fbbf24;border-radius:8px;padding:12px;margin-bottom:16px;text-align:center;">
+                <span style="font-size:0.9rem;color:#92400e;">👆 Seleziona il candidato da assumere e poi clicca Approva</span>
             </div>
 
             ${candidatesHtml}
@@ -1614,15 +1626,15 @@ async function loadFreelancerApprovals() {
                 <p class="freelancer-approval-action">${a.azione}</p>
                 ${a.dettagli && Object.keys(a.dettagli).length > 0 ? (
                     a.modulo === 'job_composer' ? formatJobComposerDetails(a.dettagli) :
-                    a.modulo === 'talent_scout' ? formatTalentScoutDetails(a.dettagli) :
+                    a.modulo === 'talent_scout' ? formatTalentScoutDetails(a.dettagli, a.id) :
                     `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>`
                 ) : ''}
                 <div class="form-group" style="margin-top:8px;">
                     <input type="text" id="freelancer-nota-${a.id}" placeholder="Nota (opzionale)">
                 </div>
                 <div class="form-actions">
-                    <button class="btn btn-primary" onclick="decideFreelancerApproval(${a.id}, 'approved')">Approva</button>
-                    <button class="btn btn-danger" onclick="decideFreelancerApproval(${a.id}, 'rejected')">Rifiuta</button>
+                    <button class="btn btn-primary" onclick="decideFreelancerApproval(${a.id}, 'approved', '${a.modulo}')">Approva</button>
+                    <button class="btn btn-danger" onclick="decideFreelancerApproval(${a.id}, 'rejected', '${a.modulo}')">Rifiuta</button>
                 </div>
             </div>
         `).join('');
@@ -1631,17 +1643,42 @@ async function loadFreelancerApprovals() {
     }
 }
 
-async function decideFreelancerApproval(id, stato) {
+async function decideFreelancerApproval(id, stato, modulo) {
     const nota = document.getElementById(`freelancer-nota-${id}`)?.value || '';
+
+    // Se è talent_scout e approvato, estrai il candidato selezionato
+    let selectedCandidateRank = null;
+    if (modulo === 'talent_scout' && stato === 'approved') {
+        const radioButtons = document.getElementsByName(`talent-scout-candidate-${id}`);
+        const selectedRadio = Array.from(radioButtons).find(r => r.checked);
+        if (!selectedRadio) {
+            showToast('Seleziona quale candidato assumere', 'error');
+            return;
+        }
+        selectedCandidateRank = parseInt(selectedRadio.value);
+    }
+
     try {
+        const body = { stato, risposta_imprenditore: nota };
+        if (selectedCandidateRank) {
+            body.selected_candidate_rank = selectedCandidateRank;
+        }
+
         const res = await fetch(`${API_URL}/freelancer/approvals/${id}/decide?key=${ADMIN_KEY}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ stato, risposta_imprenditore: nota })
+            body: JSON.stringify(body)
         });
         if (!res.ok) throw new Error((await res.json()).error);
-        showToast(stato === 'approved' ? 'Approvato' : 'Rifiutato');
-        loadFreelancerApprovals();
+
+        if (stato === 'approved' && modulo === 'talent_scout') {
+            showToast('✅ Candidato approvato! Negotiator in corso...');
+            // Aspetta un po' di più per il Negotiator
+            setTimeout(() => loadFreelancerApprovals(), 2000);
+        } else {
+            showToast(stato === 'approved' ? 'Approvato' : 'Rifiutato');
+            loadFreelancerApprovals();
+        }
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }

@@ -16,6 +16,7 @@ function buildPrompt(job, bids) {
 ## PROPOSTA ${idx + 1}
 
 **Freelancer:** ${bid.bidder_id} - ${bid.username || 'N/A'}
+**Bid ID:** ${bid.bid_id}
 **Rating:** ${bid.reputation?.entire_history?.overall || 0}/10 (${bid.reputation?.entire_history?.reviews || 0} recensioni)
 **Completamenti:** ${bid.reputation?.entire_history?.complete || 0} progetti completati
 **On Budget:** ${bid.reputation?.entire_history?.on_budget || 0}%
@@ -23,6 +24,7 @@ function buildPrompt(job, bids) {
 **Paese:** ${bid.country || 'N/A'}
 
 **Offerta:**
+- Bid ID: ${bid.bid_id}
 - Prezzo: ${bid.amount} EUR
 - Tempi: ${bid.period} giorni
 - Milestone: ${bid.milestone_percentage || 0}%
@@ -75,6 +77,9 @@ Genera un JSON con questa struttura:
     {
       "bidder_id": 12345,
       "username": "nome_freelancer",
+      "bid_id": 98765,
+      "amount": 350,
+      "period": 7,
       "ranking": 1,
       "punteggio_totale": 85,
       "motivazione": "Breve spiegazione (2-3 frasi) del perché è il candidato migliore. Evidenzia punti di forza specifici.",
@@ -85,6 +90,9 @@ Genera un JSON con questa struttura:
     {
       "bidder_id": 67890,
       "username": "altro_freelancer",
+      "bid_id": 98766,
+      "amount": 420,
+      "period": 10,
       "ranking": 2,
       "punteggio_totale": 78,
       "motivazione": "...",
@@ -95,6 +103,9 @@ Genera un JSON con questa struttura:
     {
       "bidder_id": 11111,
       "username": "terzo_freelancer",
+      "bid_id": 98767,
+      "amount": 280,
+      "period": 5,
       "ranking": 3,
       "punteggio_totale": 72,
       "motivazione": "...",
@@ -116,6 +127,7 @@ Genera un JSON con questa struttura:
 5. Se tutti i candidati sono scadenti, dillo nel riepilogo generale
 6. Valuta il rapporto qualità/prezzo, NON solo il prezzo minimo
 7. Diffida di offerte troppo economiche o con tempi irrealistici
+8. **IMPORTANTE:** Includi bid_id, amount e period per ogni candidato (li trovi nelle proposte ricevute sopra)
 
 Rispondi SOLO con il JSON, senza markdown fence o testo aggiuntivo.`;
 }
