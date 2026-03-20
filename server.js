@@ -9011,40 +9011,28 @@ app.post('/api/freelancer/ai/compose', requireAdmin, async (req, res) => {
     if (!job_id) return res.status(400).json({ error: 'job_id obbligatorio' });
 
     try {
-        const { execSync } = require('child_process');
-        const path = require('path');
+        const { runJobComposer } = require('./scripts/job_composer.js');
 
-        // Path assoluto allo script Python
-        const scriptPath = path.resolve(__dirname, 'scripts/job_composer.py');
-        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurato' });
+        }
 
-        console.log(`[JobComposer] Esecuzione: ${pythonCmd} ${scriptPath} ${job_id}`);
+        console.log(`[JobComposer] Avvio per job_id: ${job_id}`);
 
-        // Esegui script Python
-        const output = execSync(`${pythonCmd} "${scriptPath}" ${job_id}`, {
-            env: {
-                ...process.env,
-                DATABASE_URL: process.env.DATABASE_URL,
-                ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
-            },
-            encoding: 'utf-8',
-            maxBuffer: 10 * 1024 * 1024
-        });
-
-        console.log(`[JobComposer] Output:\n${output}`);
+        // Esegui Job Composer
+        const result = await runJobComposer(job_id, pool, process.env.ANTHROPIC_API_KEY);
 
         res.json({
             ok: true,
             message: 'Job Composer completato. Controlla il tab Approvazioni.',
-            output: output
+            result: result
         });
 
     } catch (err) {
         console.error('[JobComposer] Errore:', err);
         res.status(500).json({
             error: 'Errore esecuzione Job Composer',
-            details: err.message,
-            stderr: err.stderr?.toString()
+            details: err.message
         });
     }
 });
