@@ -1151,8 +1151,6 @@ function resetFreelancerForm() {
 }
 
 // Salva progetto
-let currentJobId = null;
-
 document.getElementById('btnSalvaJob').addEventListener('click', async () => {
     const titolo = document.getElementById('freelancer-titolo').value.trim();
     const descrizione_testo = document.getElementById('freelancer-descrizione').value.trim();
@@ -1167,33 +1165,26 @@ document.getElementById('btnSalvaJob').addEventListener('click', async () => {
             body: JSON.stringify({ titolo, descrizione_testo, budget_max, allegati: freelancerPendingFiles })
         });
         if (!res.ok) throw new Error((await res.json()).error);
-        const job = await res.json();
-        currentJobId = job.id;
-
-        showToast('✅ Progetto creato! Ora puoi ottimizzarlo con AI.');
-
-        // Mostra bottone Ottimizza con AI
-        document.getElementById('btnSalvaJob').style.display = 'none';
-        document.getElementById('btnOptimizeWithAI').style.display = 'inline-block';
+        showToast('Progetto creato');
+        document.getElementById('freelancer-job-form').style.display = 'none';
+        resetFreelancerForm();
+        loadFreelancerJobs();
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
     }
 });
 
-// Ottimizza con AI (Job Composer)
-document.getElementById('btnOptimizeWithAI').addEventListener('click', async () => {
-    if (!currentJobId) { showToast('Nessun progetto da ottimizzare', 'error'); return; }
-
-    const btn = document.getElementById('btnOptimizeWithAI');
-    const originalText = btn.textContent;
-    btn.textContent = '⏳ AI in corso...';
-    btn.disabled = true;
+// Ottimizza con AI (Job Composer) - chiamata da vista dettaglio
+async function optimizeWithAI(jobId) {
+    if (!confirm('Ottimizzare questo progetto con AI? Claude analizzerà il brief e suggerirà titolo, descrizione e skill ottimizzati per Freelancer.com.')) return;
 
     try {
+        showToast('⏳ AI in corso, attendere 15-20 secondi...');
+
         const res = await fetch(`${API_URL}/freelancer/ai/compose?key=${ADMIN_KEY}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ job_id: currentJobId })
+            body: JSON.stringify({ job_id: jobId })
         });
 
         if (!res.ok) {
@@ -1201,14 +1192,7 @@ document.getElementById('btnOptimizeWithAI').addEventListener('click', async () 
             throw new Error(error.details || error.error);
         }
 
-        showToast('✅ Job Composer completato! Vai nel tab Approvazioni.');
-
-        // Chiudi form e ricarica
-        document.getElementById('freelancer-job-form').style.display = 'none';
-        document.getElementById('btnSalvaJob').style.display = 'inline-block';
-        btn.style.display = 'none';
-        resetFreelancerForm();
-        currentJobId = null;
+        showToast('✅ Job Composer completato! Vai nel tab Approvazioni per vedere il risultato.');
 
         loadFreelancerJobs();
         loadFreelancerApprovals();
@@ -1216,15 +1200,12 @@ document.getElementById('btnOptimizeWithAI').addEventListener('click', async () 
         // Switcha al tab approvazioni
         setTimeout(() => {
             document.querySelector('[data-freelancer-tab="approvazioni"]').click();
-        }, 300);
+        }, 1000);
 
     } catch (err) {
         showToast('❌ Errore AI: ' + err.message, 'error');
-    } finally {
-        btn.textContent = originalText;
-        btn.disabled = false;
     }
-});
+}
 
 // Carica lista progetti
 async function loadFreelancerJobs() {
@@ -1302,6 +1283,7 @@ async function openFreelancerJob(id) {
         } else if (job.stato === 'bozza') {
             publishHtml = `
                 <div class="freelancer-publish-box">
+                    <button class="btn btn-secondary" onclick="optimizeWithAI(${id})" style="margin-bottom:16px;width:100%">✨ Ottimizza con AI</button>
                     <h3>Pubblica su Freelancer.com</h3>
                     <div class="form-group">
                         <label>Budget minimo (EUR)</label>
