@@ -1408,6 +1408,70 @@ async function deleteFreelancerAttachment(jobId, attachmentId) {
     }
 }
 
+// Formatta dettagli Job Composer in modo leggibile
+function formatJobComposerDetails(dettagli) {
+    if (!dettagli) return '';
+
+    const skillNames = {
+        676: 'Video Production',
+        390: 'Video Editing',
+        12: 'Graphic Design',
+        51: 'Logo Design',
+        132: 'Voice Talent',
+        389: 'Audio Production',
+        13: 'Photoshop',
+        14: 'Illustrator',
+        145: 'Animation',
+        146: '3D Modelling',
+        66: 'Copywriting',
+        17: 'Translation',
+        3: 'PHP',
+        7: 'Python',
+        9: 'Javascript',
+        82: 'Mobile App Development'
+    };
+
+    const skillBadges = (dettagli.skill_ids || []).map(id => {
+        const name = skillNames[id] || `ID ${id}`;
+        return `<span style="display:inline-block;background:#7c3aed;color:#fff;padding:4px 10px;border-radius:12px;margin:2px 4px;font-size:0.85rem;font-weight:600">${name}</span>`;
+    }).join('');
+
+    return `
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:12px;">
+            <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">
+                <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📝 Titolo Ottimizzato</div>
+                <div style="font-size:1.05rem;font-weight:600;color:#111827;">${escapeHtml(dettagli.titolo_ottimizzato || '')}</div>
+            </div>
+
+            <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">
+                <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">📄 Descrizione Ottimizzata</div>
+                <div style="font-size:0.9rem;color:#374151;line-height:1.6;white-space:pre-wrap;">${escapeHtml(dettagli.descrizione_ottimizzata || '')}</div>
+            </div>
+
+            <div style="margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">
+                <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">🎯 Skill Richieste</div>
+                <div>${skillBadges || '<span style="color:#9ca3af;">Nessuna skill specificata</span>'}</div>
+            </div>
+
+            <div style="display:flex;gap:20px;margin-bottom:16px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;flex-wrap:wrap;">
+                <div style="flex:1;min-width:150px;">
+                    <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">💰 Budget Suggerito</div>
+                    <div style="font-size:1.15rem;font-weight:700;color:#059669;">€${dettagli.budget_minimo_suggerito || 0} - €${dettagli.budget_massimo_suggerito || 0}</div>
+                </div>
+                <div style="flex:1;min-width:150px;">
+                    <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">⏱️ Durata Suggerita</div>
+                    <div style="font-size:1.15rem;font-weight:700;color:#f59e0b;">${dettagli.durata_giorni_suggerita || 0} giorni</div>
+                </div>
+            </div>
+
+            <div style="background:#fff;padding:12px;border-radius:6px;border-left:4px solid #7c3aed;">
+                <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">💡 Motivazione</div>
+                <div style="font-size:0.9rem;color:#374151;line-height:1.6;font-style:italic;">${escapeHtml(dettagli.motivazione || '')}</div>
+            </div>
+        </div>
+    `;
+}
+
 // Approvazioni
 async function loadFreelancerApprovals() {
     const container = document.getElementById('freelancer-approvals-list');
@@ -1441,7 +1505,7 @@ async function loadFreelancerApprovals() {
                     <span style="color:#6b7280;font-size:0.85rem;">${a.job_titolo}</span>
                 </div>
                 <p class="freelancer-approval-action">${a.azione}</p>
-                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>` : ''}
+                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? (a.modulo === 'job_composer' ? formatJobComposerDetails(a.dettagli) : `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>`) : ''}
                 <div class="form-group" style="margin-top:8px;">
                     <input type="text" id="freelancer-nota-${a.id}" placeholder="Nota (opzionale)">
                 </div>
