@@ -8937,10 +8937,115 @@ app.put('/api/freelancer/approvals/:id/decide', requireAdmin, async (req, res) =
         `, [stato, risposta_imprenditore || null, req.params.id]);
 
         if (result.rows.length === 0) return res.status(404).json({ error: 'Approvazione non trovata o gia\' decisa' });
-        res.json(result.rows[0]);
+
+        const approval = result.rows[0];
+
+        // Se job_composer approvato → pubblica automaticamente su Freelancer.com
+        if (stato === 'approved' && approval.modulo === 'job_composer') {
+            try {
+                const dettagli = approval.dettagli;
+                const job_id = approval.job_id;
+
+                // Aggiorna il job con i dati ottimizzati
+                await pool.query(`
+                    UPDATE freelancer_jobs
+                    SET titolo = $1, descrizione_testo = $2, budget_max = $3, updated_at = NOW()
+                    WHERE id = $4
+                `, [
+                    dettagli.titolo_ottimizzato,
+                    dettagli.descrizione_ottimizzata,
+                    dettagli.budget_massimo_suggerito,
+                    job_id
+                ]);
+
+                // Pubblica su Freelancer.com
+                const projectData = {
+                    title: dettagli.titolo_ottimizzato,
+                    description: dettagli.descrizione_ottimizzata,
+                    currency: { id: 3 },
+                    budget: {
+                        minimum: dettagli.budget_minimo_suggerito,
+                        maximum: dettagli.budget_massimo_suggerito
+                    },
+                    jobs: dettagli.skill_ids.map(id => ({ id })),
+                    type: 'fixed'
+                };
+
+                const publishResult = await freelancerApiCall('POST', '/projects/0.1/projects/', projectData);
+
+                await pool.query(`
+                    UPDATE freelancer_jobs
+                    SET freelancer_project_id = $1, freelancer_url = $2, stato = 'pubblicato', updated_at = NOW()
+                    WHERE id = $3
+                `, [publishResult.id, `https://www.freelancer.com/projects/${publishResult.seo_url}`, job_id]);
+
+                console.log(`[JobComposer] Progetto ${job_id} pubblicato automaticamente: ${publishResult.seo_url}`);
+
+                return res.json({
+                    ...approval,
+                    auto_published: true,
+                    freelancer_url: `https://www.freelancer.com/projects/${publishResult.seo_url}`
+                });
+
+            } catch (publishErr) {
+                console.error('[JobComposer] Errore pubblicazione automatica:', publishErr);
+                return res.json({
+                    ...approval,
+                    auto_publish_error: publishErr.message
+                });
+            }
+        }
+
+        res.json(approval);
     } catch (err) {
         console.error('[Freelancer] Errore decisione approval:', err);
         res.status(500).json({ error: 'Errore decisione approvazione' });
+    }
+});
+
+// ==================== FREELANCER AI MODULES ====================
+
+// Trigger Job Composer (modulo 1/5)
+app.post('/api/freelancer/ai/compose', requireAdmin, async (req, res) => {
+    const { job_id } = req.body;
+    if (!job_id) return res.status(400).json({ error: 'job_id obbligatorio' });
+
+    try {
+        const { execSync } = require('child_process');
+        const path = require('path');
+
+        // Path assoluto allo script Python
+        const scriptPath = path.resolve(__dirname, '../FREELANCER/job_composer.py');
+        const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
+
+        console.log(`[JobComposer] Esecuzione: ${pythonCmd} ${scriptPath} ${job_id}`);
+
+        // Esegui script Python
+        const output = execSync(`${pythonCmd} "${scriptPath}" ${job_id}`, {
+            env: {
+                ...process.env,
+                DATABASE_URL: process.env.DATABASE_URL,
+                ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY
+            },
+            encoding: 'utf-8',
+            maxBuffer: 10 * 1024 * 1024
+        });
+
+        console.log(`[JobComposer] Output:\n${output}`);
+
+        res.json({
+            ok: true,
+            message: 'Job Composer completato. Controlla il tab Approvazioni.',
+            output: output
+        });
+
+    } catch (err) {
+        console.error('[JobComposer] Errore:', err);
+        res.status(500).json({
+            error: 'Errore esecuzione Job Composer',
+            details: err.message,
+            stderr: err.stderr?.toString()
+        });
     }
 });
 
