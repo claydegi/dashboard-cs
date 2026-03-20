@@ -1240,6 +1240,83 @@ async function analyzeBidsWithAI(jobId) {
     }
 }
 
+// Controlla progresso progetto con Delivery Manager
+async function checkProjectProgress(jobId) {
+    if (!confirm('Controllare il progresso del progetto con AI? Claude analizzerà lo stato, i messaggi e invierà reminder se necessario.')) return;
+
+    try {
+        showToast('⏳ Delivery Manager in corso, attendere 15-20 secondi...');
+
+        const res = await fetch(`${API_URL}/freelancer/ai/delivery?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_id: jobId })
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.details || error.error);
+        }
+
+        const data = await res.json();
+        showToast(`✅ Delivery Manager completato! Stato: ${data.result.stato_progresso}`);
+
+        loadFreelancerJobs();
+        loadFreelancerApprovals();
+
+        // Se ci sono approvazioni, switcha al tab
+        if (['escalation', 'richiedi_approvazione_finale'].includes(data.result.azione_necessaria)) {
+            setTimeout(() => {
+                document.querySelector('[data-freelancer-tab="approvazioni"]').click();
+            }, 1000);
+        }
+
+    } catch (err) {
+        showToast('❌ Errore Delivery Manager: ' + err.message, 'error');
+    }
+}
+
+// Chiudi progetto con Cost Tracker
+async function closeProjectWithCost(jobId) {
+    const actualCost = prompt('Inserisci il costo finale effettivo pagato al freelancer (in EUR):');
+
+    if (!actualCost || isNaN(actualCost) || parseFloat(actualCost) <= 0) {
+        showToast('Costo non valido. Inserisci un numero > 0', 'error');
+        return;
+    }
+
+    if (!confirm(`Chiudere il progetto con costo finale di €${actualCost}? Il Cost Tracker analizzerà i dati e segnerà il progetto come completato.`)) return;
+
+    try {
+        showToast('⏳ Cost Tracker in corso, attendere 15-20 secondi...');
+
+        const res = await fetch(`${API_URL}/freelancer/ai/cost-tracker?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_id: jobId, actual_cost: parseFloat(actualCost) })
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.details || error.error);
+        }
+
+        const data = await res.json();
+        showToast(`✅ Progetto completato! Valutazione: ${data.result.valutazione_generale}`);
+
+        loadFreelancerJobs();
+        loadFreelancerApprovals();
+
+        // Switcha al tab approvazioni per vedere il report
+        setTimeout(() => {
+            document.querySelector('[data-freelancer-tab="approvazioni"]').click();
+        }, 1000);
+
+    } catch (err) {
+        showToast('❌ Errore Cost Tracker: ' + err.message, 'error');
+    }
+}
+
 // Carica lista progetti
 async function loadFreelancerJobs() {
     const container = document.getElementById('freelancer-jobs-list');
@@ -1304,7 +1381,19 @@ async function openFreelancerJob(id) {
 
         // Bottone pubblica o link al progetto live
         let publishHtml = '';
-        if (job.freelancer_project_id) {
+        if (job.stato === 'in_corso' && job.freelancer_assigned_username) {
+            // Progetto assegnato e in corso
+            publishHtml = `
+                <div class="freelancer-live-bar" style="background:#fef3c7;border-color:#fbbf24;">
+                    <span class="freelancer-stato" style="background:#f59e0b">IN CORSO</span>
+                    <span style="color:#92400e;font-weight:600;">Freelancer: @${job.freelancer_assigned_username}</span>
+                    <a href="${job.freelancer_url}" target="_blank" class="btn btn-primary">Vedi su Freelancer.com &rarr;</a>
+                    <button class="btn btn-secondary" onclick="checkProjectProgress(${id})" style="background:#7c3aed;color:#fff;border:none">📦 Controlla Progresso</button>
+                    <button class="btn btn-success" onclick="closeProjectWithCost(${id})" style="background:#22c55e;color:#fff;border:none">✅ Chiudi Progetto</button>
+                </div>
+            `;
+        } else if (job.freelancer_project_id) {
+            // Progetto pubblicato ma non ancora assegnato
             publishHtml = `
                 <div class="freelancer-live-bar">
                     <span class="freelancer-stato" style="background:#22c55e">LIVE su Freelancer.com</span>

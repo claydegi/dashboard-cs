@@ -1019,6 +1019,9 @@ async function initDB() {
         // Migration: aggiungi colonne Freelancer.com se mancanti
         await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_project_id BIGINT`).catch(() => {});
         await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_url TEXT`).catch(() => {});
+        await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_assigned_id BIGINT`).catch(() => {});
+        await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS freelancer_assigned_username TEXT`).catch(() => {});
+        await client.query(`ALTER TABLE freelancer_jobs ADD COLUMN IF NOT EXISTS costo_finale NUMERIC`).catch(() => {});
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS freelancer_attachments (
@@ -9142,6 +9145,71 @@ app.post('/api/freelancer/ai/scout', requireAdmin, async (req, res) => {
         console.error('[TalentScout] Errore:', err);
         res.status(500).json({
             error: 'Errore esecuzione Talent Scout',
+            details: err.message
+        });
+    }
+});
+
+// Trigger Delivery Manager (modulo 4/5)
+app.post('/api/freelancer/ai/delivery', requireAdmin, async (req, res) => {
+    const { job_id } = req.body;
+    if (!job_id) return res.status(400).json({ error: 'job_id obbligatorio' });
+
+    try {
+        const { runDeliveryManager } = require('./scripts/delivery_manager.js');
+
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurato' });
+        }
+
+        console.log(`[DeliveryManager] Avvio per job_id: ${job_id}`);
+
+        // Esegui Delivery Manager
+        const result = await runDeliveryManager(job_id, pool, process.env.ANTHROPIC_API_KEY, freelancerApiCall);
+
+        res.json({
+            ok: true,
+            message: `Delivery Manager completato. Stato: ${result.stato_progresso}`,
+            result: result
+        });
+
+    } catch (err) {
+        console.error('[DeliveryManager] Errore:', err);
+        res.status(500).json({
+            error: 'Errore esecuzione Delivery Manager',
+            details: err.message
+        });
+    }
+});
+
+// Trigger Cost Tracker (modulo 5/5)
+app.post('/api/freelancer/ai/cost-tracker', requireAdmin, async (req, res) => {
+    const { job_id, actual_cost } = req.body;
+    if (!job_id) return res.status(400).json({ error: 'job_id obbligatorio' });
+    if (!actual_cost || actual_cost <= 0) return res.status(400).json({ error: 'actual_cost obbligatorio e deve essere > 0' });
+
+    try {
+        const { runCostTracker } = require('./scripts/cost_tracker.js');
+
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurato' });
+        }
+
+        console.log(`[CostTracker] Avvio per job_id: ${job_id}, costo: €${actual_cost}`);
+
+        // Esegui Cost Tracker
+        const result = await runCostTracker(job_id, actual_cost, pool, process.env.ANTHROPIC_API_KEY);
+
+        res.json({
+            ok: true,
+            message: `Cost Tracker completato. Valutazione: ${result.valutazione_generale}`,
+            result: result
+        });
+
+    } catch (err) {
+        console.error('[CostTracker] Errore:', err);
+        res.status(500).json({
+            error: 'Errore esecuzione Cost Tracker',
             details: err.message
         });
     }
