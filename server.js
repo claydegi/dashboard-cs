@@ -9219,7 +9219,12 @@ app.post('/api/freelancer/ai/cost-tracker', requireAdmin, async (req, res) => {
 
 const FREELANCER_API_BASE = 'https://www.freelancer.com/api';
 const FREELANCER_TOKEN = process.env.FREELANCER_TOKEN || '';
-const FREELANCER_MOCK_MODE = process.env.FREELANCER_MOCK_MODE === 'true';
+
+// Mock mode: attivo automaticamente se non c'è token (semplice!)
+// Oppure attivalo manualmente con FREELANCER_MOCK_MODE=true
+const FREELANCER_MOCK_MODE = process.env.FREELANCER_MOCK_MODE === 'true' || !FREELANCER_TOKEN;
+
+console.log(`[Freelancer] Mock mode: ${FREELANCER_MOCK_MODE ? 'ATTIVO ✅' : 'disattivato'}`);
 
 // Endpoint per controllare se mock mode è attivo
 app.get('/api/freelancer/mock-status', (req, res) => {
