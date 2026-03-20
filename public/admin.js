@@ -146,11 +146,12 @@ function switchSection(section) {
     document.getElementById('section-suture').style.display = section === 'suture' ? 'block' : 'none';
     document.getElementById('section-crm').style.display = section === 'crm' ? 'block' : 'none';
     document.getElementById('section-freelancer').style.display = section === 'freelancer' ? 'block' : 'none';
+    document.getElementById('section-opportunita').style.display = section === 'opportunita' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {
@@ -172,6 +173,8 @@ function switchSection(section) {
     } else if (section === 'freelancer') {
         loadFreelancerJobs();
         loadFreelancerApprovals();
+    } else if (section === 'opportunita') {
+        loadOpportunita();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -1447,6 +1450,127 @@ async function decideFreelancerApproval(id, stato) {
         }
     } catch (_) {}
 })();
+
+// ==================== OPPORTUNITÀ (CALENDLY) ====================
+
+async function loadOpportunita() {
+    const container = document.getElementById('opportunita-list');
+    const badge = document.getElementById('opportunita-badge');
+
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
+
+    try {
+        const res = await fetch(`${API_URL}/opportunita?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const opportunita = await res.json();
+
+        // Update badge count for pending opportunities
+        const pending = opportunita.filter(o => o.status === 'pending' && !o.assegnato_a);
+        if (pending.length > 0) {
+            badge.textContent = pending.length;
+            badge.style.display = 'inline';
+        } else {
+            badge.style.display = 'none';
+        }
+
+        if (opportunita.length === 0) {
+            container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Nessuna opportunità.</p>';
+            return;
+        }
+
+        // Render opportunity cards with assignment UI
+        container.innerHTML = opportunita.map(opp => {
+            const dataChiamata = new Date(opp.data_chiamata).toLocaleString('it-IT', {
+                timeZone: 'Europe/Rome',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            const assegnatoLabel = opp.assegnato_a
+                ? `<span class="badge badge-stato completato" style="background:#7dd3c0;color:#0a1f2e">Assegnato a: ${opp.assegnato_a}</span>`
+                : '<span class="badge badge-stato da_fare" style="background:#6b7280;color:#fff">Admin</span>';
+
+            return `
+                <div class="task-card" style="border-left:4px solid #7dd3c0">
+                    <div class="task-header" style="align-items:flex-start">
+                        <div>
+                            <span class="task-title" style="font-size:1.1rem">${escapeHtml(opp.nome_cliente)}</span>
+                            <div style="margin-top:4px">${assegnatoLabel}</div>
+                        </div>
+                    </div>
+                    <div class="task-meta" style="margin-top:12px;flex-direction:column;align-items:flex-start;gap:8px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📧</span>
+                            <span>${escapeHtml(opp.email_cliente)}</span>
+                        </div>
+                        ${opp.telefono_cliente ? `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📞</span>
+                            <span>${escapeHtml(opp.telefono_cliente)}</span>
+                        </div>
+                        ` : ''}
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📅</span>
+                            <span>${dataChiamata}</span>
+                        </div>
+                        ${opp.event_type ? `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">🎯</span>
+                            <span>${escapeHtml(opp.event_type)}</span>
+                        </div>
+                        ` : ''}
+                        ${opp.note ? `
+                        <div style="margin-top:8px;padding:10px;background:#f9fafb;border-radius:6px;border-left:3px solid #7dd3c0">
+                            <strong style="font-size:0.9rem;color:#6b7280">📝 Note:</strong>
+                            <p style="margin:4px 0 0 0;font-size:0.9rem;color:#374151;white-space:pre-wrap">${escapeHtml(opp.note)}</p>
+                        </div>
+                        ` : ''}
+                    </div>
+                    <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb">
+                        <label style="display:block;margin-bottom:6px;font-size:0.9rem;font-weight:600;color:#374151">Assegna a:</label>
+                        <select class="opportunita-assign" data-id="${opp.id}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.95rem">
+                            <option value="" ${!opp.assegnato_a ? 'selected' : ''}>Admin</option>
+                            <option value="Kim" ${opp.assegnato_a === 'Kim' ? 'selected' : ''}>Kim</option>
+                            <option value="Massimo" ${opp.assegnato_a === 'Massimo' ? 'selected' : ''}>Massimo</option>
+                        </select>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        // Add event listeners for assignment changes
+        container.querySelectorAll('.opportunita-assign').forEach(select => {
+            select.addEventListener('change', async (e) => {
+                const id = e.target.dataset.id;
+                const assegnato_a = e.target.value || null;
+                await assignOpportunita(id, assegnato_a);
+            });
+        });
+
+    } catch (err) {
+        container.innerHTML = `<p style="color:#dc2626;padding:20px;">Errore: ${err.message}</p>`;
+    }
+}
+
+async function assignOpportunita(id, assegnato_a) {
+    try {
+        const res = await fetch(`${API_URL}/opportunita/${id}/assign?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ assegnato_a })
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast(`Opportunità assegnata a ${assegnato_a || 'Admin'}`);
+        loadOpportunita(); // Reload to update UI
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Refresh button event listener
+document.getElementById('btnRefreshOpportunita')?.addEventListener('click', loadOpportunita);
 
 // Toast notification
 function showToast(message, type = 'success') {

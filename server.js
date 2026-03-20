@@ -1046,6 +1046,28 @@ async function initDB() {
             )
         `);
 
+        // Tabella opportunita (prenotazioni Calendly)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS opportunita (
+                id SERIAL PRIMARY KEY,
+                calendly_event_id TEXT UNIQUE,
+                nome_cliente TEXT NOT NULL,
+                email_cliente TEXT NOT NULL,
+                telefono_cliente TEXT,
+                data_chiamata TIMESTAMPTZ NOT NULL,
+                note TEXT,
+                event_type TEXT,
+                assegnato_a TEXT,
+                status TEXT DEFAULT 'pending',
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                assigned_at TIMESTAMPTZ,
+                completed_at TIMESTAMPTZ
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_opportunita_status ON opportunita(status)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_opportunita_assegnato ON opportunita(assegnato_a)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_opportunita_data ON opportunita(data_chiamata)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -9033,6 +9055,125 @@ app.get('/api/freelancer/jobs/:id/live', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[Freelancer] Errore stato live:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== OPPORTUNITA (CALENDLY WEBHOOK) ====================
+
+/**
+ * Webhook Calendly - riceve notifica quando qualcuno prenota
+ * Calendly invia POST a questo endpoint quando c'è una nuova prenotazione
+ */
+app.post('/api/calendly/webhook', express.json(), async (req, res) => {
+    try {
+        console.log('[Calendly] Webhook ricevuto:', JSON.stringify(req.body, null, 2));
+
+        const { event, payload } = req.body;
+
+        // Calendly invia evento "invitee.created" quando qualcuno prenota
+        if (event !== 'invitee.created') {
+            console.log(`[Calendly] Evento ignorato: ${event}`);
+            return res.status(200).json({ message: 'Event ignored' });
+        }
+
+        // Estrai dati dalla prenotazione
+        const invitee = payload;
+        const nome = invitee.name || 'N/A';
+        const email = invitee.email || 'N/A';
+        const telefono = invitee.questions_and_answers?.find(q => q.question.includes('telefono') || q.question.includes('phone'))?.answer || null;
+        const note = invitee.questions_and_answers?.map(q => `${q.question}: ${q.answer}`).join('\n') || null;
+        const dataChiamata = new Date(invitee.scheduled_event.start_time);
+        const eventType = invitee.event_type_name || 'N/A';
+        const calendlyEventId = invitee.event || invitee.uri || null;
+
+        // Salva nel database
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                INSERT INTO opportunita (
+                    calendly_event_id, nome_cliente, email_cliente, telefono_cliente,
+                    data_chiamata, note, event_type, status
+                ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+                ON CONFLICT (calendly_event_id) DO NOTHING
+                RETURNING id
+            `, [calendlyEventId, nome, email, telefono, dataChiamata, note, eventType]);
+
+            if (result.rows.length > 0) {
+                const opportunitaId = result.rows[0].id;
+                console.log(`[Calendly] Nuova opportunità salvata: ID ${opportunitaId}`);
+
+                // Invia notifica Telegram all'admin
+                const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nome}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n📝 ${note || 'Nessuna nota'}`;
+                await sendTelegram(messaggio);
+
+                res.status(200).json({ success: true, id: opportunitaId });
+            } else {
+                console.log('[Calendly] Opportunità già esistente (duplicato)');
+                res.status(200).json({ success: true, message: 'Duplicate' });
+            }
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('[Calendly] Errore webhook:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * GET /api/opportunita - Lista tutte le opportunità
+ */
+app.get('/api/opportunita', requireAdmin, async (req, res) => {
+    try {
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT * FROM opportunita
+                ORDER BY created_at DESC
+            `);
+            res.json(result.rows);
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('[Opportunità] Errore GET:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * PUT /api/opportunita/:id/assign - Assegna opportunità a Kim/Massimo/Admin
+ */
+app.put('/api/opportunita/:id/assign', requireAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { assegnato_a } = req.body; // 'Kim', 'Massimo', o null per Admin
+
+        if (assegnato_a && !['Kim', 'Massimo'].includes(assegnato_a)) {
+            return res.status(400).json({ error: 'assegnato_a deve essere "Kim", "Massimo" o null' });
+        }
+
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                UPDATE opportunita
+                SET assegnato_a = $1, assigned_at = NOW()
+                WHERE id = $2
+                RETURNING *
+            `, [assegnato_a, id]);
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({ error: 'Opportunità non trovata' });
+            }
+
+            console.log(`[Opportunità] ID ${id} assegnata a: ${assegnato_a || 'Admin'}`);
+            res.json(result.rows[0]);
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error('[Opportunità] Errore assign:', err);
         res.status(500).json({ error: err.message });
     }
 });
