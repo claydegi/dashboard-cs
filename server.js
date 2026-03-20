@@ -9015,7 +9015,7 @@ app.post('/api/freelancer/ai/compose', requireAdmin, async (req, res) => {
         const path = require('path');
 
         // Path assoluto allo script Python
-        const scriptPath = path.resolve(__dirname, '../FREELANCER/job_composer.py');
+        const scriptPath = path.resolve(__dirname, 'scripts/job_composer.py');
         const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
 
         console.log(`[JobComposer] Esecuzione: ${pythonCmd} ${scriptPath} ${job_id}`);
