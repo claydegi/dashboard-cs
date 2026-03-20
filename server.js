@@ -9079,13 +9079,19 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
 
         // Estrai dati dalla prenotazione
         const invitee = payload;
-        const nome = invitee.name || 'N/A';
+        const nomeCompleto = invitee.name || 'N/A';
         const email = invitee.email || 'N/A';
-        const telefono = invitee.questions_and_answers?.find(q => q.question.includes('telefono') || q.question.includes('phone'))?.answer || null;
+        const telefono = invitee.questions_and_answers?.find(q => q.question.includes('telefono') || q.question.includes('phone') || q.question.includes('cellulare'))?.answer || null;
+        const citta = invitee.questions_and_answers?.find(q => q.question.toLowerCase().includes('citt'))?.answer || null;
         const note = invitee.questions_and_answers?.map(q => `${q.question}: ${q.answer}`).join('\n') || null;
         const dataChiamata = new Date(invitee.scheduled_event.start_time);
         const eventType = invitee.event_type_name || 'N/A';
         const calendlyEventId = invitee.event || invitee.uri || null;
+
+        // Dividi nome completo in nome/cognome (primo parola = nome, resto = cognome)
+        const nomeParts = nomeCompleto.trim().split(/\s+/);
+        const nome = nomeParts[0] || '';
+        const cognome = nomeParts.slice(1).join(' ') || '';
 
         // Salva nel database
         const client = await pool.connect();
@@ -9097,15 +9103,77 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
                 ) VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
                 ON CONFLICT (calendly_event_id) DO NOTHING
                 RETURNING id
-            `, [calendlyEventId, nome, email, telefono, dataChiamata, note, eventType]);
+            `, [calendlyEventId, nomeCompleto, email, telefono, dataChiamata, note, eventType]);
 
             if (result.rows.length > 0) {
                 const opportunitaId = result.rows[0].id;
                 console.log(`[Calendly] Nuova opportunità salvata: ID ${opportunitaId}`);
 
-                // Invia notifica Telegram all'admin
-                const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nome}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n📝 ${note || 'Nessuna nota'}`;
-                await sendTelegram(messaggio);
+                // ==================== INTEGRAZIONE CRM ====================
+                // Controlla se l'email esiste già nel CRM
+                const existingContact = await client.query(
+                    'SELECT id, cognome, nome, tipo FROM crm_contatti WHERE LOWER(email) = $1',
+                    [email.toLowerCase()]
+                );
+
+                if (existingContact.rows.length === 0 && email !== 'N/A') {
+                    // Email NON esiste: crea nuovo lead nel CRM
+                    console.log(`[Calendly] Email ${email} non trovata nel CRM, creo nuovo lead`);
+
+                    // Genera ID negativo per lead creato da dashboard (evita collisione con SQLite)
+                    const minIdResult = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+                    const newLeadId = Math.min(minIdResult.rows[0].min_id, 0) - 1;
+
+                    const oggi = new Date().toISOString().split('T')[0];
+
+                    // Inserisci nuovo lead
+                    await client.query(`
+                        INSERT INTO crm_contatti (
+                            id, cognome, nome, email, cellulare, citta,
+                            tipo, mercato, fonte_sync, data_inserimento, score, regione
+                        ) VALUES ($1, $2, $3, $4, $5, $6, 'lead', 'ITALY', 'calendly_booking', $7, 0, 'LIGURIA')
+                    `, [newLeadId, cognome, nome, email.toLowerCase(), telefono, citta, oggi]);
+
+                    console.log(`[Calendly] Nuovo lead creato: ID ${newLeadId}, ${cognome} ${nome}`);
+
+                    // Aggiungi 200 punti score per PT1
+                    await client.query(`
+                        INSERT INTO crm_score_manuali (
+                            contatto_id, linea_prodotto, tipo_attivita, punti, data_evento, sincronizzata
+                        ) VALUES ($1, 'PT1', 'calendly_meeting', 200, $2, false)
+                    `, [newLeadId, oggi]);
+
+                    console.log(`[Calendly] Assegnati 200 punti PT1 al lead ${newLeadId}`);
+
+                    // Aggiorna notifica Telegram con info CRM
+                    const messaggioCRM = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✨ NUOVO LEAD CREATO NEL CRM\n🎯 200 punti PT1 assegnati\n📝 ${note || 'Nessuna nota'}`;
+                    await sendTelegram(messaggioCRM);
+                } else if (existingContact.rows.length > 0) {
+                    // Email esiste già: aggiungi comunque 200 punti PT1
+                    const contattoId = existingContact.rows[0].id;
+                    const contattoTipo = existingContact.rows[0].tipo || 'account';
+                    console.log(`[Calendly] Email ${email} trovata nel CRM (ID ${contattoId}, tipo: ${contattoTipo})`);
+
+                    const oggi = new Date().toISOString().split('T')[0];
+
+                    // Aggiungi 200 punti PT1
+                    await client.query(`
+                        INSERT INTO crm_score_manuali (
+                            contatto_id, linea_prodotto, tipo_attivita, punti, data_evento, sincronizzata
+                        ) VALUES ($1, 'PT1', 'calendly_meeting', 200, $2, false)
+                    `, [contattoId, oggi]);
+
+                    console.log(`[Calendly] Assegnati 200 punti PT1 al contatto esistente ${contattoId}`);
+
+                    // Notifica Telegram standard
+                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✅ Contatto esistente nel CRM\n🎯 200 punti PT1 assegnati\n📝 ${note || 'Nessuna nota'}`;
+                    await sendTelegram(messaggio);
+                } else {
+                    // Email non valida (N/A)
+                    console.log('[Calendly] Email non valida, skip integrazione CRM');
+                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n⚠️ Email non valida, NON salvato nel CRM\n📝 ${note || 'Nessuna nota'}`;
+                    await sendTelegram(messaggio);
+                }
 
                 res.status(200).json({ success: true, id: opportunitaId });
             } else {
