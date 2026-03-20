@@ -342,9 +342,16 @@
 
             <!-- ==================== OPPORTUNITÀ (CALENDLY) ==================== -->
             <section id="section-opportunita" class="reports-section" style="display: none;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                     <h2 style="margin-bottom: 0;">Opportunità (Calendly)</h2>
                     <button class="btn btn-primary btn-small" id="btnRefreshOpportunita">Aggiorna</button>
+                </div>
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: inline-flex; align-items: center; gap: 8px; cursor: pointer; user-select: none;">
+                        <input type="checkbox" id="opportunita-show-archive" style="cursor: pointer;">
+                        <span style="font-size: 0.95rem; color: #6b7280;">Mostra archivio (completate)</span>
+                    </label>
                 </div>
 
                 <div id="opportunita-list" class="opportunita-list">

@@ -1456,16 +1456,22 @@ async function decideFreelancerApproval(id, stato) {
 async function loadOpportunita() {
     const container = document.getElementById('opportunita-list');
     const badge = document.getElementById('opportunita-badge');
+    const showArchive = document.getElementById('opportunita-show-archive')?.checked || false;
 
     container.innerHTML = '<p class="loading">Caricamento...</p>';
 
     try {
         const res = await fetch(`${API_URL}/opportunita?key=${ADMIN_KEY}`);
         if (!res.ok) throw new Error('Errore caricamento');
-        const opportunita = await res.json();
+        const allOpportunita = await res.json();
 
-        // Update badge count for pending opportunities
-        const pending = opportunita.filter(o => o.status === 'pending' && !o.assegnato_a);
+        // Filter based on archive toggle
+        const opportunita = showArchive
+            ? allOpportunita.filter(o => o.status === 'completed')
+            : allOpportunita.filter(o => o.status === 'pending');
+
+        // Update badge count for pending opportunities (only non-assigned)
+        const pending = allOpportunita.filter(o => o.status === 'pending' && !o.assegnato_a);
         if (pending.length > 0) {
             badge.textContent = pending.length;
             badge.style.display = 'inline';
@@ -1474,7 +1480,8 @@ async function loadOpportunita() {
         }
 
         if (opportunita.length === 0) {
-            container.innerHTML = '<p style="color:#6b7280;text-align:center;padding:40px;">Nessuna opportunità.</p>';
+            const msg = showArchive ? 'Nessuna opportunità completata.' : 'Nessuna opportunità pending.';
+            container.innerHTML = `<p style="color:#6b7280;text-align:center;padding:40px;">${msg}</p>`;
             return;
         }
 
@@ -1488,16 +1495,28 @@ async function loadOpportunita() {
                 hour: '2-digit',
                 minute: '2-digit'
             });
-            const assegnatoLabel = opp.assegnato_a
-                ? `<span class="badge badge-stato completato" style="background:#7dd3c0;color:#0a1f2e">Assegnato a: ${opp.assegnato_a}</span>`
-                : '<span class="badge badge-stato da_fare" style="background:#6b7280;color:#fff">Admin</span>';
+
+            // Badge assegnazione / completamento
+            let statusBadge;
+            if (opp.status === 'completed') {
+                const completedAt = opp.completed_at
+                    ? new Date(opp.completed_at).toLocaleDateString('it-IT')
+                    : 'N/A';
+                statusBadge = `<span class="badge badge-stato completato" style="background:#22c55e;color:#fff">✓ COMPLETATO ${completedAt}</span>`;
+            } else if (opp.assegnato_a) {
+                statusBadge = `<span class="badge badge-stato completato" style="background:#7dd3c0;color:#0a1f2e">Assegnato a: ${opp.assegnato_a}</span>`;
+            } else {
+                statusBadge = '<span class="badge badge-stato da_fare" style="background:#6b7280;color:#fff">Admin</span>';
+            }
+
+            const borderColor = opp.status === 'completed' ? '#22c55e' : '#7dd3c0';
 
             return `
-                <div class="task-card" style="border-left:4px solid #7dd3c0">
+                <div class="task-card" style="border-left:4px solid ${borderColor}">
                     <div class="task-header" style="align-items:flex-start">
                         <div>
                             <span class="task-title" style="font-size:1.1rem">${escapeHtml(opp.nome_cliente)}</span>
-                            <div style="margin-top:4px">${assegnatoLabel}</div>
+                            <div style="margin-top:4px">${statusBadge}</div>
                         </div>
                     </div>
                     <div class="task-meta" style="margin-top:12px;flex-direction:column;align-items:flex-start;gap:8px">
@@ -1528,14 +1547,21 @@ async function loadOpportunita() {
                         </div>
                         ` : ''}
                     </div>
+                    ${opp.status === 'pending' ? `
                     <div style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb">
-                        <label style="display:block;margin-bottom:6px;font-size:0.9rem;font-weight:600;color:#374151">Assegna a:</label>
-                        <select class="opportunita-assign" data-id="${opp.id}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.95rem">
-                            <option value="" ${!opp.assegnato_a ? 'selected' : ''}>Admin</option>
-                            <option value="Kim" ${opp.assegnato_a === 'Kim' ? 'selected' : ''}>Kim</option>
-                            <option value="Massimo" ${opp.assegnato_a === 'Massimo' ? 'selected' : ''}>Massimo</option>
-                        </select>
+                        <div style="display:flex;gap:12px;align-items:flex-end">
+                            <div style="flex:1">
+                                <label style="display:block;margin-bottom:6px;font-size:0.9rem;font-weight:600;color:#374151">Assegna a:</label>
+                                <select class="opportunita-assign" data-id="${opp.id}" style="width:100%;padding:8px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:0.95rem">
+                                    <option value="" ${!opp.assegnato_a ? 'selected' : ''}>Admin</option>
+                                    <option value="Kim" ${opp.assegnato_a === 'Kim' ? 'selected' : ''}>Kim</option>
+                                    <option value="Massimo" ${opp.assegnato_a === 'Massimo' ? 'selected' : ''}>Massimo</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-small opportunita-complete" data-id="${opp.id}">✓ Fatto</button>
+                        </div>
                     </div>
+                    ` : ''}
                 </div>
             `;
         }).join('');
@@ -1546,6 +1572,16 @@ async function loadOpportunita() {
                 const id = e.target.dataset.id;
                 const assegnato_a = e.target.value || null;
                 await assignOpportunita(id, assegnato_a);
+            });
+        });
+
+        // Add event listeners for complete buttons
+        container.querySelectorAll('.opportunita-complete').forEach(btn => {
+            btn.addEventListener('click', async (e) => {
+                const id = e.target.dataset.id;
+                if (confirm('Marcare questa opportunità come completata?')) {
+                    await completeOpportunita(id);
+                }
             });
         });
 
@@ -1569,8 +1605,25 @@ async function assignOpportunita(id, assegnato_a) {
     }
 }
 
+async function completeOpportunita(id) {
+    try {
+        const res = await fetch(`${API_URL}/opportunita/${id}/complete?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' }
+        });
+        if (!res.ok) throw new Error((await res.json()).error);
+        showToast('Opportunità completata!');
+        loadOpportunita(); // Reload to update UI
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
 // Refresh button event listener
 document.getElementById('btnRefreshOpportunita')?.addEventListener('click', loadOpportunita);
+
+// Archive toggle event listener
+document.getElementById('opportunita-show-archive')?.addEventListener('change', loadOpportunita);
 
 // Toast notification
 function showToast(message, type = 'success') {
