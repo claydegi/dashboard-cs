@@ -9131,7 +9131,7 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
                         INSERT INTO crm_contatti (
                             id, cognome, nome, email, cellulare, citta,
                             tipo, mercato, fonte_sync, data_inserimento, score, regione
-                        ) VALUES ($1, $2, $3, $4, $5, $6, 'lead', 'ITALY', 'calendly_booking', $7, 0, 'LIGURIA')
+                        ) VALUES ($1, $2, $3, $4, $5, $6, 'lead', 'ITALY', 'calendly_booking', $7, 0, NULL)
                     `, [newLeadId, cognome, nome, email.toLowerCase(), telefono, citta, oggi]);
 
                     console.log(`[Calendly] Nuovo lead creato: ID ${newLeadId}, ${cognome} ${nome}`);
