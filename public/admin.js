@@ -43,53 +43,9 @@ document.addEventListener('DOMContentLoaded', () => {
         mktgLink.href = `pianificazione-mktg.html?key=${ADMIN_KEY}`;
     }
 
-    // Controlla se mock mode è attivo
-    checkMockMode();
-
     loadTasks();
     setupEventListeners();
 });
-
-// Controlla mock mode e mostra banner se attivo
-async function checkMockMode() {
-    try {
-        const res = await fetch(`${API_URL}/freelancer/mock-status`);
-        if (!res.ok) return;
-
-        const data = await res.json();
-        if (data.mock_mode) {
-            const banner = document.createElement('div');
-            banner.id = 'mock-mode-banner';
-            banner.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                right: 0;
-                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-                color: #fff;
-                padding: 12px 20px;
-                text-align: center;
-                font-weight: 600;
-                font-size: 0.95rem;
-                z-index: 9999;
-                box-shadow: 0 2px 8px rgba(0,0,0,0.2);
-                border-bottom: 3px solid #b45309;
-            `;
-            banner.innerHTML = `
-                🧪 <strong>MODALITÀ TEST ATTIVA</strong> - Freelancer.com API simulate (nessuna chiamata reale) - Puoi testare l'intero workflow senza limiti
-            `;
-            document.body.prepend(banner);
-
-            // Sposta il contenuto verso il basso per non coprirlo
-            const container = document.querySelector('.container');
-            if (container) {
-                container.style.marginTop = '50px';
-            }
-        }
-    } catch (err) {
-        console.warn('Errore controllo mock mode:', err);
-    }
-}
 
 // Setup event listeners
 function setupEventListeners() {
