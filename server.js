@@ -9211,6 +9211,34 @@ app.get('/api/opportunita', requireAdmin, async (req, res) => {
 });
 
 /**
+ * GET /api/opportunita/agente/:nome - Lista opportunità assegnate a un agente specifico
+ */
+app.get('/api/opportunita/agente/:nome', requireAdmin, async (req, res) => {
+    try {
+        const { nome } = req.params; // 'Kim' o 'Massimo'
+
+        if (!['Kim', 'Massimo'].includes(nome)) {
+            return res.status(400).json({ error: 'Agente deve essere "Kim" o "Massimo"' });
+        }
+
+        const client = await pool.connect();
+        try {
+            const result = await client.query(`
+                SELECT * FROM opportunita
+                WHERE assegnato_a = $1 AND status = 'pending'
+                ORDER BY data_chiamata ASC
+            `, [nome]);
+            res.json(result.rows);
+        } finally {
+            client.release();
+        }
+    } catch (err) {
+        console.error(`[Opportunità] Errore GET agente ${req.params.nome}:`, err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
  * PUT /api/opportunita/:id/assign - Assegna opportunità a Kim/Massimo/Admin
  */
 app.put('/api/opportunita/:id/assign', requireAdmin, async (req, res) => {

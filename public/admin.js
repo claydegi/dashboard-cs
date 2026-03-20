@@ -163,9 +163,11 @@ function switchSection(section) {
     if (section === 'report-kim') {
         loadReportsKim();
         loadFatture('kim');
+        loadOpportunitaAgente('Kim');
     } else if (section === 'report-massimo') {
         loadReportsMassimo();
         loadFatture('massimo');
+        loadOpportunitaAgente('Massimo');
     } else if (section === 'suture') {
         loadSuture();
     } else if (section === 'crm') {
@@ -1616,6 +1618,73 @@ async function completeOpportunita(id) {
         loadOpportunita(); // Reload to update UI
     } catch (err) {
         showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Carica opportunità assegnate a un agente specifico (Kim o Massimo)
+async function loadOpportunitaAgente(agente) {
+    const container = document.getElementById(`opportunita-${agente.toLowerCase()}-list`);
+    if (!container) return;
+
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
+
+    try {
+        const res = await fetch(`${API_URL}/opportunita/agente/${agente}?key=${ADMIN_KEY}`);
+        if (!res.ok) throw new Error('Errore caricamento');
+        const opportunita = await res.json();
+
+        if (opportunita.length === 0) {
+            container.innerHTML = '<div class="empty-state"><p>Nessuna opportunità assegnata</p></div>';
+            return;
+        }
+
+        container.innerHTML = opportunita.map(opp => {
+            const dataChiamata = new Date(opp.data_chiamata).toLocaleString('it-IT', {
+                timeZone: 'Europe/Rome',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+
+            return `
+                <div class="task-card" style="border-left:4px solid #7dd3c0">
+                    <div class="task-header">
+                        <span class="task-title" style="font-size:1.05rem">${escapeHtml(opp.nome_cliente)}</span>
+                    </div>
+                    <div class="task-meta" style="margin-top:8px;flex-direction:column;align-items:flex-start;gap:6px">
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📧</span>
+                            <span style="font-size:0.9rem">${escapeHtml(opp.email_cliente)}</span>
+                        </div>
+                        ${opp.telefono_cliente ? `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📞</span>
+                            <span style="font-size:0.9rem">${escapeHtml(opp.telefono_cliente)}</span>
+                        </div>
+                        ` : ''}
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">📅</span>
+                            <span style="font-size:0.9rem">${dataChiamata}</span>
+                        </div>
+                        ${opp.event_type ? `
+                        <div style="display:flex;align-items:center;gap:8px">
+                            <span style="font-weight:600">🎯</span>
+                            <span style="font-size:0.9rem">${escapeHtml(opp.event_type)}</span>
+                        </div>
+                        ` : ''}
+                        ${opp.note ? `
+                        <div style="margin-top:6px;padding:8px;background:#f9fafb;border-radius:4px;font-size:0.85rem;color:#6b7280">
+                            ${escapeHtml(opp.note).substring(0, 100)}${opp.note.length > 100 ? '...' : ''}
+                        </div>
+                        ` : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    } catch (err) {
+        container.innerHTML = `<div class="empty-state"><p style="color:#dc2626;">Errore: ${err.message}</p></div>`;
     }
 }
 
