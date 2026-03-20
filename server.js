@@ -9037,6 +9037,71 @@ app.post('/api/freelancer/ai/compose', requireAdmin, async (req, res) => {
     }
 });
 
+// Trigger Talent Scout (modulo 2/5)
+app.post('/api/freelancer/ai/scout', requireAdmin, async (req, res) => {
+    const { job_id } = req.body;
+    if (!job_id) return res.status(400).json({ error: 'job_id obbligatorio' });
+
+    try {
+        const { runTalentScout } = require('./scripts/talent_scout.js');
+
+        if (!process.env.ANTHROPIC_API_KEY) {
+            return res.status(500).json({ error: 'ANTHROPIC_API_KEY non configurato' });
+        }
+
+        console.log(`[TalentScout] Avvio per job_id: ${job_id}`);
+
+        // 1. Verifica che il progetto sia pubblicato
+        const job = await pool.query('SELECT freelancer_project_id FROM freelancer_jobs WHERE id = $1', [job_id]);
+        if (job.rows.length === 0) return res.status(404).json({ error: 'Progetto non trovato' });
+        if (!job.rows[0].freelancer_project_id) return res.status(400).json({ error: 'Progetto non ancora pubblicato su Freelancer.com' });
+
+        // 2. Scarica i bid da Freelancer.com API
+        const fpid = job.rows[0].freelancer_project_id;
+        const apiResult = await freelancerApiCall('GET', `/projects/0.1/bids/?projects[]=${fpid}&user_details=true&user_reputation_details=true&user_country_details=true`);
+
+        if (!apiResult.bids || apiResult.bids.length === 0) {
+            return res.status(400).json({ error: 'Nessuna proposta ricevuta ancora. Aspetta che arrivino dei bid prima di lanciare il Talent Scout.' });
+        }
+
+        // 3. Trasforma i bid in formato completo per l'analisi
+        const bids = apiResult.bids.map(b => {
+            const user = apiResult.users?.[b.bidder_id] || {};
+            return {
+                bid_id: b.id,
+                bidder_id: b.bidder_id,
+                username: user.username || 'N/A',
+                display_name: user.display_name || 'N/A',
+                amount: b.amount,
+                period: b.period,
+                description: b.description || '',
+                milestone_percentage: b.milestone_percentage || 0,
+                country: user.location?.country?.name || 'N/A',
+                reputation: user.reputation || {},
+                submitted_at: b.submitdate
+            };
+        });
+
+        console.log(`[TalentScout] Trovate ${bids.length} proposte. Analisi in corso...`);
+
+        // 4. Esegui Talent Scout
+        const result = await runTalentScout(job_id, bids, pool, process.env.ANTHROPIC_API_KEY);
+
+        res.json({
+            ok: true,
+            message: 'Talent Scout completato. Controlla il tab Approvazioni per vedere i top 3 candidati.',
+            result: result
+        });
+
+    } catch (err) {
+        console.error('[TalentScout] Errore:', err);
+        res.status(500).json({
+            error: 'Errore esecuzione Talent Scout',
+            details: err.message
+        });
+    }
+});
+
 // ==================== FREELANCER.COM API INTEGRATION ====================
 
 const FREELANCER_API_BASE = 'https://www.freelancer.com/api';

@@ -1207,6 +1207,39 @@ async function optimizeWithAI(jobId) {
     }
 }
 
+// Analizza proposte con AI (Talent Scout)
+async function analyzeBidsWithAI(jobId) {
+    if (!confirm('Analizzare le proposte ricevute con AI? Claude valuterà tutti i freelancer e ti suggerirà i migliori 3 candidati.')) return;
+
+    try {
+        showToast('⏳ Talent Scout in corso, attendere 20-30 secondi...');
+
+        const res = await fetch(`${API_URL}/freelancer/ai/scout?key=${ADMIN_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ job_id: jobId })
+        });
+
+        if (!res.ok) {
+            const error = await res.json();
+            throw new Error(error.details || error.error);
+        }
+
+        showToast('✅ Talent Scout completato! Vai nel tab Approvazioni per vedere i top 3 candidati.');
+
+        loadFreelancerJobs();
+        loadFreelancerApprovals();
+
+        // Switcha al tab approvazioni
+        setTimeout(() => {
+            document.querySelector('[data-freelancer-tab="approvazioni"]').click();
+        }, 1000);
+
+    } catch (err) {
+        showToast('❌ Errore Talent Scout: ' + err.message, 'error');
+    }
+}
+
 // Carica lista progetti
 async function loadFreelancerJobs() {
     const container = document.getElementById('freelancer-jobs-list');
@@ -1277,6 +1310,7 @@ async function openFreelancerJob(id) {
                     <span class="freelancer-stato" style="background:#22c55e">LIVE su Freelancer.com</span>
                     <a href="${job.freelancer_url}" target="_blank" class="btn btn-primary">Vedi su Freelancer.com &rarr;</a>
                     <button class="btn" onclick="loadFreelancerBids(${id})">Vedi Proposte</button>
+                    <button class="btn btn-secondary" onclick="analyzeBidsWithAI(${id})" style="background:#7c3aed;color:#fff;border:none">🔍 Analizza Proposte con AI</button>
                 </div>
                 <div id="freelancer-bids-${id}"></div>
             `;
@@ -1472,6 +1506,79 @@ function formatJobComposerDetails(dettagli) {
     `;
 }
 
+// Formatta dettagli Talent Scout in modo leggibile
+function formatTalentScoutDetails(dettagli) {
+    if (!dettagli || !dettagli.top_3) return '';
+
+    const candidatesHtml = dettagli.top_3.map((c, idx) => {
+        const medalColors = ['#ffd700', '#c0c0c0', '#cd7f32']; // Oro, Argento, Bronzo
+        const medalEmoji = ['🥇', '🥈', '🥉'];
+
+        const proList = (c.pro || []).map(p => `<li style="color:#059669;margin:4px 0;">✓ ${escapeHtml(p)}</li>`).join('');
+        const controList = (c.contro || []).map(p => `<li style="color:#dc2626;margin:4px 0;">⚠ ${escapeHtml(p)}</li>`).join('');
+
+        const raccomandazioneColors = {
+            'Fortemente raccomandato': '#059669',
+            'Raccomandato': '#f59e0b',
+            'Raccomandato con riserva': '#dc2626'
+        };
+        const raccomandazioneColor = raccomandazioneColors[c.raccomandazione] || '#6b7280';
+
+        return `
+            <div style="background:#fff;border:2px solid ${medalColors[idx]};border-radius:12px;padding:20px;margin-bottom:16px;position:relative;">
+                <div style="position:absolute;top:12px;right:12px;font-size:2rem;">${medalEmoji[idx]}</div>
+
+                <div style="margin-bottom:12px;padding-bottom:12px;border-bottom:2px solid #e5e7eb;">
+                    <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">Candidato #${c.ranking}</div>
+                    <div style="font-size:1.2rem;font-weight:700;color:#111827;margin-bottom:4px;">@${escapeHtml(c.username || 'N/A')}</div>
+                    <div style="display:flex;align-items:center;gap:12px;margin-top:8px;">
+                        <span style="background:${medalColors[idx]};color:#000;padding:6px 14px;border-radius:20px;font-weight:700;font-size:0.95rem;">Score: ${c.punteggio_totale}/100</span>
+                        <span style="background:${raccomandazioneColor};color:#fff;padding:6px 14px;border-radius:20px;font-weight:600;font-size:0.85rem;">${escapeHtml(c.raccomandazione || 'N/A')}</span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">💡 Motivazione</div>
+                    <div style="font-size:0.95rem;color:#374151;line-height:1.6;font-style:italic;">${escapeHtml(c.motivazione || 'N/A')}</div>
+                </div>
+
+                <div style="display:flex;gap:16px;margin-bottom:12px;flex-wrap:wrap;">
+                    <div style="flex:1;min-width:200px;">
+                        <div style="font-size:0.75rem;font-weight:700;color:#059669;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">✓ Punti di forza</div>
+                        <ul style="margin:0;padding-left:20px;list-style:none;">${proList || '<li style="color:#9ca3af;">Nessuno</li>'}</ul>
+                    </div>
+                    <div style="flex:1;min-width:200px;">
+                        <div style="font-size:0.75rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:6px;">⚠ Punti di attenzione</div>
+                        <ul style="margin:0;padding-left:20px;list-style:none;">${controList || '<li style="color:#9ca3af;">Nessuno</li>'}</ul>
+                    </div>
+                </div>
+
+                <div style="text-align:center;margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;">
+                    <span style="font-size:0.8rem;color:#6b7280;">Freelancer ID: ${c.bidder_id}</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    return `
+        <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:8px;padding:16px;margin-top:12px;">
+            <div style="background:#7c3aed;color:#fff;padding:12px 16px;border-radius:8px;margin-bottom:16px;text-align:center;">
+                <div style="font-size:0.85rem;font-weight:700;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;">🔍 Talent Scout</div>
+                <div style="font-size:1.1rem;font-weight:600;">Top 3 Candidati Selezionati</div>
+            </div>
+
+            ${candidatesHtml}
+
+            ${dettagli.riepilogo_generale ? `
+                <div style="background:#fff;padding:16px;border-radius:8px;border-left:4px solid #7c3aed;margin-top:16px;">
+                    <div style="font-size:0.75rem;font-weight:700;color:#6b7280;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:8px;">📊 Riepilogo Generale</div>
+                    <div style="font-size:0.95rem;color:#374151;line-height:1.6;">${escapeHtml(dettagli.riepilogo_generale)}</div>
+                </div>
+            ` : ''}
+        </div>
+    `;
+}
+
 // Approvazioni
 async function loadFreelancerApprovals() {
     const container = document.getElementById('freelancer-approvals-list');
@@ -1505,7 +1612,11 @@ async function loadFreelancerApprovals() {
                     <span style="color:#6b7280;font-size:0.85rem;">${a.job_titolo}</span>
                 </div>
                 <p class="freelancer-approval-action">${a.azione}</p>
-                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? (a.modulo === 'job_composer' ? formatJobComposerDetails(a.dettagli) : `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>`) : ''}
+                ${a.dettagli && Object.keys(a.dettagli).length > 0 ? (
+                    a.modulo === 'job_composer' ? formatJobComposerDetails(a.dettagli) :
+                    a.modulo === 'talent_scout' ? formatTalentScoutDetails(a.dettagli) :
+                    `<pre class="freelancer-approval-details">${JSON.stringify(a.dettagli, null, 2)}</pre>`
+                ) : ''}
                 <div class="form-group" style="margin-top:8px;">
                     <input type="text" id="freelancer-nota-${a.id}" placeholder="Nota (opzionale)">
                 </div>
