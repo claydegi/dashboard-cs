@@ -8801,6 +8801,67 @@ app.get('/api/suture/verifica-copertura', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/suture/ordini-clienti-completo — Lista TUTTI gli ordini clienti con suture (coperti e non)
+app.get('/api/suture/ordini-clienti-completo', requireAdmin, async (req, res) => {
+    try {
+        // Query tutti gli ordini con suture da consegnare
+        const ordiniResult = await pool.query(`
+            SELECT sale_order_name, partner_name, date_order, codice, qty_to_deliver
+            FROM suture_ordini_clienti
+            ORDER BY date_order DESC, sale_order_name ASC
+        `);
+
+        // Per ogni sutura negli ordini, prendi lo stock attuale
+        const codiciUnivoci = [...new Set(ordiniResult.rows.map(r => r.codice))];
+        const stockResult = await pool.query(`
+            SELECT codice, giacenza, impegnato, in_arrivo, in_bozza,
+                   (giacenza - impegnato + in_arrivo) as saldo_senza_bozza
+            FROM suture_stock
+            WHERE codice = ANY($1)
+        `, [codiciUnivoci]);
+
+        const stockMap = {};
+        stockResult.rows.forEach(s => {
+            stockMap[s.codice] = {
+                giacenza: parseFloat(s.giacenza),
+                impegnato: parseFloat(s.impegnato),
+                in_arrivo: parseFloat(s.in_arrivo),
+                in_bozza: parseFloat(s.in_bozza),
+                saldo_senza_bozza: parseFloat(s.saldo_senza_bozza)
+            };
+        });
+
+        // Raggruppa per ordine
+        const ordiniMap = {};
+        ordiniResult.rows.forEach(row => {
+            if (!ordiniMap[row.sale_order_name]) {
+                ordiniMap[row.sale_order_name] = {
+                    ordine: row.sale_order_name,
+                    cliente: row.partner_name,
+                    data: row.date_order,
+                    suture: []
+                };
+            }
+            ordiniMap[row.sale_order_name].suture.push({
+                codice: row.codice,
+                qta_da_consegnare: parseFloat(row.qty_to_deliver),
+                stock: stockMap[row.codice] || null
+            });
+        });
+
+        const ordini = Object.values(ordiniMap);
+
+        res.json({
+            totale_ordini: ordini.length,
+            totale_righe: ordiniResult.rows.length,
+            ordini: ordini
+        });
+    } catch (err) {
+        console.error('[Suture] Errore lista ordini clienti:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== API FREELANCER ====================
 
 // Lista progetti
