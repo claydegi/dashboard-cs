@@ -1163,11 +1163,12 @@ async function syncSutureFromOdoo() {
             quantMap[pid].reserved += q.reserved_quantity || 0;
         }
 
-        // 3) Impegnato da sale.order.line (ordini confermati, non completamente consegnati)
+        // 3) Impegnato da sale.order.line (ordini draft + confermati, non completamente consegnati)
+        //    Includiamo anche ordini draft perche' possiamo preparare PO acquisto anche prima della conferma vendita
         //    qty_to_deliver e' un campo computed di Odoo che puo' essere desincronizzato,
         //    quindi leggiamo product_uom_qty e qty_delivered e calcoliamo il pendente noi.
         const solLines = await odooExecute(uid, 'sale.order.line', 'search_read',
-            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale']]]],
+            [[['product_id', 'in', productIds], ['order_id.state', 'in', ['sale', 'draft']]]],
             { fields: ['product_id', 'product_uom_qty', 'qty_delivered', 'order_id'], context: { allowed_company_ids: [1], force_company: 1 } }
         );
         const commitMap = {};
