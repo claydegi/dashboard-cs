@@ -8755,6 +8755,52 @@ app.get('/api/crm/riepilogo', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/suture/verifica-copertura — Verifica copertura ordini SENZA bozza (solo giacenza + in_arrivo)
+app.get('/api/suture/verifica-copertura', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT codice, descrizione, giacenza, impegnato, in_arrivo, in_bozza,
+                   (giacenza - impegnato + in_arrivo) as saldo_senza_bozza,
+                   (giacenza - impegnato + in_arrivo + in_bozza) as saldo_con_bozza
+            FROM suture_stock
+            WHERE impegnato > 0
+            ORDER BY (giacenza - impegnato + in_arrivo) ASC, codice ASC
+        `);
+
+        const scoperti = result.rows.filter(r => parseFloat(r.saldo_senza_bozza) < 0);
+        const coperti = result.rows.filter(r => parseFloat(r.saldo_senza_bozza) >= 0);
+
+        res.json({
+            totale_prodotti_impegnati: result.rows.length,
+            scoperti_senza_bozza: scoperti.length,
+            coperti_senza_bozza: coperti.length,
+            scoperti: scoperti.map(r => ({
+                codice: r.codice,
+                descrizione: r.descrizione,
+                giacenza: parseFloat(r.giacenza),
+                impegnato: parseFloat(r.impegnato),
+                in_arrivo: parseFloat(r.in_arrivo),
+                in_bozza: parseFloat(r.in_bozza),
+                saldo_senza_bozza: parseFloat(r.saldo_senza_bozza),
+                saldo_con_bozza: parseFloat(r.saldo_con_bozza)
+            })),
+            coperti: coperti.map(r => ({
+                codice: r.codice,
+                descrizione: r.descrizione,
+                giacenza: parseFloat(r.giacenza),
+                impegnato: parseFloat(r.impegnato),
+                in_arrivo: parseFloat(r.in_arrivo),
+                in_bozza: parseFloat(r.in_bozza),
+                saldo_senza_bozza: parseFloat(r.saldo_senza_bozza),
+                saldo_con_bozza: parseFloat(r.saldo_con_bozza)
+            }))
+        });
+    } catch (err) {
+        console.error('[Suture] Errore verifica copertura:', err.message);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // ==================== API FREELANCER ====================
 
 // Lista progetti
