@@ -8331,13 +8331,12 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
                     valore: Math.round(inArrivo * costo * 100) / 100, best_of: row.best_of
                 });
             }
-            // In bozza: mostra solo la parte non gia coperta dall'arrivo
-            const bozzaUtile = Math.min(inBozza, fabbisogno);
-            if (bozzaUtile > 0) {
+            // In bozza: mostra TUTTO il PO draft (e' la source of truth, va sempre mostrato)
+            if (inBozza > 0) {
                 inBozzaItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
-                    quantita: bozzaUtile, costo_acquisto: costo,
-                    valore: Math.round(bozzaUtile * costo * 100) / 100, best_of: row.best_of
+                    quantita: inBozza, costo_acquisto: costo,
+                    valore: Math.round(inBozza * costo * 100) / 100, best_of: row.best_of
                 });
             }
             // inArrivo gia sottratto nel calcolo fabbisogno, non contare due volte
