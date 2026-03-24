@@ -148,6 +148,22 @@ async function caricaAlertOpportunita() {
         } catch (e) { /* Silenzioso */ }
     }
 
+    // Alert EMILIA-ROMAGNA
+    const alertDivEmiliaromagna = document.getElementById('crm-opp-alert-emiliaromagna');
+    if (alertDivEmiliaromagna) {
+        try {
+            const res7 = await fetch(`${API_URL}/crm/opportunita/scadute?regione=EMILIA-ROMAGNA&key=${ADMIN_KEY}`);
+            if (res7.ok) {
+                const data7 = await res7.json();
+                const totale7 = data7.reduce((sum, r) => sum + parseInt(r.totale), 0);
+                if (totale7 > 0) {
+                    const clienti7 = data7.flatMap(r => r.clienti || []).filter(n => n.trim()).join(', ');
+                    alertDivEmiliaromagna.innerHTML = `<span class="crm-opp-alert-badge">&#9888; Attenzione: ${totale7} opportunita di vendita scadute - EMILIA-ROMAGNA<br><small style="font-weight:normal;">Clienti: ${clienti7}</small></span>`;
+                }
+            }
+        } catch (e) { /* Silenzioso */ }
+    }
+
     // Alert VALLE D'AOSTA
     const alertDivValledaosta = document.getElementById('crm-opp-alert-valledaosta');
     if (alertDivValledaosta) {
