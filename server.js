@@ -8687,7 +8687,7 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
 const REGIONI_CRM_ADMIN = [
     'BASILICATA', 'SICILIA', 'CALABRIA', 'PUGLIA',
     'ABRUZZO', 'MOLISE', 'MARCHE', 'UMBRIA',
-    'EMILIA-ROMAGNA', 'TOSCANA', 'SARDEGNA',
+    'TOSCANA', 'SARDEGNA',
     'VENETO', 'FRIULI VENEZIA GIULIA', 'TRENTINO-ALTO ADIGE'
 ];
 

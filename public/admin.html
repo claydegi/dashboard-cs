@@ -173,6 +173,11 @@
                         <div class="report-card-titolo">CRM Valle d'Aosta</div>
                         <div class="report-card-data">Contatti, prodotti, storico acquisti</div>
                     </div>
+                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=EMILIA-ROMAGNA&key=' + new URLSearchParams(window.location.search).get('key')">
+                        <div class="report-card-tipo">CRM</div>
+                        <div class="report-card-titolo">CRM Emilia Romagna</div>
+                        <div class="report-card-data">Emilia-Romagna</div>
+                    </div>
                 </div>
             </section>
 
@@ -244,11 +249,6 @@
                         <div class="report-card-tipo">CRM</div>
                         <div class="report-card-titolo">CRM Centro Italia</div>
                         <div class="report-card-data">Abruzzo, Molise, Marche, Umbria</div>
-                    </div>
-                    <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=EMILIA-ROMAGNA&key=' + new URLSearchParams(window.location.search).get('key')">
-                        <div class="report-card-tipo">CRM</div>
-                        <div class="report-card-titolo">CRM Emilia Romagna</div>
-                        <div class="report-card-data">Emilia-Romagna</div>
                     </div>
                     <div class="report-card report-card-crm" onclick="window.location.href='/crm?regione=TOSCANA&key=' + new URLSearchParams(window.location.search).get('key')">
                         <div class="report-card-tipo">CRM</div>
@@ -331,7 +331,6 @@
                         </div>
                         <div class="form-actions">
                             <button class="btn btn-primary" id="btnSalvaJob">Crea Progetto</button>
-                            <button class="btn btn-secondary" id="btnOptimizeWithAI" style="display:none;">✨ Ottimizza con AI</button>
                             <button class="btn" id="btnAnnullaJob">Annulla</button>
                         </div>
                     </div>
