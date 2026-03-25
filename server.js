@@ -9466,6 +9466,16 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
         const eventType = invitee.event_type_name || 'N/A';
         const calendlyEventId = invitee.event || invitee.uri || null;
 
+        // Determina linea prodotto dall'evento Calendly
+        const eventNameLower = eventType.toLowerCase();
+        let lineaProdotto = 'GENERIC';
+        if (eventNameLower.includes('elevate')) {
+            lineaProdotto = 'ELEVATE';
+        } else if (eventNameLower.includes('pt-1') || eventNameLower.includes('pt1') || eventNameLower.includes('pterigoide') || eventNameLower.includes('corso-pterigoidei')) {
+            lineaProdotto = 'PT1';
+        }
+        console.log(`[Calendly] Linea prodotto rilevata: ${lineaProdotto} (da evento: ${eventType})`);
+
         // Dividi nome completo in nome/cognome (primo parola = nome, resto = cognome)
         const nomeParts = nomeCompleto.trim().split(/\s+/);
         const nome = nomeParts[0] || '';
@@ -9514,37 +9524,37 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
 
                     console.log(`[Calendly] Nuovo lead creato: ID ${newLeadId}, ${cognome} ${nome}`);
 
-                    // Aggiungi 200 punti score per PT1
+                    // Aggiungi 200 punti score per la linea prodotto rilevata
                     await client.query(`
                         INSERT INTO crm_score_manuali (
                             contatto_id, linea_prodotto, tipo_attivita, punti, data_evento, sincronizzata
-                        ) VALUES ($1, 'PT1', 'calendly_meeting', 200, $2, false)
-                    `, [newLeadId, oggi]);
+                        ) VALUES ($1, $2, 'calendly_meeting', 200, $3, false)
+                    `, [newLeadId, lineaProdotto, oggi]);
 
-                    console.log(`[Calendly] Assegnati 200 punti PT1 al lead ${newLeadId}`);
+                    console.log(`[Calendly] Assegnati 200 punti ${lineaProdotto} al lead ${newLeadId}`);
 
                     // Aggiorna notifica Telegram con info CRM
-                    const messaggioCRM = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✨ NUOVO LEAD CREATO NEL CRM\n🎯 200 punti PT1 assegnati\n📝 ${note || 'Nessuna nota'}`;
+                    const messaggioCRM = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✨ NUOVO LEAD CREATO NEL CRM\n🎯 200 punti ${lineaProdotto} assegnati\n📝 ${note || 'Nessuna nota'}`;
                     await sendTelegram(messaggioCRM);
                 } else if (existingContact.rows.length > 0) {
-                    // Email esiste già: aggiungi comunque 200 punti PT1
+                    // Email esiste già: aggiungi 200 punti per la linea prodotto rilevata
                     const contattoId = existingContact.rows[0].id;
                     const contattoTipo = existingContact.rows[0].tipo || 'account';
                     console.log(`[Calendly] Email ${email} trovata nel CRM (ID ${contattoId}, tipo: ${contattoTipo})`);
 
                     const oggi = new Date().toISOString().split('T')[0];
 
-                    // Aggiungi 200 punti PT1
+                    // Aggiungi 200 punti per la linea prodotto corretta
                     await client.query(`
                         INSERT INTO crm_score_manuali (
                             contatto_id, linea_prodotto, tipo_attivita, punti, data_evento, sincronizzata
-                        ) VALUES ($1, 'PT1', 'calendly_meeting', 200, $2, false)
-                    `, [contattoId, oggi]);
+                        ) VALUES ($1, $2, 'calendly_meeting', 200, $3, false)
+                    `, [contattoId, lineaProdotto, oggi]);
 
-                    console.log(`[Calendly] Assegnati 200 punti PT1 al contatto esistente ${contattoId}`);
+                    console.log(`[Calendly] Assegnati 200 punti ${lineaProdotto} al contatto esistente ${contattoId}`);
 
                     // Notifica Telegram standard
-                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✅ Contatto esistente nel CRM\n🎯 200 punti PT1 assegnati\n📝 ${note || 'Nessuna nota'}`;
+                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✅ Contatto esistente nel CRM\n🎯 200 punti ${lineaProdotto} assegnati\n📝 ${note || 'Nessuna nota'}`;
                     await sendTelegram(messaggio);
                 } else {
                     // Email non valida (N/A)
