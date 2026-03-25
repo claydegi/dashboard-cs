@@ -9473,6 +9473,8 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
             lineaProdotto = 'ELEVATE';
         } else if (eventNameLower.includes('pt-1') || eventNameLower.includes('pt1') || eventNameLower.includes('pterigoide') || eventNameLower.includes('corso-pterigoidei')) {
             lineaProdotto = 'PT1';
+        } else if (eventNameLower.includes('idem')) {
+            lineaProdotto = 'IDEM_SINGAPORE';
         }
         console.log(`[Calendly] Linea prodotto rilevata: ${lineaProdotto} (da evento: ${eventType})`);
 
