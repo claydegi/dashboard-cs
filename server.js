@@ -5697,9 +5697,7 @@ app.get('/api/webinar/confirm', async (req, res) => {
             }
         }
 
-        // Email conferma (fire-and-forget)
-        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_MAILING_' + WEBINAR_TAG)
-            .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma (one-click):`, err.message));
+        // One-click: NESSUNA email di conferma — l'utente vede già la pagina di conferma nel browser
 
         // Redirect alla pagina di conferma
         const nomeDisplay = contatto.nome || '';
