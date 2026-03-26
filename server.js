@@ -5600,7 +5600,7 @@ app.get('/api/webinar/confirm', async (req, res) => {
     const { email, token, tag } = req.query;
 
     if (!email || !token) {
-        return res.redirect('/webinar-conferma?status=error&msg=link-non-valido');
+        return res.redirect('/webinar-conferma.html?status=error&msg=link-non-valido');
     }
 
     const emailClean = email.trim().toLowerCase();
@@ -5611,7 +5611,7 @@ app.get('/api/webinar/confirm', async (req, res) => {
     const expectedToken = crypto.createHmac('sha256', CONFIG.REPORTS_API_KEY).update(emailClean + WEBINAR_TAG).digest('hex').substring(0, 16);
     if (token !== expectedToken) {
         console.warn(`[Webinar ${WEBINAR_TAG}] Token non valido per ${emailClean}`);
-        return res.redirect('/webinar-conferma?status=error&msg=link-non-valido');
+        return res.redirect('/webinar-conferma.html?status=error&msg=link-non-valido');
     }
 
     const client = await pool.connect();
@@ -5625,7 +5625,7 @@ app.get('/api/webinar/confirm', async (req, res) => {
         );
         if (giaIscritto.rows.length > 0) {
             await client.query('ROLLBACK');
-            return res.redirect(`/webinar-conferma?status=gia-iscritto&nome=${encodeURIComponent(emailClean)}`);
+            return res.redirect(`/webinar-conferma.html?status=gia-iscritto&nome=${encodeURIComponent(emailClean)}`);
         }
 
         // Cerca contatto esistente (deve esistere, viene dal mailing)
@@ -5701,12 +5701,12 @@ app.get('/api/webinar/confirm', async (req, res) => {
 
         // Redirect alla pagina di conferma
         const nomeDisplay = contatto.nome || '';
-        res.redirect(`/webinar-conferma?status=ok&nome=${encodeURIComponent(nomeDisplay)}`);
+        res.redirect(`/webinar-conferma.html?status=ok&nome=${encodeURIComponent(nomeDisplay)}`);
 
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(`[Webinar ${WEBINAR_TAG}] Errore one-click confirm:`, err);
-        res.redirect('/webinar-conferma?status=error&msg=errore-server');
+        res.redirect('/webinar-conferma.html?status=error&msg=errore-server');
     } finally {
         client.release();
     }
@@ -6248,7 +6248,7 @@ app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
 
     try {
         // Per il test: genera link confirm di test che mostra la pagina di conferma
-        const testConfirmLink = `https://dashboard-cs-production.up.railway.app/webinar-conferma?status=ok&nome=Test`;
+        const testConfirmLink = `https://dashboard-cs-production.up.railway.app/webinar-conferma.html?status=ok&nome=Test`;
         await sendWebinarEmail('WEBINAR_INVITO', tag, to, testConfirmLink, 'WEBINAR_INVITO_TEST');
         console.log(`[Webinar Invito Test] Email di test inviata a ${to}`);
         res.json({ ok: true, email: to, messaggio: `Email invito test inviata a ${to}` });
