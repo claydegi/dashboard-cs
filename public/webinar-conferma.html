@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Iscrizione Confermata | OSSEOTOUCH Webinar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #e8edf2;
+            min-height: 100vh;
+            background: #151a24;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+        .bg-waves {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/webinar-arcara-bg.jpg') center center / cover no-repeat;
+            z-index: 0; opacity: 0.2;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(21,26,36,0.4) 0%, rgba(21,26,36,0.85) 100%);
+            z-index: 1;
+        }
+        .card {
+            position: relative; z-index: 2;
+            max-width: 540px; width: 100%;
+            background: rgba(123, 163, 201, 0.06);
+            border: 1px solid rgba(123, 163, 201, 0.15);
+            border-radius: 16px;
+            padding: 44px 36px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+        .logo { margin-bottom: 28px; }
+        .logo img { height: 44px; }
+        .icon { font-size: 52px; margin-bottom: 18px; }
+        h1 {
+            font-size: 24px; font-weight: 700; color: #e8edf2;
+            margin-bottom: 10px; line-height: 1.3;
+        }
+        h1 .nome { color: #7ba3c9; }
+        .msg {
+            font-size: 15px; color: #9bb0c4; line-height: 1.7;
+            margin-bottom: 24px;
+        }
+        .info-box {
+            background: rgba(123, 163, 201, 0.08);
+            border: 1px solid rgba(123, 163, 201, 0.15);
+            border-radius: 10px;
+            padding: 18px 22px;
+            text-align: left;
+            margin-bottom: 20px;
+        }
+        .info-box .row {
+            display: flex; gap: 10px; align-items: center;
+            font-size: 14px; color: #b8c8d8;
+            padding: 6px 0;
+        }
+        .info-box .row strong { color: #e8edf2; }
+        .note {
+            font-size: 12px; color: #6a7d90; line-height: 1.6;
+        }
+        .btn-landing {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 28px;
+            background: rgba(123, 163, 201, 0.1);
+            border: 1px solid rgba(123, 163, 201, 0.25);
+            border-radius: 8px;
+            color: #9bb8d4;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .btn-landing:hover {
+            border-color: rgba(123, 163, 201, 0.4);
+            background: rgba(123, 163, 201, 0.15);
+        }
+        /* Error state */
+        .error h1 { color: #d4627a; }
+        .error .info-box {
+            border-color: rgba(212, 98, 122, 0.2);
+            background: rgba(212, 98, 122, 0.06);
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="card" id="card">
+        <div class="logo">
+            <img src="img/osseotouch-logo-dark-bg.png" alt="Osseotouch">
+        </div>
+        <div id="content"></div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const status = params.get('status') || 'ok';
+        const nome = params.get('nome') || '';
+        const msg = params.get('msg') || '';
+        const content = document.getElementById('content');
+        const card = document.getElementById('card');
+
+        if (status === 'ok') {
+            const greeting = nome ? `Grazie <span class="nome">${nome}</span>,` : 'Grazie,';
+            content.innerHTML = `
+                <div class="icon">&#9989;</div>
+                <h1>${greeting}<br>la tua iscrizione è confermata!</h1>
+                <p class="msg">
+                    Lunedì <strong>7 aprile alle 21:00</strong> riceverai via email il tuo link personale per accedere al webinar su Zoom.
+                </p>
+                <div class="info-box">
+                    <div class="row">&#128197; <strong>7 Aprile 2026</strong> — Ore 21:00</div>
+                    <div class="row">&#127891; <strong>Dr. Carlo Arcara</strong> — Sinus Lift con Magnetic Mallet</div>
+                    <div class="row">&#128187; <strong>Online su Zoom</strong> — link via email il giorno del webinar</div>
+                </div>
+                <p class="note">Controlla anche la cartella spam. Se non ricevi nulla, scrivici a contact@osseotouch.com</p>
+                <a href="/webinar" class="btn-landing">Scopri di più sul webinar</a>
+            `;
+        } else if (status === 'gia-iscritto') {
+            content.innerHTML = `
+                <div class="icon">&#128077;</div>
+                <h1>Risulti già iscritto!</h1>
+                <p class="msg">
+                    Sei già registrato a questo webinar. Lunedì <strong>7 aprile</strong> riceverai il link di accesso via email.
+                </p>
+                <p class="note">Se hai domande, scrivici a contact@osseotouch.com</p>
+                <a href="/webinar" class="btn-landing">Torna al webinar</a>
+            `;
+        } else {
+            card.classList.add('error');
+            const errorMsg = msg === 'link-non-valido'
+                ? 'Il link che hai utilizzato non è valido o è scaduto.'
+                : 'Si è verificato un errore. Riprova o iscriviti direttamente dalla pagina del webinar.';
+            content.innerHTML = `
+                <div class="icon">&#9888;&#65039;</div>
+                <h1>Qualcosa non ha funzionato</h1>
+                <p class="msg">${errorMsg}</p>
+                <a href="/webinar" class="btn-landing">Iscriviti dalla pagina del webinar</a>
+            `;
+        }
+    </script>
+</body>
+</html>

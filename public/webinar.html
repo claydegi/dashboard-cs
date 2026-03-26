@@ -3,9 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Webinar OSSEOTOUCH - Dr. A. Malavasi</title>
-    <!-- Redirect a webinar-replay: il webinar live è concluso, ora si accede alla registrazione -->
-    <script>window.location.replace('/webinar-replay');</script>
+    <title>Webinar OSSEOTOUCH - Dr. C. Arcara | Sinus Lift con Magnetic Mallet</title>
     <!-- Meta Pixel -->
     <script>
         !function(f,b,e,v,n,t,s)
@@ -40,22 +38,22 @@
 
         body {
             font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
-            color: #ffffff;
+            color: #e8edf2;
             min-height: 100vh;
-            background: #061220;
+            background: #151a24;
             overflow-x: hidden;
         }
 
-        /* Background con onde */
+        /* Background chirurgico — piu' luminoso */
         .bg-waves {
             position: fixed;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            background: url('img/webinar-arcara-bg.jpg') center center / cover no-repeat;
             z-index: 0;
-            opacity: 0.45;
+            opacity: 0.38;
         }
 
         .bg-overlay {
@@ -65,9 +63,9 @@
             width: 100%;
             height: 100%;
             background: linear-gradient(180deg,
-                rgba(6,18,32,0.3) 0%,
-                rgba(6,18,32,0.65) 40%,
-                rgba(6,18,32,0.9) 100%);
+                rgba(21,26,36,0.25) 0%,
+                rgba(21,26,36,0.55) 40%,
+                rgba(21,26,36,0.88) 100%);
             z-index: 1;
         }
 
@@ -86,13 +84,12 @@
 
         .header img {
             height: 52px;
-            filter: brightness(0) invert(1);
         }
 
-        /* Speaker Section - top bar */
+        /* Speaker Section */
         .speaker-section {
             max-width: 1060px;
-            margin: 8px auto 0;
+            margin: 16px auto 0;
             padding: 0 40px;
         }
 
@@ -100,8 +97,8 @@
             display: flex;
             align-items: center;
             gap: 22px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            background: rgba(123, 163, 201, 0.06);
+            border: 1px solid rgba(123, 163, 201, 0.12);
             border-radius: 14px;
             padding: 20px 28px;
         }
@@ -111,18 +108,16 @@
             height: 110px;
             border-radius: 50%;
             overflow: hidden;
-            border: 3px solid rgba(0, 180, 216, 0.5);
+            border: 3px solid rgba(180, 50, 70, 0.5);
             flex-shrink: 0;
-            background: rgba(0,180,216,0.08);
+            background: rgba(123, 163, 201, 0.08);
         }
 
         .speaker-photo img {
-            width: 130%;
-            height: 130%;
+            width: 100%;
+            height: 100%;
             object-fit: cover;
-            object-position: center 10%;
-            margin-left: -15%;
-            margin-top: -5%;
+            object-position: center 15%;
         }
 
         .speaker-text {
@@ -133,18 +128,18 @@
             font-size: 24px;
             font-weight: 800;
             line-height: 1.2;
-            color: #ffffff;
+            color: #e8edf2;
             text-transform: uppercase;
             letter-spacing: 0.3px;
         }
 
         .speaker-text h1 .highlight {
-            color: #00b4d8;
+            color: #7ba3c9;
         }
 
         .webinar-subtitle {
             font-size: 15px;
-            color: #90caf9;
+            color: #9bb8d4;
             font-weight: 400;
             font-style: italic;
             margin-top: 5px;
@@ -164,18 +159,16 @@
             font-size: 13px;
         }
 
-        .meta-item .icon {
-            font-size: 14px;
-        }
-
-        .meta-item .label {
-            color: #78909c;
-            font-weight: 500;
-        }
-
         .meta-item .value {
-            color: #ffffff;
+            color: #e8edf2;
             font-weight: 600;
+        }
+
+        .speaker-bio {
+            font-size: 12px;
+            color: #8a9bb0;
+            margin-top: 8px;
+            line-height: 1.5;
         }
 
         /* Description section */
@@ -187,46 +180,87 @@
 
         .description-text {
             font-size: 15px;
-            color: #dce7ed;
+            color: #c5d0db;
             line-height: 1.7;
             padding: 0 4px;
         }
 
-        /* Main content: video + form */
-        .main-row {
+        /* Cosa imparerai */
+        .learn-section {
             max-width: 1060px;
-            margin: 24px auto 0;
+            margin: 28px auto 0;
             padding: 0 40px;
+        }
+
+        .learn-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #e8edf2;
+            margin-bottom: 18px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            text-align: center;
+        }
+
+        .learn-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .learn-item {
             display: flex;
-            gap: 28px;
             align-items: flex-start;
+            gap: 12px;
+            background: rgba(123, 163, 201, 0.05);
+            border: 1px solid rgba(123, 163, 201, 0.1);
+            border-radius: 10px;
+            padding: 14px 16px;
         }
 
-        /* Video verticale */
-        .video-col {
-            flex: 0 0 280px;
-            border-radius: 14px;
-            overflow: hidden;
-            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            background: #000;
+        .learn-icon {
+            flex-shrink: 0;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
         }
 
-        .video-col video {
-            width: 100%;
-            height: 500px;
-            object-fit: cover;
-            display: block;
+        .learn-icon.steel {
+            background: rgba(123, 163, 201, 0.12);
+        }
+
+        .learn-icon.ruby {
+            background: rgba(180, 50, 70, 0.12);
+        }
+
+        .learn-item h4 {
+            font-size: 15px;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 4px;
+        }
+
+        .learn-item p {
+            font-size: 13px;
+            color: #b8c8d8;
+            line-height: 1.55;
+        }
+
+        /* Main content: form */
+        .main-row {
+            max-width: 700px;
+            margin: 28px auto 0;
+            padding: 0 40px;
         }
 
         /* Form */
-        .form-col {
-            flex: 1;
-        }
-
         .form-container {
-            background: rgba(255, 255, 255, 0.06);
-            border: 1px solid rgba(255, 255, 255, 0.12);
+            background: rgba(123, 163, 201, 0.05);
+            border: 1px solid rgba(123, 163, 201, 0.12);
             border-radius: 14px;
             padding: 28px 26px;
             backdrop-filter: blur(10px);
@@ -237,11 +271,12 @@
             font-weight: 700;
             margin-bottom: 4px;
             text-align: center;
+            color: #e8edf2;
         }
 
         .form-subtitle {
             font-size: 12px;
-            color: #78909c;
+            color: #8a9bb0;
             margin-bottom: 22px;
             text-align: center;
         }
@@ -254,14 +289,14 @@
             display: block;
             font-size: 11px;
             font-weight: 600;
-            color: #90a4ae;
+            color: #8a9bb0;
             margin-bottom: 4px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .form-group label .required {
-            color: #00b4d8;
+            color: #d4627a;
         }
 
         .form-row {
@@ -278,10 +313,10 @@
         select {
             width: 100%;
             padding: 11px 13px;
-            background: rgba(255, 255, 255, 0.07);
-            border: 1px solid rgba(255, 255, 255, 0.15);
+            background: rgba(123, 163, 201, 0.07);
+            border: 1px solid rgba(123, 163, 201, 0.15);
             border-radius: 7px;
-            color: #ffffff;
+            color: #e8edf2;
             font-size: 13px;
             font-family: inherit;
             transition: border-color 0.2s, background 0.2s;
@@ -291,33 +326,33 @@
         input[type="text"]:focus,
         input[type="email"]:focus,
         select:focus {
-            border-color: #00b4d8;
-            background: rgba(0, 180, 216, 0.08);
+            border-color: #7ba3c9;
+            background: rgba(123, 163, 201, 0.1);
         }
 
         input::placeholder {
-            color: #546e7a;
+            color: #506070;
         }
 
         select {
             cursor: pointer;
             appearance: none;
             -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2378909c' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238a9bb0' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
             background-repeat: no-repeat;
             background-position: right 12px center;
             padding-right: 32px;
         }
 
         select option {
-            background: #1a2a3a;
-            color: #ffffff;
+            background: #1a2233;
+            color: #e8edf2;
         }
 
         .btn-submit {
             width: 100%;
             padding: 14px;
-            background: linear-gradient(135deg, #00b4d8, #0077b6);
+            background: linear-gradient(135deg, #7ba3c9, #5a8ab5);
             color: #ffffff;
             border: none;
             border-radius: 8px;
@@ -332,7 +367,7 @@
 
         .btn-submit:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(0, 180, 216, 0.35);
+            box-shadow: 0 8px 30px rgba(123, 163, 201, 0.3);
         }
 
         .btn-submit:active {
@@ -341,7 +376,7 @@
 
         .privacy-note {
             font-size: 10px;
-            color: #455a64;
+            color: #506070;
             text-align: center;
             margin-top: 12px;
             line-height: 1.5;
@@ -350,12 +385,12 @@
         /* Error message */
         .error-message {
             display: none;
-            background: rgba(244, 67, 54, 0.1);
-            border: 1px solid rgba(244, 67, 54, 0.3);
+            background: rgba(212, 98, 122, 0.1);
+            border: 1px solid rgba(212, 98, 122, 0.3);
             border-radius: 6px;
             padding: 8px 12px;
             margin-bottom: 14px;
-            color: #ef9a9a;
+            color: #d4627a;
             font-size: 12px;
             text-align: center;
         }
@@ -375,26 +410,26 @@
         .success-message h2 {
             font-size: 22px;
             margin-bottom: 8px;
-            color: #00b4d8;
+            color: #7ba3c9;
         }
 
         .success-message p {
             font-size: 13px;
-            color: #b0bec5;
+            color: #8a9bb0;
             line-height: 1.6;
         }
 
         .zoom-link-box {
             margin-top: 18px;
             padding: 16px;
-            background: rgba(0, 180, 216, 0.1);
-            border: 1px solid rgba(0, 180, 216, 0.3);
+            background: rgba(123, 163, 201, 0.1);
+            border: 1px solid rgba(123, 163, 201, 0.25);
             border-radius: 8px;
         }
 
         .zoom-link-box .zoom-label {
             font-size: 11px;
-            color: #78909c;
+            color: #8a9bb0;
             text-transform: uppercase;
             letter-spacing: 0.5px;
             margin-bottom: 8px;
@@ -422,106 +457,252 @@
 
         .zoom-save-note {
             font-size: 11px;
-            color: #546e7a;
+            color: #506070;
             margin-top: 8px;
         }
 
-        /* Kit PT1 Section */
-        .kit-section {
+        /* Separator */
+        .section-separator {
             max-width: 1060px;
-            margin: 50px auto 0;
+            margin: 44px auto 0;
             padding: 0 40px;
+        }
+
+        .separator-line {
+            height: 1px;
+            background: linear-gradient(90deg,
+                transparent 0%,
+                rgba(180, 50, 70, 0.3) 30%,
+                rgba(123, 163, 201, 0.3) 70%,
+                transparent 100%);
+        }
+
+        /* Products Section */
+        .products-section {
+            max-width: 1060px;
+            margin: 36px auto 0;
+            padding: 0 40px;
+        }
+
+        .products-intro {
             text-align: center;
+            margin-bottom: 28px;
         }
 
-        .kit-content {
-            display: flex;
-            align-items: center;
-            gap: 36px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            border-radius: 14px;
-            padding: 28px 32px;
-        }
-
-        .kit-title {
-            font-size: 22px;
-            font-weight: 800;
-            color: #ffffff;
-            text-transform: uppercase;
+        .products-intro h2 {
+            font-size: 26px;
+            font-weight: 300;
+            color: #9bb8d4;
             letter-spacing: 0.3px;
+            line-height: 1.3;
+        }
+
+        .products-intro h2 strong {
+            font-weight: 800;
+            color: #e8edf2;
+        }
+
+        .products-grid {
+            display: flex;
+            gap: 24px;
+        }
+
+        .product-card {
+            flex: 1;
+            background: rgba(123, 163, 201, 0.04);
+            border: 1px solid rgba(123, 163, 201, 0.1);
+            border-radius: 14px;
+            overflow: hidden;
+            transition: border-color 0.3s, transform 0.3s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-3px);
+        }
+
+        .product-card.elevate:hover {
+            border-color: rgba(123, 163, 201, 0.3);
+        }
+
+        .product-card.black-ruby {
+            border-color: rgba(180, 50, 70, 0.15);
+        }
+
+        .product-card.black-ruby:hover {
+            border-color: rgba(180, 50, 70, 0.4);
+        }
+
+        .product-img {
+            width: 100%;
+            height: 220px;
+            overflow: hidden;
+            background: #0d1118;
+        }
+
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .product-img.ruby-bg {
+            background: #111;
+        }
+
+        .product-img.ruby-bg img {
+            object-fit: cover;
+        }
+
+        .product-body {
+            padding: 20px 22px;
+        }
+
+        .product-card h3 {
+            font-size: 20px;
+            font-weight: 800;
+            text-transform: uppercase;
             margin-bottom: 6px;
         }
 
-        .kit-title .highlight {
-            color: #00b4d8;
+        .product-card.elevate h3 {
+            color: #7ba3c9;
         }
 
-        .kit-image {
-            flex: 0 0 420px;
+        .product-card.black-ruby h3 {
+            color: #d4627a;
         }
 
-        .kit-image img {
-            width: 100%;
-            border-radius: 10px;
-        }
-
-        .kit-cta {
-            flex: 1;
-            text-align: left;
-        }
-
-        .kit-desc {
-            font-size: 15px;
-            color: #b0bec5;
+        .product-card .product-tagline {
+            font-size: 14px;
+            color: #b8c8d8;
+            margin-bottom: 14px;
             line-height: 1.6;
-            margin-bottom: 20px;
         }
 
+        .product-page-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #7ba3c9;
+            text-decoration: none;
+            margin-bottom: 16px;
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(123, 163, 201, 0.2);
+            transition: color 0.2s, border-color 0.2s;
+            letter-spacing: 0.2px;
+        }
+
+        .product-page-link:hover {
+            color: #9bb8d4;
+            border-color: rgba(123, 163, 201, 0.5);
+        }
+
+        .product-card.black-ruby .product-page-link {
+            color: #d4627a;
+            border-color: rgba(180, 50, 70, 0.2);
+        }
+
+        .product-card.black-ruby .product-page-link:hover {
+            color: #e07a94;
+            border-color: rgba(180, 50, 70, 0.5);
+        }
+
+        .product-card .cta-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        /* CTA Buttons */
         .btn-whatsapp {
             display: inline-flex;
             align-items: center;
-            gap: 10px;
-            padding: 14px 28px;
+            gap: 8px;
+            padding: 11px 18px;
             background: #25D366;
             color: #ffffff;
             border: none;
             border-radius: 8px;
-            font-size: 15px;
+            font-size: 13px;
             font-weight: 700;
             text-decoration: none;
             transition: transform 0.2s, box-shadow 0.2s;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px;
         }
 
         .btn-whatsapp:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.35);
+            box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3);
         }
 
-        .btn-whatsapp:active {
-            transform: translateY(0);
+        .btn-calendly {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 11px 18px;
+            border: 1px solid rgba(123, 163, 201, 0.3);
+            background: rgba(123, 163, 201, 0.08);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            letter-spacing: 0.3px;
+            color: #9bb8d4;
+        }
+
+        .btn-calendly:hover {
+            border-color: rgba(123, 163, 201, 0.5);
+            background: rgba(123, 163, 201, 0.12);
+            transform: translateY(-2px);
+        }
+
+        .btn-calendly.ruby {
+            border-color: rgba(180, 50, 70, 0.3);
+            background: rgba(180, 50, 70, 0.08);
+            color: #d4627a;
+        }
+
+        .btn-calendly.ruby:hover {
+            border-color: rgba(180, 50, 70, 0.5);
+            background: rgba(180, 50, 70, 0.12);
+        }
+
+        .btn-calendly svg {
+            width: 16px;
+            height: 16px;
+            stroke: currentColor;
+            fill: none;
+            stroke-width: 1.5;
+        }
+
+        .wa-icon {
+            width: 18px;
+            height: 18px;
+            fill: currentColor;
+            flex-shrink: 0;
         }
 
         /* Footer */
         .footer {
             text-align: center;
             padding: 24px;
-            color: #37474f;
+            color: #354050;
             font-size: 11px;
             position: relative;
             z-index: 2;
-            margin-top: 30px;
+            margin-top: 40px;
         }
 
         /* Responsive */
         @media (max-width: 860px) {
-            .description-section {
-                padding: 0 20px;
-            }
-
-            .speaker-section {
+            .description-section,
+            .speaker-section,
+            .learn-section,
+            .products-section,
+            .section-separator {
                 padding: 0 20px;
             }
 
@@ -537,20 +718,7 @@
             }
 
             .main-row {
-                flex-direction: column;
                 padding: 0 20px;
-                gap: 20px;
-            }
-
-            .video-col {
-                flex: none;
-                width: 100%;
-                max-width: 300px;
-                margin: 0 auto;
-            }
-
-            .video-col video {
-                height: 400px;
             }
 
             .header {
@@ -561,23 +729,13 @@
                 font-size: 20px;
             }
 
-            .kit-section {
-                padding: 0 20px;
+            .learn-grid {
+                grid-template-columns: 1fr;
             }
 
-            .kit-content {
+            .products-grid {
                 flex-direction: column;
-                padding: 20px;
                 gap: 20px;
-            }
-
-            .kit-image {
-                flex: none;
-                width: 100%;
-            }
-
-            .kit-cta {
-                text-align: center;
             }
         }
 
@@ -596,12 +754,12 @@
                 gap: 0;
             }
 
-            .video-col video {
-                height: 320px;
-            }
-
             .meta-item {
                 font-size: 12px;
+            }
+
+            .product-card .cta-row {
+                flex-direction: column;
             }
         }
     </style>
@@ -616,35 +774,38 @@
 
         <!-- Header -->
         <div class="header">
-            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+            <img src="img/osseotouch-logo-dark-bg.png" alt="Osseotouch">
         </div>
 
         <!-- Speaker Section -->
         <div class="speaker-section">
             <div class="speaker-card">
                 <div class="speaker-photo">
-                    <img src="img/dr-malavasi.png" alt="Dr. A. Malavasi">
+                    <img src="img/dr-arcara.jpg" alt="Dr. Carlo Arcara">
                 </div>
                 <div class="speaker-text">
                     <h1>
-                        <span class="highlight">Dr. A. Malavasi</span><br>
-                        Impianti Pterigoidei con Magnetic Mallet
+                        <span class="highlight">Dr. Carlo Arcara</span><br>
+                        Sinus Lift con Magnetic Mallet
                     </h1>
-                    <p class="webinar-subtitle">Protocollo d'utilizzo e casi clinici</p>
+                    <p class="webinar-subtitle">Come massimizzare la stabilit&agrave; dell'impianto</p>
                     <div class="speaker-meta">
                         <div class="meta-item">
-                            <span class="icon">📅</span>
-                            <span class="value">9 Marzo 2026</span>
+                            <span class="value">&#128197; 7 Aprile 2026</span>
                         </div>
                         <div class="meta-item">
-                            <span class="icon">🕐</span>
-                            <span class="value">Ore 21:00</span>
+                            <span class="value">&#128336; Ore 21:00</span>
                         </div>
                         <div class="meta-item">
-                            <span class="icon">💻</span>
-                            <span class="value">Online su Zoom — riceverai il link via email</span>
+                            <span class="value">&#128187; Online su Zoom</span>
                         </div>
                     </div>
+                    <p class="speaker-bio">
+                        Laureato in Odontoiatria e Protesi Dentaria, Universit&agrave; di Milano Bicocca (2010).
+                        Dottorato in Parodontologia Sperimentale (2014).
+                        Finalista Premio Marcello Calandriello SIDP.
+                        Clinica Arcara, Termini Imerese (PA).
+                    </p>
                 </div>
             </div>
         </div>
@@ -652,104 +813,168 @@
         <!-- Descrizione -->
         <div class="description-section">
             <p class="description-text">
-                La gestione delle creste atrofiche rappresenta una delle sfide pi&ugrave; complesse in implantologia. Gli impianti pterigoidei offrono oggi una soluzione moderna e mini-invasiva, ma il successo della procedura dipende dalla qualit&agrave; della preparazione del sito implantare.
+                Il rialzo del seno mascellare &egrave; una delle procedure pi&ugrave; frequenti in implantologia, ma la qualit&agrave; del risultato dipende dalla capacit&agrave; di preservare la membrana di Schneider e ottenere una stabilit&agrave; primaria adeguata.
                 <br><br>
-                In questa zona, l'osso &egrave; prevalentemente spongioso: proprio per questo, l'utilizzo del Magnetic Mallet con il kit dedicato PT1 consente di preparare il sito in modo controllato, migliorando la qualit&agrave; dell'osso e rendendo l'intero protocollo pi&ugrave; efficace e predicibile rispetto alle tecniche tradizionali.
-                <br><br>
-                In questo webinar il Dr. Andrea Malavasi illustrer&agrave; come identificare le casistiche elegibili per l'impianto pterigoideo &mdash; distinguendole dalle procedure pi&ugrave; invasive e meno predicibili &mdash; e mostrer&agrave; passo dopo passo il protocollo operativo con il Magnetic Mallet.
+                L'approccio magnetodinamico con Magnetic Mallet cambia le regole del gioco: l'impulso controllato consente di lavorare sull'osso senza generare le vibrazioni tipiche degli strumenti rotanti e piezoelettrici, riducendo il rischio di perforazione della membrana e migliorando la compattazione ossea attorno all'impianto.
             </p>
         </div>
 
-        <!-- Main: Video + Form -->
-        <div class="main-row">
-
-            <!-- Video verticale -->
-            <div class="video-col">
-                <video autoplay muted loop playsinline>
-                    <source src="img/webinar-intro.mp4" type="video/mp4">
-                </video>
-            </div>
-
-            <!-- Form -->
-            <div class="form-col">
-                <div class="form-container">
-                    <h2 class="form-title">Iscriviti al Webinar</h2>
-                    <p class="form-subtitle">Compila il modulo — riceverai il link di accesso via email</p>
-
-                    <div class="error-message" id="errorMsg"></div>
-
-                    <form id="webinarForm">
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Nome <span class="required">*</span></label>
-                                <input type="text" id="nome" name="nome" placeholder="Il tuo nome" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Cognome <span class="required">*</span></label>
-                                <input type="text" id="cognome" name="cognome" placeholder="Il tuo cognome" required>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Email <span class="required">*</span></label>
-                            <input type="email" id="email" name="email" placeholder="La tua email professionale" required>
-                        </div>
-
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Citta' <span class="required">*</span></label>
-                                <input type="text" id="citta" name="citta" placeholder="La tua citta'" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Hai il Magnetic Mallet? <span class="required">*</span></label>
-                                <select id="ha_mm" name="ha_mm" required>
-                                    <option value="" disabled selected>Seleziona...</option>
-                                    <option value="si">Si</option>
-                                    <option value="no">No</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="btn-submit" id="btnSubmit">Iscriviti ora</button>
-
-                        <p class="privacy-note">
-                            Iscrivendoti accetti di ricevere comunicazioni relative a questo webinar.
-                            I tuoi dati saranno trattati nel rispetto del GDPR.
-                        </p>
-                    </form>
-
-                    <div class="success-message" id="successMsg">
-                        <div class="check-icon">✅</div>
-                        <h2>Iscrizione confermata!</h2>
-                        <p>
-                            Riceverai a breve un'email di conferma con il link per accedere al webinar.
-                            <br>Controlla anche la cartella spam.
-                        </p>
-                        <div class="zoom-link-box" id="zoomLinkBox" style="display:none;">
-                            <div class="zoom-label">Il tuo link personale per il webinar</div>
-                            <a href="#" id="zoomJoinLink" class="btn-zoom" target="_blank" rel="noopener">Accedi al Webinar su Zoom</a>
-                            <div class="zoom-save-note">Salva questo link — ti servira' il 9 marzo alle 21:00</div>
-                        </div>
+        <!-- Cosa imparerai -->
+        <div class="learn-section">
+            <h2 class="learn-title">Cosa imparerai in questo webinar</h2>
+            <div class="learn-grid">
+                <div class="learn-item">
+                    <div class="learn-icon steel">&#127973;</div>
+                    <div>
+                        <h4>Protocollo operativo completo</h4>
+                        <p>Il protocollo step-by-step del Dr. Arcara per il sinus lift con Magnetic Mallet: dalla pianificazione all'inserimento implantare.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon ruby">&#128170;</div>
+                    <div>
+                        <h4>Massimizzare la stabilit&agrave; primaria</h4>
+                        <p>Come l'impulso magnetodinamico compatta l'osso attorno all'impianto, migliorando la stabilit&agrave; fin dalla fase chirurgica.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon ruby">&#129657;</div>
+                    <div>
+                        <h4>Proteggere la membrana di Schneider</h4>
+                        <p>Perch&eacute; l'assenza di vibrazioni rotazionali riduce drasticamente il rischio di perforazione rispetto alle tecniche tradizionali.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon steel">&#128736;</div>
+                    <div>
+                        <h4>Kit Elevate e Black Ruby in pratica</h4>
+                        <p>Quando e come utilizzare ciascun strumento: indicazioni cliniche, sequenze operative e casi reali.</p>
                     </div>
                 </div>
             </div>
-
         </div>
 
-        <!-- Kit PT1 Section -->
-        <div class="kit-section">
-            <div class="kit-content">
-                <div class="kit-image">
-                    <img src="img/kit-pt1.png" alt="Kit PT1 per Magnetic Mallet">
+        <!-- Form -->
+        <div class="main-row">
+            <div class="form-container">
+                <h2 class="form-title">Iscriviti al Webinar</h2>
+                <p class="form-subtitle">Compila il modulo &mdash; riceverai il link di accesso via email</p>
+
+                <div class="error-message" id="errorMsg"></div>
+
+                <form id="webinarForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nome <span class="required">*</span></label>
+                            <input type="text" id="nome" name="nome" placeholder="Il tuo nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Cognome <span class="required">*</span></label>
+                            <input type="text" id="cognome" name="cognome" placeholder="Il tuo cognome" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="La tua email professionale" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Citt&agrave; <span class="required">*</span></label>
+                            <input type="text" id="citta" name="citta" placeholder="La tua citt&agrave;" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Hai il Magnetic Mallet? <span class="required">*</span></label>
+                            <select id="ha_mm" name="ha_mm" required>
+                                <option value="" disabled selected>Seleziona...</option>
+                                <option value="si">Si</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmit">Iscriviti ora</button>
+
+                    <p class="privacy-note">
+                        Iscrivendoti accetti di ricevere comunicazioni relative a questo webinar.
+                        I tuoi dati saranno trattati nel rispetto del GDPR.
+                    </p>
+                </form>
+
+                <div class="success-message" id="successMsg">
+                    <div class="check-icon">&#9989;</div>
+                    <h2>Iscrizione confermata!</h2>
+                    <p>
+                        Riceverai a breve un'email di conferma con il link per accedere al webinar.
+                        <br>Controlla anche la cartella spam.
+                    </p>
+                    <div class="zoom-link-box" id="zoomLinkBox" style="display:none;">
+                        <div class="zoom-label">Il tuo link personale per il webinar</div>
+                        <a href="#" id="zoomJoinLink" class="btn-zoom" target="_blank" rel="noopener">Accedi al Webinar su Zoom</a>
+                        <div class="zoom-save-note">Salva questo link &mdash; ti servir&agrave; il 7 aprile alle 21:00</div>
+                    </div>
                 </div>
-                <div class="kit-cta">
-                    <h2 class="kit-title"><span class="highlight">Kit PT1</span> per Magnetic Mallet</h2>
-                    <p class="kit-desc">Il kit dedicato all'implantologia pterigoidea: osteotomi pterigoidei, frese, pins, driver CA e misuratore.</p>
-                    <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sul%20Kit%20PT1%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
-                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                        Richiedi informazioni
-                    </a>
+            </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="section-separator">
+            <div class="separator-line"></div>
+        </div>
+
+        <!-- Products Section -->
+        <div class="products-section">
+            <div class="products-intro">
+                <h2>Scopri gli <strong>strumenti</strong> protagonisti del webinar</h2>
+            </div>
+
+            <div class="products-grid">
+
+                <!-- Kit Elevate -->
+                <div class="product-card elevate">
+                    <div class="product-img">
+                        <img src="img/kit-elevate.webp" alt="Kit Elevate per Magnetic Mallet — kit completo per sinus lift">
+                    </div>
+                    <div class="product-body">
+                        <h3>Kit Elevate</h3>
+                        <p class="product-tagline">Il kit dedicato al rialzo del seno mascellare: osteotomi, condensatori e strumenti per osseodensificazione con Magnetic Mallet.</p>
+                        <a href="https://www.osseotouch.com/devices/magnetic-mallet/elevate/" class="product-page-link" target="_blank" rel="noopener">Approfondisci caratteristiche e protocolli &rarr;</a>
+                        <div class="cta-row">
+                            <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sul%20Kit%20Elevate%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
+                                <svg class="wa-icon" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Richiedi informazioni
+                            </a>
+                            <a href="https://calendly.com/osseotouch-pihb/kit-elevate" class="btn-calendly" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                Prenota una chiamata
+                            </a>
+                        </div>
+                    </div>
                 </div>
+
+                <!-- Black Ruby -->
+                <div class="product-card black-ruby">
+                    <div class="product-img ruby-bg">
+                        <img src="img/kit-black-ruby.webp" alt="Black Ruby per Magnetic Mallet — osteotomi con punta in rubino sintetico">
+                    </div>
+                    <div class="product-body">
+                        <h3>Black Ruby</h3>
+                        <p class="product-tagline">Osteotomi di ultima generazione in acciaio black con punta in rubino sintetico: precisione estrema nella preparazione del sito implantare.</p>
+                        <a href="https://www.osseotouch.com/devices/magnetic-mallet/black-ruby/" class="product-page-link" target="_blank" rel="noopener">Approfondisci caratteristiche e protocolli &rarr;</a>
+                        <div class="cta-row">
+                            <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sui%20Black%20Ruby%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
+                                <svg class="wa-icon" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Richiedi informazioni
+                            </a>
+                            <a href="https://calendly.com/osseotouch-pihb/kit-black-ruby" class="btn-calendly ruby" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                Prenota una chiamata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
             </div>
         </div>
 
@@ -800,14 +1025,14 @@
                 if (resp.ok) {
                     form.style.display = 'none';
                     successMsg.style.display = 'block';
-                    // Meta Pixel — traccia conversione registrazione webinar
+                    // Meta Pixel
                     if (typeof fbq === 'function') {
                         fbq('track', 'Lead', {
-                            content_name: 'Webinar Malavasi PT1',
+                            content_name: 'Webinar Arcara Elevate',
                             content_category: 'webinar_registration'
                         });
                     }
-                    // Google Ads — traccia conversione registrazione webinar
+                    // Google Ads
                     if (typeof gtag === 'function') {
                         gtag('event', 'conversion', {
                             'send_to': 'AW-708493969/fLPdCJfs8IIcEJGF69EC',

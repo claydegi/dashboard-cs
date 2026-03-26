@@ -5591,6 +5591,127 @@ app.post('/api/webinar/register', async (req, res) => {
     }
 });
 
+// GET /api/webinar/confirm — one-click registration per contatti esistenti (da mailing)
+// Flusso: email mailing → click "Partecipo" → questo endpoint → redirect a /webinar-conferma
+// Token = HMAC-SHA256(email, REPORTS_API_KEY) per evitare registrazioni abusive
+app.get('/api/webinar/confirm', async (req, res) => {
+    const { email, token, tag } = req.query;
+
+    if (!email || !token) {
+        return res.redirect('/webinar-conferma?status=error&msg=link-non-valido');
+    }
+
+    const emailClean = email.trim().toLowerCase();
+    const WEBINAR_TAG = tag || 'WEBINAR_ARCARA_ELEVATE';
+
+    // Verifica token HMAC
+    const crypto = require('crypto');
+    const expectedToken = crypto.createHmac('sha256', CONFIG.REPORTS_API_KEY).update(emailClean + WEBINAR_TAG).digest('hex').substring(0, 16);
+    if (token !== expectedToken) {
+        console.warn(`[Webinar ${WEBINAR_TAG}] Token non valido per ${emailClean}`);
+        return res.redirect('/webinar-conferma?status=error&msg=link-non-valido');
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // Anti-duplicato
+        const giaIscritto = await client.query(
+            'SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2',
+            [WEBINAR_TAG, emailClean]
+        );
+        if (giaIscritto.rows.length > 0) {
+            await client.query('ROLLBACK');
+            return res.redirect(`/webinar-conferma?status=gia-iscritto&nome=${encodeURIComponent(emailClean)}`);
+        }
+
+        // Cerca contatto esistente (deve esistere, viene dal mailing)
+        const existing = await client.query(
+            'SELECT c.id, c.tipo, c.cognome, c.nome, c.citta FROM crm_contatti c WHERE LOWER(c.email) = $1',
+            [emailClean]
+        );
+
+        if (existing.rows.length === 0) {
+            await client.query('ROLLBACK');
+            // Contatto non trovato: redirect alla landing normale dove puo' registrarsi con il form
+            return res.redirect('/webinar?from=mailing');
+        }
+
+        const contatto = existing.rows[0];
+        const contattoId = contatto.id;
+        const oggi = new Date().toISOString().split('T')[0];
+
+        // Deriva linea score dal tag: WEBINAR_ARCARA_ELEVATE -> ELEVATE
+        const lineaScore = WEBINAR_TAG.split('_').pop() || 'GENERICO';
+
+        // Score: +30 punti
+        const scoreResult = await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [contattoId, lineaScore, 'iscrizione_webinar', 30, oggi]
+        );
+
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('add_score', $1, $2)`,
+            [contattoId, JSON.stringify({
+                linea_prodotto: lineaScore,
+                tipo_attivita: 'iscrizione_webinar',
+                punti: 30,
+                data_evento: oggi,
+                label: 'Iscrizione webinar (one-click mailing)',
+                score_manuale_id: scoreResult.rows[0].id
+            })]
+        );
+
+        // Registra iscrizione webinar
+        await client.query(
+            `INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [WEBINAR_TAG, contattoId, emailClean, contatto.nome || '', contatto.cognome || '', contatto.citta || '', 'n/a', 'mailing_one_click']
+        );
+
+        await client.query('COMMIT');
+
+        console.log(`[Webinar ${WEBINAR_TAG}] One-click confirm: ${contatto.cognome} ${contatto.nome} <${emailClean}> | contatto_id=${contattoId} | score +30 ${lineaScore}`);
+
+        // Registra su Zoom
+        let zoomJoinUrl = null;
+        const zoomWebinarId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
+        if (zoomWebinarId) {
+            try {
+                const zoomResult = await registerZoomWebinarParticipant(zoomWebinarId, emailClean, contatto.nome || '', contatto.cognome || '');
+                if (zoomResult && zoomResult.join_url) {
+                    zoomJoinUrl = zoomResult.join_url;
+                    await pool.query(
+                        'UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3',
+                        [zoomJoinUrl, WEBINAR_TAG, emailClean]
+                    );
+                    console.log(`[Webinar ${WEBINAR_TAG}] Zoom link generato (one-click) per ${emailClean}`);
+                }
+            } catch (zoomErr) {
+                console.error(`[Webinar ${WEBINAR_TAG}] Errore Zoom API (one-click):`, zoomErr.message);
+            }
+        }
+
+        // Email conferma (fire-and-forget)
+        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_MAILING_' + WEBINAR_TAG)
+            .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma (one-click):`, err.message));
+
+        // Redirect alla pagina di conferma
+        const nomeDisplay = contatto.nome || '';
+        res.redirect(`/webinar-conferma?status=ok&nome=${encodeURIComponent(nomeDisplay)}`);
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`[Webinar ${WEBINAR_TAG}] Errore one-click confirm:`, err);
+        res.redirect('/webinar-conferma?status=error&msg=errore-server');
+    } finally {
+        client.release();
+    }
+});
+
 // PUT /api/webinar/registrations/fix-contatto-id — ricollegare registrazioni con contatto_id NULL al contatto giusto (per email)
 app.put('/api/webinar/registrations/fix-contatto-id', requireReportsKey, async (req, res) => {
     const { webinar_tag } = req.body;
