@@ -9475,6 +9475,8 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
             lineaProdotto = 'PT1';
         } else if (eventNameLower.includes('black') || eventNameLower.includes('ruby')) {
             lineaProdotto = 'BLACK_RUBY';
+        } else if (eventNameLower.includes('blexo')) {
+            lineaProdotto = 'BLEXO';
         } else if (eventNameLower.includes('idem')) {
             lineaProdotto = 'IDEM_SINGAPORE';
         }
