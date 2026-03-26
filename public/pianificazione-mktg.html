@@ -582,7 +582,7 @@
 
             // Google Ads stats (solo admin, dati dinamici da PostgreSQL)
             const gadsData = gadsResp.ok ? await gadsResp.json() : [];
-            renderGoogleAdsPanel(gadsData);
+            await renderGoogleAdsPanel(gadsData);
 
             // Calendario mailing
             if (mailingResp.ok) {
@@ -693,7 +693,7 @@
         panel.innerHTML = html;
     }
 
-    function renderGoogleAdsPanel(campagne) {
+    async function renderGoogleAdsPanel(campagne) {
         const panel = document.getElementById('googleAdsPanel');
         if (!panel || !IS_ADMIN) return;
 
@@ -713,6 +713,38 @@
             c.status === 'ENABLED' || c.status === 'PAUSED'
         );
 
+        // Campagne con reset date (metriche da mostrare da una data specifica)
+        const CAMPAIGN_RESET_DATES = {
+            '23202072362': '2026-03-26'  // Performance Max Blexo - riattivata
+        };
+
+        // Fetch metriche giornaliere per campagne con reset e ricalcola totali
+        for (const c of conSpesa) {
+            const resetDate = CAMPAIGN_RESET_DATES[c.campaign_id];
+            if (resetDate) {
+                try {
+                    const resp = await fetch(`${API_URL}/google-ads/metriche?campaign_id=${c.campaign_id}&key=${ADMIN_KEY}`);
+                    if (resp.ok) {
+                        const metriche = await resp.json();
+                        // Filtra metriche >= resetDate
+                        const metricheFiltrate = metriche.filter(m => m.data >= resetDate);
+                        // Ricalcola totali
+                        let costoMicros = 0;
+                        let clic = 0;
+                        for (const m of metricheFiltrate) {
+                            costoMicros += parseInt(m.costo_micros || 0);
+                            clic += parseInt(m.clic || 0);
+                        }
+                        // Sovrascrivi i valori cumulativi con quelli filtrati
+                        c.totale_costo_micros = costoMicros;
+                        c.totale_clic = clic;
+                    }
+                } catch (err) {
+                    console.error('Errore caricamento metriche per campagna', c.campaign_id, err);
+                }
+            }
+        }
+
         // Ordina: ENABLED prima, poi PAUSED, poi resto. A parita' di status, per spesa decrescente
         const statusOrder = { ENABLED: 0, PAUSED: 1 };
         conSpesa.sort((a, b) => {
@@ -722,17 +754,12 @@
             return parseInt(b.totale_costo_micros || 0) - parseInt(a.totale_costo_micros || 0);
         });
 
-        // Totali (su campagne filtrate)
+        // Totali (su campagne filtrate, con valori ricalcolati per quelle con reset)
         let totSpesa = 0;
         conSpesa.forEach(c => {
             totSpesa += parseInt(c.totale_costo_micros || 0);
         });
         const spesaEur = (totSpesa / 1000000).toFixed(2);
-
-        // Campagne con reset date (metriche da mostrare da una data specifica)
-        const CAMPAIGN_RESET_DATES = {
-            '23202072362': '2026-03-26'  // Performance Max Blexo - riattivata
-        };
 
         // Righe
         let righe = '';
