@@ -60,6 +60,18 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
         link_webinar: 'https://app.osseotouch.com/webinar',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Malavasi'
+    },
+    'WEBINAR_ARCARA_ELEVATE': {
+        nome_webinar: 'Sinus Lift con Magnetic Mallet: come massimizzare la stabilita\' implantare',
+        data_webinar: '7 aprile 2026',
+        relatore: 'Dr. Carlo Arcara',
+        subject_conferma: 'Iscrizione confermata — Webinar Dr. Arcara, 7 aprile ore 21:00',
+        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Arcara',
+        subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
+        link_followup: 'https://app.osseotouch.com/webinar-followup',
+        subject_invito: 'Webinar — Sinus Lift con Magnetic Mallet, 7 aprile ore 21:00',
+        link_webinar: 'https://app.osseotouch.com/webinar',
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara'
     }
 };
 
@@ -5031,7 +5043,8 @@ async function registerZoomWebinarParticipant(webinarId, email, nome, cognome) {
 
 // Mapping webinar tag -> ID Zoom
 const ZOOM_WEBINAR_IDS = {
-    'WEBINAR_MALAVASI_PT1': '89390770164'
+    'WEBINAR_MALAVASI_PT1': '89390770164',
+    'WEBINAR_ARCARA_ELEVATE': '82008974573'
 };
 
 // POST /api/webinar/sync-zoom-participants — scarica partecipanti da Zoom e salva nel DB con scoring
@@ -5331,7 +5344,7 @@ app.post('/api/webinar/register', async (req, res) => {
     const dichiaraMM = (ha_mm === 'si');
 
     // Tag fisso per questo webinar (futuro: parametrizzabile)
-    const WEBINAR_TAG = 'WEBINAR_MALAVASI_PT1';
+    const WEBINAR_TAG = 'WEBINAR_ARCARA_ELEVATE';
 
     const client = await pool.connect();
     try {
