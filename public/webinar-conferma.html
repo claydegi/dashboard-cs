@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iscrizione Confermata | OSSEOTOUCH Webinar</title>
+    <title>Iscrizione Confermata | Webinar OSSEOTOUCH</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -13,83 +13,194 @@
             color: #e8edf2;
             min-height: 100vh;
             background: #151a24;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 40px 20px;
+            overflow-x: hidden;
         }
         .bg-waves {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: url('img/webinar-arcara-bg.jpg') center center / cover no-repeat;
-            z-index: 0; opacity: 0.2;
+            z-index: 0; opacity: 0.38;
         }
         .bg-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: linear-gradient(180deg, rgba(21,26,36,0.4) 0%, rgba(21,26,36,0.85) 100%);
+            background: linear-gradient(180deg, rgba(21,26,36,0.25) 0%, rgba(21,26,36,0.55) 40%, rgba(21,26,36,0.88) 100%);
             z-index: 1;
         }
-        .card {
-            position: relative; z-index: 2;
-            max-width: 540px; width: 100%;
-            background: rgba(123, 163, 201, 0.06);
-            border: 1px solid rgba(123, 163, 201, 0.15);
-            border-radius: 16px;
-            padding: 44px 36px;
-            text-align: center;
-            backdrop-filter: blur(10px);
+        .page-content { position: relative; z-index: 2; }
+        .header { padding: 10px 40px; display: flex; align-items: center; justify-content: center; }
+        .header img { height: 46px; }
+
+        /* Confirmation banner */
+        .confirm-banner {
+            max-width: 700px;
+            margin: 6px auto 0;
+            padding: 0 40px;
         }
-        .logo { margin-bottom: 28px; }
-        .logo img { height: 44px; }
-        .icon { font-size: 52px; margin-bottom: 18px; }
-        h1 {
-            font-size: 24px; font-weight: 700; color: #e8edf2;
-            margin-bottom: 10px; line-height: 1.3;
-        }
-        h1 .nome { color: #7ba3c9; }
-        .msg {
-            font-size: 15px; color: #9bb0c4; line-height: 1.7;
-            margin-bottom: 24px;
-        }
-        .info-box {
+        .confirm-card {
             background: rgba(123, 163, 201, 0.08);
-            border: 1px solid rgba(123, 163, 201, 0.15);
-            border-radius: 10px;
-            padding: 18px 22px;
-            text-align: left;
-            margin-bottom: 20px;
+            border: 1px solid rgba(123, 163, 201, 0.2);
+            border-radius: 14px;
+            padding: 32px 28px;
+            text-align: center;
         }
-        .info-box .row {
-            display: flex; gap: 10px; align-items: center;
-            font-size: 14px; color: #b8c8d8;
-            padding: 6px 0;
+        .confirm-icon { font-size: 48px; margin-bottom: 12px; }
+        .confirm-card h1 {
+            font-size: 26px; font-weight: 800; color: #e8edf2; margin-bottom: 12px;
         }
-        .info-box .row strong { color: #e8edf2; }
-        .note {
-            font-size: 12px; color: #6a7d90; line-height: 1.6;
+        .confirm-card .confirm-msg {
+            font-size: 16px; color: #9bb8d4; line-height: 1.6;
         }
-        .btn-landing {
+        .confirm-card .confirm-msg strong { color: #ffffff; }
+        .confirm-detail {
             display: inline-block;
-            margin-top: 20px;
-            padding: 12px 28px;
+            margin-top: 16px;
+            padding: 10px 24px;
             background: rgba(123, 163, 201, 0.1);
-            border: 1px solid rgba(123, 163, 201, 0.25);
+            border: 1px solid rgba(123, 163, 201, 0.2);
             border-radius: 8px;
-            color: #9bb8d4;
-            font-size: 13px;
-            font-weight: 600;
-            text-decoration: none;
-            transition: border-color 0.2s, background 0.2s;
+            font-size: 14px; color: #7ba3c9;
         }
-        .btn-landing:hover {
-            border-color: rgba(123, 163, 201, 0.4);
-            background: rgba(123, 163, 201, 0.15);
+        .confirm-detail strong { color: #e8edf2; }
+
+        /* Speaker Section */
+        .speaker-section { max-width: 1060px; margin: 28px auto 0; padding: 0 40px; }
+        .speaker-card {
+            display: flex; align-items: center; gap: 22px;
+            background: rgba(123, 163, 201, 0.06);
+            border: 1px solid rgba(123, 163, 201, 0.12);
+            border-radius: 14px; padding: 20px 28px;
         }
+        .speaker-photo {
+            width: 110px; height: 110px; border-radius: 50%; overflow: hidden;
+            border: 3px solid rgba(180, 50, 70, 0.5); flex-shrink: 0;
+            background: rgba(123, 163, 201, 0.08);
+        }
+        .speaker-photo img { width: 100%; height: 100%; object-fit: cover; object-position: center 15%; }
+        .speaker-text { flex: 1; }
+        .speaker-text h2 {
+            font-size: 24px; font-weight: 800; line-height: 1.2; color: #e8edf2;
+            text-transform: uppercase; letter-spacing: 0.3px;
+        }
+        .speaker-text h2 .highlight { color: #7ba3c9; }
+        .webinar-subtitle { font-size: 15px; color: #9bb8d4; font-weight: 400; font-style: italic; margin-top: 5px; }
+        .speaker-meta { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 10px; }
+        .meta-item { display: flex; align-items: center; gap: 6px; font-size: 13px; }
+        .meta-item .value { color: #e8edf2; font-weight: 600; }
+        .speaker-bio { font-size: 12px; color: #8a9bb0; margin-top: 8px; line-height: 1.5; }
+
+        /* Description */
+        .description-section { max-width: 1060px; margin: 20px auto 0; padding: 0 40px; }
+        .description-text { font-size: 15px; color: #c5d0db; line-height: 1.7; padding: 0 4px; }
+
+        /* Cosa imparerai */
+        .learn-section { max-width: 1060px; margin: 28px auto 0; padding: 0 40px; }
+        .learn-title {
+            font-size: 20px; font-weight: 700; color: #e8edf2; margin-bottom: 18px;
+            text-transform: uppercase; letter-spacing: 0.5px; text-align: center;
+        }
+        .learn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .learn-item {
+            display: flex; align-items: flex-start; gap: 12px;
+            background: rgba(123, 163, 201, 0.05);
+            border: 1px solid rgba(123, 163, 201, 0.1);
+            border-radius: 10px; padding: 14px 16px;
+        }
+        .learn-icon {
+            flex-shrink: 0; width: 36px; height: 36px; border-radius: 8px;
+            display: flex; align-items: center; justify-content: center; font-size: 18px;
+        }
+        .learn-icon.steel { background: rgba(123, 163, 201, 0.12); }
+        .learn-icon.ruby { background: rgba(180, 50, 70, 0.12); }
+        .learn-item h4 { font-size: 15px; font-weight: 700; color: #ffffff; margin-bottom: 4px; }
+        .learn-item p { font-size: 13px; color: #b8c8d8; line-height: 1.55; }
+
+        /* Separator */
+        .section-separator { max-width: 1060px; margin: 44px auto 0; padding: 0 40px; }
+        .separator-line {
+            height: 1px;
+            background: linear-gradient(90deg, transparent 0%, rgba(180, 50, 70, 0.3) 30%, rgba(123, 163, 201, 0.3) 70%, transparent 100%);
+        }
+
+        /* Products */
+        .products-section { max-width: 1060px; margin: 36px auto 0; padding: 0 40px; }
+        .products-intro { text-align: center; margin-bottom: 28px; }
+        .products-intro h2 { font-size: 26px; font-weight: 300; color: #9bb8d4; letter-spacing: 0.3px; line-height: 1.3; }
+        .products-intro h2 strong { font-weight: 800; color: #e8edf2; }
+        .products-grid { display: flex; gap: 24px; }
+        .product-card {
+            flex: 1; background: rgba(123, 163, 201, 0.04);
+            border: 1px solid rgba(123, 163, 201, 0.1);
+            border-radius: 14px; overflow: hidden; transition: border-color 0.3s, transform 0.3s;
+        }
+        .product-card:hover { transform: translateY(-3px); }
+        .product-card.elevate:hover { border-color: rgba(123, 163, 201, 0.3); }
+        .product-card.black-ruby { border-color: rgba(180, 50, 70, 0.15); }
+        .product-card.black-ruby:hover { border-color: rgba(180, 50, 70, 0.4); }
+        .product-img { width: 100%; height: 220px; overflow: hidden; background: #0d1118; }
+        .product-img img { width: 100%; height: 100%; object-fit: contain; }
+        .product-img.ruby-bg { background: #111; }
+        .product-img.ruby-bg img { object-fit: cover; }
+        .product-body { padding: 20px 22px; }
+        .product-card h3 { font-size: 20px; font-weight: 800; text-transform: uppercase; margin-bottom: 6px; }
+        .product-card.elevate h3 { color: #7ba3c9; }
+        .product-card.black-ruby h3 { color: #d4627a; }
+        .product-card .product-tagline { font-size: 14px; color: #b8c8d8; margin-bottom: 14px; line-height: 1.6; }
+        .product-page-link {
+            display: inline-flex; align-items: center; gap: 6px;
+            font-size: 13px; font-weight: 600; color: #7ba3c9; text-decoration: none;
+            margin-bottom: 16px; padding: 6px 0;
+            border-bottom: 1px solid rgba(123, 163, 201, 0.2);
+            transition: color 0.2s, border-color 0.2s; letter-spacing: 0.2px;
+        }
+        .product-page-link:hover { color: #9bb8d4; border-color: rgba(123, 163, 201, 0.5); }
+        .product-card.black-ruby .product-page-link { color: #d4627a; border-color: rgba(180, 50, 70, 0.2); }
+        .product-card.black-ruby .product-page-link:hover { color: #e07a94; border-color: rgba(180, 50, 70, 0.5); }
+        .product-card .cta-row { display: flex; gap: 10px; flex-wrap: wrap; }
+        .btn-whatsapp {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 18px; background: #25D366; color: #ffffff; border: none;
+            border-radius: 8px; font-size: 13px; font-weight: 700; text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s; letter-spacing: 0.3px;
+        }
+        .btn-whatsapp:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(37, 211, 102, 0.3); }
+        .btn-calendly {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 11px 18px; border: 1px solid rgba(123, 163, 201, 0.3);
+            background: rgba(123, 163, 201, 0.08); border-radius: 8px;
+            font-size: 13px; font-weight: 600; text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s, border-color 0.2s;
+            letter-spacing: 0.3px; color: #9bb8d4;
+        }
+        .btn-calendly:hover { border-color: rgba(123, 163, 201, 0.5); background: rgba(123, 163, 201, 0.12); transform: translateY(-2px); }
+        .btn-calendly.ruby { border-color: rgba(180, 50, 70, 0.3); background: rgba(180, 50, 70, 0.08); color: #d4627a; }
+        .btn-calendly.ruby:hover { border-color: rgba(180, 50, 70, 0.5); background: rgba(180, 50, 70, 0.12); }
+        .btn-calendly svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 1.5; }
+        .wa-icon { width: 18px; height: 18px; fill: currentColor; flex-shrink: 0; }
+
+        .footer {
+            text-align: center; padding: 24px; color: #354050; font-size: 11px;
+            position: relative; z-index: 2; margin-top: 40px;
+        }
+
         /* Error state */
-        .error h1 { color: #d4627a; }
-        .error .info-box {
-            border-color: rgba(212, 98, 122, 0.2);
-            background: rgba(212, 98, 122, 0.06);
+        .confirm-card.error { border-color: rgba(212, 98, 122, 0.3); }
+        .confirm-card.error h1 { color: #d4627a; }
+
+        /* Responsive */
+        @media (max-width: 860px) {
+            .confirm-banner, .description-section, .speaker-section, .learn-section,
+            .products-section, .section-separator { padding: 0 20px; }
+            .speaker-card { flex-direction: column; text-align: center; padding: 18px 20px; gap: 14px; }
+            .speaker-meta { justify-content: center; }
+            .header { padding: 14px 20px; }
+            .speaker-text h2 { font-size: 20px; }
+            .learn-grid { grid-template-columns: 1fr; }
+            .products-grid { flex-direction: column; gap: 20px; }
+        }
+        @media (max-width: 480px) {
+            .speaker-photo { width: 90px; height: 90px; }
+            .speaker-text h2 { font-size: 17px; }
+            .meta-item { font-size: 12px; }
+            .product-card .cta-row { flex-direction: column; }
         }
     </style>
 </head>
@@ -97,58 +208,185 @@
     <div class="bg-waves"></div>
     <div class="bg-overlay"></div>
 
-    <div class="card" id="card">
-        <div class="logo">
+    <div class="page-content">
+
+        <!-- Header -->
+        <div class="header">
             <img src="img/osseotouch-logo-dark-bg.png" alt="Osseotouch">
         </div>
-        <div id="content"></div>
+
+        <!-- Confirmation Banner -->
+        <div class="confirm-banner" id="confirmBanner"></div>
+
+        <!-- Speaker Section -->
+        <div class="speaker-section" id="speakerSection">
+            <div class="speaker-card">
+                <div class="speaker-photo">
+                    <img src="img/dr-arcara.jpg" alt="Dr. Carlo Arcara">
+                </div>
+                <div class="speaker-text">
+                    <h2>
+                        <span class="highlight">Dr. Carlo Arcara</span><br>
+                        Sinus Lift con Magnetic Mallet
+                    </h2>
+                    <p class="webinar-subtitle">Come massimizzare la stabilit&agrave; dell'impianto</p>
+                    <div class="speaker-meta">
+                        <div class="meta-item"><span class="value">&#128197; 7 Aprile 2026</span></div>
+                        <div class="meta-item"><span class="value">&#128336; Ore 21:00</span></div>
+                        <div class="meta-item"><span class="value">&#128187; Online su Zoom</span></div>
+                    </div>
+                    <p class="speaker-bio">
+                        Laureato in Odontoiatria e Protesi Dentaria, Universit&agrave; di Milano Bicocca (2010).
+                        Dottorato in Parodontologia Sperimentale (2014).
+                        Finalista Premio Marcello Calandriello SIDP.
+                        Clinica Arcara, Termini Imerese (PA).
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Descrizione -->
+        <div class="description-section" id="descriptionSection">
+            <p class="description-text">
+                Il rialzo del seno mascellare &egrave; una delle procedure pi&ugrave; frequenti in implantologia, ma la qualit&agrave; del risultato dipende dalla capacit&agrave; di preservare la membrana di Schneider e ottenere una stabilit&agrave; primaria adeguata.
+                <br><br>
+                L'approccio magnetodinamico con Magnetic Mallet cambia le regole del gioco: l'impulso controllato consente di lavorare sull'osso senza generare le vibrazioni tipiche degli strumenti rotanti e piezoelettrici, riducendo il rischio di perforazione della membrana e migliorando la compattazione ossea attorno all'impianto.
+            </p>
+        </div>
+
+        <!-- Cosa imparerai -->
+        <div class="learn-section" id="learnSection">
+            <h2 class="learn-title">Cosa imparerai in questo webinar</h2>
+            <div class="learn-grid">
+                <div class="learn-item">
+                    <div class="learn-icon steel">&#127973;</div>
+                    <div>
+                        <h4>Protocollo operativo completo</h4>
+                        <p>Il protocollo step-by-step del Dr. Arcara per il sinus lift con Magnetic Mallet: dalla pianificazione all'inserimento implantare.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon ruby">&#128170;</div>
+                    <div>
+                        <h4>Massimizzare la stabilit&agrave; primaria</h4>
+                        <p>Come l'impulso magnetodinamico compatta l'osso attorno all'impianto, migliorando la stabilit&agrave; fin dalla fase chirurgica.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon ruby">&#129657;</div>
+                    <div>
+                        <h4>Proteggere la membrana di Schneider</h4>
+                        <p>Perch&eacute; l'assenza di vibrazioni rotazionali riduce drasticamente il rischio di perforazione rispetto alle tecniche tradizionali.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon steel">&#128736;</div>
+                    <div>
+                        <h4>Kit Elevate e Black Ruby in pratica</h4>
+                        <p>Quando e come utilizzare ciascun strumento: indicazioni cliniche, sequenze operative e casi reali.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Separator -->
+        <div class="section-separator"><div class="separator-line"></div></div>
+
+        <!-- Products Section -->
+        <div class="products-section" id="productsSection">
+            <div class="products-intro">
+                <h2>Scopri gli <strong>strumenti</strong> protagonisti del webinar</h2>
+            </div>
+            <div class="products-grid">
+                <div class="product-card elevate">
+                    <div class="product-img">
+                        <img src="img/kit-elevate.webp" alt="Kit Elevate per Magnetic Mallet">
+                    </div>
+                    <div class="product-body">
+                        <h3>Kit Elevate</h3>
+                        <p class="product-tagline">Il kit dedicato al rialzo del seno mascellare: osteotomi, condensatori e strumenti per osseodensificazione con Magnetic Mallet.</p>
+                        <a href="https://www.osseotouch.com/devices/magnetic-mallet/elevate/" class="product-page-link" target="_blank" rel="noopener">Approfondisci caratteristiche e protocolli &rarr;</a>
+                        <div class="cta-row">
+                            <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sul%20Kit%20Elevate%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
+                                <svg class="wa-icon" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Richiedi informazioni
+                            </a>
+                            <a href="https://calendly.com/osseotouch-pihb/kit-elevate" class="btn-calendly" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                Prenota una chiamata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <div class="product-card black-ruby">
+                    <div class="product-img ruby-bg">
+                        <img src="img/kit-black-ruby.webp" alt="Black Ruby per Magnetic Mallet">
+                    </div>
+                    <div class="product-body">
+                        <h3>Black Ruby</h3>
+                        <p class="product-tagline">Osteotomi di ultima generazione in acciaio black con punta in rubino sintetico: precisione estrema nella preparazione del sito implantare.</p>
+                        <a href="https://www.osseotouch.com/devices/magnetic-mallet/black-ruby/" class="product-page-link" target="_blank" rel="noopener">Approfondisci caratteristiche e protocolli &rarr;</a>
+                        <div class="cta-row">
+                            <a href="https://wa.me/393277947530?text=Buongiorno%2C%20vorrei%20ricevere%20informazioni%20sui%20Black%20Ruby%20per%20Magnetic%20Mallet." class="btn-whatsapp" target="_blank" rel="noopener">
+                                <svg class="wa-icon" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                                Richiedi informazioni
+                            </a>
+                            <a href="https://calendly.com/osseotouch-pihb/kit-black-ruby" class="btn-calendly ruby" target="_blank" rel="noopener">
+                                <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                                Prenota una chiamata
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">&copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL</div>
     </div>
 
     <script>
         const params = new URLSearchParams(window.location.search);
         const status = params.get('status') || 'ok';
-        const nome = params.get('nome') || '';
-        const msg = params.get('msg') || '';
-        const content = document.getElementById('content');
-        const card = document.getElementById('card');
+        const banner = document.getElementById('confirmBanner');
 
         if (status === 'ok') {
-            const greeting = nome ? `Grazie <span class="nome">${nome}</span>,` : 'Grazie,';
-            content.innerHTML = `
-                <div class="icon">&#9989;</div>
-                <h1>${greeting}<br>la tua iscrizione è confermata!</h1>
-                <p class="msg">
-                    Il <strong>7 aprile</strong>, due ore prima del webinar, le invieremo via email il suo <strong>link personale</strong> per accedere su Zoom.
-                </p>
-                <div class="info-box">
-                    <div class="row">&#128197; <strong>7 Aprile 2026</strong> — Ore 21:00</div>
-                    <div class="row">&#127891; <strong>Dr. Carlo Arcara</strong> — Sinus Lift con Magnetic Mallet</div>
-                    <div class="row">&#128231; <strong>Link personale via email</strong> — 2 ore prima del webinar</div>
+            banner.innerHTML = `
+                <div class="confirm-card">
+                    <div class="confirm-icon">&#9989;</div>
+                    <h1>La tua iscrizione è confermata!</h1>
+                    <p class="confirm-msg">
+                        Il <strong>7 aprile</strong>, due ore prima del webinar, le invieremo via email il suo <strong>link personale</strong> per accedere su Zoom.<br>
+                        Non deve salvare nulla — pensiamo a tutto noi.
+                    </p>
+                    <div class="confirm-detail">&#128231; <strong>Link personale via email</strong> — 2 ore prima del webinar</div>
                 </div>
-                <p class="note">Controlla anche la cartella spam. Se non ricevi nulla, scrivici a contact@osseotouch.com</p>
-                <a href="/webinar" class="btn-landing">Scopri di più sul webinar</a>
             `;
         } else if (status === 'gia-iscritto') {
-            content.innerHTML = `
-                <div class="icon">&#128077;</div>
-                <h1>Risulti già iscritto!</h1>
-                <p class="msg">
-                    Sei già registrato a questo webinar. Il <strong>7 aprile</strong>, due ore prima, riceverai il link di accesso via email.
-                </p>
-                <p class="note">Se hai domande, scrivici a contact@osseotouch.com</p>
-                <a href="/webinar" class="btn-landing">Torna al webinar</a>
+            banner.innerHTML = `
+                <div class="confirm-card">
+                    <div class="confirm-icon">&#128077;</div>
+                    <h1>Risulti già iscritto!</h1>
+                    <p class="confirm-msg">
+                        Sei già registrato a questo webinar. Il <strong>7 aprile</strong>, due ore prima, riceverai il link di accesso via email.
+                    </p>
+                </div>
             `;
         } else {
-            card.classList.add('error');
-            const errorMsg = msg === 'link-non-valido'
-                ? 'Il link che hai utilizzato non è valido o è scaduto.'
-                : 'Si è verificato un errore. Riprova o iscriviti direttamente dalla pagina del webinar.';
-            content.innerHTML = `
-                <div class="icon">&#9888;&#65039;</div>
-                <h1>Qualcosa non ha funzionato</h1>
-                <p class="msg">${errorMsg}</p>
-                <a href="/webinar" class="btn-landing">Iscriviti dalla pagina del webinar</a>
+            banner.innerHTML = `
+                <div class="confirm-card error">
+                    <div class="confirm-icon">&#9888;&#65039;</div>
+                    <h1>Qualcosa non ha funzionato</h1>
+                    <p class="confirm-msg">
+                        Si è verificato un errore. Provi a iscriversi direttamente dalla
+                        <a href="https://www.osseotouch.com/webinar-arcara-iscrizione/" style="color: #7ba3c9;">pagina del webinar</a>.
+                    </p>
+                </div>
             `;
+            // Nasconde il resto della pagina in caso di errore
+            document.getElementById('speakerSection').style.display = 'none';
+            document.getElementById('descriptionSection').style.display = 'none';
+            document.getElementById('learnSection').style.display = 'none';
+            document.getElementById('productsSection').style.display = 'none';
         }
     </script>
 </body>
