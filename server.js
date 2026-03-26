@@ -6247,7 +6247,9 @@ app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
     }
 
     try {
-        await sendWebinarEmail('WEBINAR_INVITO', tag, to, null, 'WEBINAR_INVITO_TEST');
+        // Per il test: genera link confirm di test che mostra la pagina di conferma
+        const testConfirmLink = `https://dashboard-cs-production.up.railway.app/webinar-conferma?status=ok&nome=Test`;
+        await sendWebinarEmail('WEBINAR_INVITO', tag, to, testConfirmLink, 'WEBINAR_INVITO_TEST');
         console.log(`[Webinar Invito Test] Email di test inviata a ${to}`);
         res.json({ ok: true, email: to, messaggio: `Email invito test inviata a ${to}` });
     } catch (err) {
