@@ -630,14 +630,21 @@
     function renderWebinarStats(webinarStats) {
         const panel = document.getElementById('webinarStatsPanel');
         if (!panel) return;
-        const tags = Object.keys(webinarStats || {});
+        // Assicura che tutti i webinar del calendario appaiano anche con 0 registrazioni
+        const stats = webinarStats || {};
+        for (const w of WEBINAR_CALENDAR) {
+            if (!stats[w.tag]) {
+                stats[w.tag] = { totale: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0, lead: 0, account: 0, da_verificare: 0 };
+            }
+        }
+        const tags = Object.keys(stats);
         if (tags.length === 0) {
             panel.innerHTML = '';
             return;
         }
         let html = '';
         for (const tag of tags) {
-            const s = webinarStats[tag];
+            const s = stats[tag];
             const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
             const toggleId = 'toggle_' + tag;
             const listId = 'list_' + tag;
@@ -1129,6 +1136,14 @@
             data_webinar: '2026-03-09',
             followup_inizio: '2026-03-10',
             followup_fine: '2026-03-17'
+        },
+        {
+            nome: 'Dr. Arcara — Sinus Lift con Magnetic Mallet',
+            tag: 'WEBINAR_ARCARA_ELEVATE',
+            promo_inizio: '2026-03-26',
+            data_webinar: '2026-04-07',
+            followup_inizio: '2026-04-08',
+            followup_fine: '2026-04-15'
         }
     ];
 
