@@ -70,7 +70,7 @@ const WEBINAR_DATA = {
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
         link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Sinus Lift con Magnetic Mallet, 7 aprile ore 21:00',
-        link_webinar: 'https://app.osseotouch.com/webinar',
+        link_webinar: 'https://www.osseotouch.com/webinar-arcara-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara'
     }
 };
@@ -151,6 +151,8 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     const followupUrl = (data.link_followup || '#') + (to ? '?e=' + Buffer.from(to.toLowerCase()).toString('base64') : '');
     html = html.replace(/\{\{link_followup\}\}/g, followupUrl);
     html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
+    // Per invito one-click: link_confirm viene passato come parametro opzionale (generato per-contatto con HMAC)
+    html = html.replace(/\{\{link_confirm\}\}/g, zoomLink || data.link_webinar || '#');
 
     let subject;
     if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;

@@ -24,7 +24,7 @@
                     <tr>
                         <td align="center" style="padding: 10px 30px 5px 30px;">
                             <p style="margin: 0; font-size: 30px; font-weight: bold; color: #ffffff; line-height: 1.3;">
-                                Impianti pterigoidei con Magnetic Mallet
+                                {{nome_webinar}}
                             </p>
                         </td>
                     </tr>
@@ -33,7 +33,7 @@
                     <tr>
                         <td align="center" style="padding: 5px 30px 20px 30px;">
                             <p style="margin: 0; font-size: 18px; color: #90caf9; font-style: italic;">
-                                Protocollo d'utilizzo e casi clinici
+                                Come massimizzare la stabilit&agrave; implantare
                             </p>
                         </td>
                     </tr>
@@ -62,7 +62,7 @@
                                                         Relatore
                                                     </p>
                                                     <p style="margin: 0; font-size: 20px; color: #ffffff; font-weight: bold;">
-                                                        Dr. A. Malavasi
+                                                        {{relatore}}
                                                     </p>
                                                 </td>
                                                 <td width="50%" style="padding: 0 0 16px 0;">
@@ -70,7 +70,7 @@
                                                         Quando
                                                     </p>
                                                     <p style="margin: 0; font-size: 20px; color: #ffffff; font-weight: bold;">
-                                                        9 marzo 2026, ore 21:00
+                                                        {{data_webinar}}, ore 21:00
                                                     </p>
                                                 </td>
                                             </tr>
@@ -95,26 +95,35 @@
                     <tr>
                         <td style="padding: 0 30px 25px 30px;">
                             <p style="color: #cccccc; font-size: 18px; line-height: 1.7; margin: 0;">
-                                Il Dr. Malavasi illustrer&agrave; come identificare le casistiche elegibili per l'impianto pterigoideo
-                                e mostrer&agrave; passo dopo passo il protocollo operativo con il Magnetic Mallet e il kit dedicato PT1.
+                                Il {{relatore}} illustrer&agrave; il protocollo operativo per il rialzo del seno mascellare con Magnetic Mallet,
+                                mostrando casi clinici e le strategie per massimizzare la stabilit&agrave; primaria dell'impianto.
                             </p>
                         </td>
                     </tr>
 
-                    <!-- BOTTONE CTA -->
+                    <!-- BOTTONE CTA: Partecipo (one-click) -->
                     <tr>
-                        <td align="center" style="padding: 5px 30px 15px 30px;">
-                            <a href="{{link_webinar}}" style="display: inline-block; background-color: #2E7D32; color: #ffffff; text-decoration: none; padding: 20px 60px; border-radius: 8px; font-size: 22px; font-weight: bold; letter-spacing: 0.5px;">
-                                ISCRIVITI AL WEBINAR
+                        <td align="center" style="padding: 5px 30px 8px 30px;">
+                            <a href="{{link_confirm}}" style="display: inline-block; background-color: #2E7D32; color: #ffffff; text-decoration: none; padding: 20px 60px; border-radius: 8px; font-size: 22px; font-weight: bold; letter-spacing: 0.5px;">
+                                PARTECIPO
                             </a>
                         </td>
                     </tr>
 
                     <!-- Nota -->
                     <tr>
-                        <td style="padding: 8px 30px 25px 30px;">
+                        <td style="padding: 8px 30px 10px 30px;">
                             <p style="color: #888888; font-size: 15px; line-height: 1.5; margin: 0; text-align: center;">
-                                Dopo la registrazione ricever&agrave; il link personale per accedere al webinar.
+                                Un click e sei iscritto. Il link di accesso arriver&agrave; il giorno del webinar.
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Link alternativo alla landing -->
+                    <tr>
+                        <td style="padding: 0 30px 25px 30px;">
+                            <p style="color: #666666; font-size: 13px; line-height: 1.5; margin: 0; text-align: center;">
+                                Vuoi saperne di pi&ugrave;? <a href="{{link_webinar}}" style="color: #2E7D32; text-decoration: underline;">Visita la pagina del webinar</a>
                             </p>
                         </td>
                     </tr>
