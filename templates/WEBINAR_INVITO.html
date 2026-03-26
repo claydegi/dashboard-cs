@@ -6,10 +6,10 @@
     <title>Webinar — Sinus Lift con Magnetic Mallet</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #111820;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #111820;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #111820; background-image: url('https://dashboard-cs-production.up.railway.app/img/webinar-arcara-bg.jpg'); background-size: cover; background-position: center;">
         <tr>
             <td align="center" style="padding: 20px 10px;">
-                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: #151a24; border-radius: 12px; border: 1px solid rgba(123,163,201,0.2);">
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-color: rgba(21,26,36,0.92); border-radius: 12px; border: 1px solid rgba(123,163,201,0.2);">
 
                     <!-- Label -->
                     <tr>
@@ -50,11 +50,11 @@
                     <!-- Foto relatore centrata -->
                     <tr>
                         <td align="center" style="padding: 0 24px 12px 24px;">
-                            <img src="https://dashboard-cs-production.up.railway.app/img/dr-arcara.jpg" alt="Dr. Carlo Arcara" width="100" height="100" style="border-radius: 50%; display: block; border: 2px solid #7ba3c9; object-fit: cover;" />
+                            <img src="https://dashboard-cs-production.up.railway.app/img/dr-arcara.jpg" alt="Dr. Carlo Arcara" width="100" style="border-radius: 50%; display: block; border: 2px solid #7ba3c9;" />
                         </td>
                     </tr>
 
-                    <!-- Nome e bio sotto la foto -->
+                    <!-- Nome e bio -->
                     <tr>
                         <td align="center" style="padding: 0 30px 4px 30px;">
                             <p style="margin: 0; font-size: 20px; color: #e8edf2; font-weight: bold;">
@@ -97,7 +97,7 @@
                         </td>
                     </tr>
 
-                    <!-- BOTTONE PARTECIPO — largo, testo su una riga -->
+                    <!-- BOTTONE PARTECIPO -->
                     <tr>
                         <td align="center" style="padding: 0 24px 10px 24px;">
                             <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
@@ -121,27 +121,60 @@
                         </td>
                     </tr>
 
-                    <!-- Separator -->
+                    <!-- Separator GDPR -->
                     <tr>
-                        <td style="padding: 0 40px 16px 40px;">
-                            <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid #2a3a50; font-size: 0; height: 1px;">&nbsp;</td></tr></table>
+                        <td style="padding: 0 40px 10px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td style="border-top: 1px solid #2a3a50; font-size: 0; line-height: 0; height: 1px;">&nbsp;</td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
-                    <!-- Link landing -->
+                    <!-- Consenso GDPR -->
                     <tr>
-                        <td style="padding: 0 24px 20px 24px;">
-                            <p style="color: #4a5a6a; font-size: 13px; line-height: 1.5; margin: 0; text-align: center;">
-                                Vuoi saperne di pi&ugrave;? <a href="{{link_webinar}}" style="color: #7ba3c9; text-decoration: underline;">Scopri il programma completo</a>
+                        <td style="padding: 0 20px 10px 20px;">
+                            <p style="color: #7a8fa5; font-size: 13px; line-height: 1.6; margin: 0 0 12px 0; text-align: center;">
+                                Per inviarle contenuti sempre pi&ugrave; utili &mdash; casi clinici mirati, tutorial su misura, offerte dedicate &mdash; ci serve capire cosa le interessa davvero. Ci dia il suo ok e personalizzeremo tutto per lei.
                             </p>
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td align="center" style="padding: 0 0 8px 0;">
+                                        <a href="{{link_consenso_si}}"
+                                           style="display: inline-block; background-color: #7ba3c9; color: #ffffff; text-decoration: none; padding: 11px 30px; border-radius: 6px; font-size: 13px; font-weight: bold; width: 280px; text-align: center;">
+                                            &#10003;&nbsp; S&igrave;, voglio contenuti personalizzati
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding: 0 0 8px 0;">
+                                        <a href="{{link_consenso_solo_email}}"
+                                           style="display: inline-block; background-color: #2a3a50; color: #9bb0c4; text-decoration: none; padding: 9px 30px; border-radius: 6px; font-size: 12px; width: 280px; text-align: center;">
+                                            Preferisco solo le email, senza personalizzazione
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td align="center" style="padding: 0 0 6px 0;">
+                                        <a href="{{link_consenso_no}}"
+                                           style="display: inline-block; background-color: transparent; color: #4a5a6a; text-decoration: underline; padding: 8px 30px; font-size: 11px; width: 280px; text-align: center;">
+                                            Non mi interessa pi&ugrave;
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 14px 24px 22px 24px; background-color: #111820; border-radius: 0 0 12px 12px;">
-                            <p style="color: #3a4a5a; font-size: 11px; line-height: 1.6; margin: 0; text-align: center;">
+                        <td style="padding: 20px 24px; background-color: #0d1117; border-radius: 0 0 12px 12px;">
+                            <p style="color: #4a5a6a; font-size: 11px; line-height: 1.6; margin: 0; text-align: center;">
                                 Osseotouch &mdash; contact@osseotouch.com
+                            </p>
+                            <p style="color: #3a4a5a; font-size: 10px; line-height: 1.4; margin: 8px 0 0 0; text-align: center;">
+                                &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
                             </p>
                         </td>
                     </tr>
