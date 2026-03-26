@@ -701,16 +701,16 @@
             panel.innerHTML = `
                 <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                     <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                        Campagne 2026
+                        Campagne Attive
                     </div>
-                    <div class="empty-state"><p>Nessuna campagna sincronizzata</p></div>
+                    <div class="empty-state"><p>Nessuna campagna attiva sincronizzata</p></div>
                 </div>`;
             return;
         }
 
-        // Filtra: solo campagne 2026
+        // Filtra: solo campagne ENABLED o PAUSED (esclude REMOVED)
         const conSpesa = campagne.filter(c =>
-            (c.start_date || '').startsWith('2026')
+            c.status === 'ENABLED' || c.status === 'PAUSED'
         );
 
         // Ordina: ENABLED prima, poi PAUSED, poi resto. A parita' di status, per spesa decrescente
@@ -729,6 +729,11 @@
         });
         const spesaEur = (totSpesa / 1000000).toFixed(2);
 
+        // Campagne con reset date (metriche da mostrare da una data specifica)
+        const CAMPAIGN_RESET_DATES = {
+            '23202072362': '2026-03-26'  // Performance Max Blexo - riattivata
+        };
+
         // Righe
         let righe = '';
         conSpesa.forEach(c => {
@@ -736,6 +741,13 @@
             const click = parseInt(c.totale_clic || 0);
             const nome = c.campaign_name || '';
             const tipo = c.campaign_type || '';
+            const resetDate = CAMPAIGN_RESET_DATES[c.campaign_id];
+
+            // Nota per campagne riattivate
+            const resetNote = resetDate
+                ? ` <span style="color:#f59e0b; font-size:0.68rem; font-weight:600;">↻ Dal ${resetDate.split('-').reverse().join('/')}</span>`
+                : '';
+
             const clickLabel = click > 0
                 ? `<span style="font-weight:600; color:#1a73e8;">${click} click</span>`
                 : `<span style="color:var(--gray-400, #9ca3af);">0 click</span>`;
@@ -748,7 +760,7 @@
                 : '<span style="color:var(--gray-400, #9ca3af); font-size:0.72rem;">Pausa</span>';
             righe += `
                 <tr style="border-bottom:1px solid var(--gray-200, #e5e7eb);">
-                    <td style="padding:5px 0; font-size:0.78rem; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nome}</td>
+                    <td style="padding:5px 0; font-size:0.78rem; max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${nome}${resetNote}</td>
                     <td style="padding:5px 6px; font-size:0.73rem; color:var(--gray-400, #9ca3af);">${tipo}</td>
                     <td style="padding:5px 6px; text-align:center; font-size:0.73rem; white-space:nowrap;">${statusDot} ${statusLabel}</td>
                     <td style="padding:5px 0; text-align:right; font-size:0.78rem;">&euro; ${costo}</td>
@@ -759,7 +771,7 @@
         panel.innerHTML = `
             <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                 <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
-                    Campagne 2026
+                    Campagne Attive
                 </div>
                 <div class="webinar-counter">
                     <div class="wc-item">
