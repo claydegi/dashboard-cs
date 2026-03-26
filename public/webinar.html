@@ -906,14 +906,9 @@
                     <div class="check-icon">&#9989;</div>
                     <h2>Iscrizione confermata!</h2>
                     <p>
-                        Riceverai a breve un'email di conferma con il link per accedere al webinar.
+                        Riceverai via email il link per partecipare.
                         <br>Controlla anche la cartella spam.
                     </p>
-                    <div class="zoom-link-box" id="zoomLinkBox" style="display:none;">
-                        <div class="zoom-label">Il tuo link personale per il webinar</div>
-                        <a href="#" id="zoomJoinLink" class="btn-zoom" target="_blank" rel="noopener">Accedi al Webinar su Zoom</a>
-                        <div class="zoom-save-note">Salva questo link &mdash; ti servir&agrave; il 7 aprile alle 21:00</div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -1040,11 +1035,7 @@
                             'currency': 'EUR'
                         });
                     }
-                    // Mostra link Zoom se disponibile
-                    if (result.zoom_join_url) {
-                        document.getElementById('zoomJoinLink').href = result.zoom_join_url;
-                        document.getElementById('zoomLinkBox').style.display = 'block';
-                    }
+                    // Link Zoom non mostrato — arriverà via email
                 } else {
                     errorMsg.textContent = result.error || 'Errore durante l\'iscrizione. Riprova.';
                     errorMsg.style.display = 'block';

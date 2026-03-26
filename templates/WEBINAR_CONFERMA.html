@@ -3,115 +3,128 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Iscrizione confermata — Webinar OSSEOTOUCH</title>
+    <title>Iscrizione confermata — {{nome_webinar}}</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #0a0a0a;">
-    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0a0a0a;">
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #0d1117;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0d1117;">
         <tr>
-            <td align="center" style="padding: 20px 0;">
-                <table width="600" cellpadding="0" cellspacing="0" style="background-color: #111611; border-radius: 12px; border: 1px solid #1B5E20;">
+            <td align="center" style="padding: 0;">
+                <!--[if gte mso 9]>
+                <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                <v:fill type="frame" src="https://dashboard-cs-production.up.railway.app/img/webinar-arcara-bg.jpg" />
+                <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                <![endif]-->
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-image: url('https://dashboard-cs-production.up.railway.app/img/webinar-arcara-bg.jpg'); background-size: cover; background-position: center top; background-color: #151a24;">
 
-                    <!-- Header: WEBINAR -->
                     <tr>
-                        <td align="center" style="padding: 40px 30px 5px 30px;">
-                            <p style="margin: 0; font-size: 14px; color: #2E7D32; letter-spacing: 4px; text-transform: uppercase; font-weight: bold;">
-                                WEBINAR OSSEOTOUCH
-                            </p>
-                        </td>
-                    </tr>
-
-                    <!-- Titolo conferma -->
-                    <tr>
-                        <td align="center" style="padding: 10px 30px 5px 30px;">
-                            <p style="margin: 0; font-size: 28px; font-weight: bold; color: #ffffff; line-height: 1.3;">
-                                Iscrizione confermata &#10003;
-                            </p>
-                        </td>
-                    </tr>
-
-                    <!-- Sottotitolo -->
-                    <tr>
-                        <td align="center" style="padding: 5px 30px 20px 30px;">
-                            <p style="margin: 0; font-size: 16px; color: #888888;">
-                                Grazie per esserti registrato
-                            </p>
-                        </td>
-                    </tr>
-
-                    <!-- Linea decorativa -->
-                    <tr>
-                        <td style="padding: 0 60px 25px 60px;">
+                        <td style="background: linear-gradient(180deg, rgba(13,17,23,0.82) 0%, rgba(21,26,36,0.96) 25%, rgba(21,26,36,0.98) 100%);">
                             <table width="100%" cellpadding="0" cellspacing="0">
+
+                    <!-- Badge conferma -->
+                    <tr>
+                        <td align="center" style="padding: 36px 24px 0 24px;">
+                            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                                 <tr>
-                                    <td style="border-top: 1px solid #1B5E20; font-size: 0; line-height: 0; height: 1px;">&nbsp;</td>
+                                    <td style="background-color: #2e7d32; border-radius: 4px; padding: 5px 18px;">
+                                        <p style="margin: 0; font-size: 11px; color: #ffffff; letter-spacing: 3px; text-transform: uppercase; font-weight: bold;">
+                                            &#10003; ISCRIZIONE CONFERMATA
+                                        </p>
+                                    </td>
                                 </tr>
                             </table>
                         </td>
                     </tr>
 
-                    <!-- Dettagli webinar -->
+                    <!-- Titolo -->
                     <tr>
-                        <td style="padding: 0 30px 20px 30px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0d120d; border-radius: 10px; border: 1px solid #1e2e1e;">
+                        <td align="center" style="padding: 18px 24px 6px 24px;">
+                            <h1 style="margin: 0; font-size: 30px; font-weight: bold; color: #ffffff; line-height: 1.3;">
+                                {{nome_webinar}}
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Data con icona -->
+                    <tr>
+                        <td align="center" style="padding: 10px 24px 28px 24px;">
+                            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
                                 <tr>
-                                    <td style="padding: 25px 25px 10px 25px;">
-                                        <p style="margin: 0 0 6px 0; font-size: 12px; color: #2E7D32; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">
-                                            Evento
-                                        </p>
-                                        <p style="margin: 0; font-size: 20px; color: #ffffff; font-weight: bold; line-height: 1.4;">
-                                            {{nome_webinar}}
-                                        </p>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 15px 25px;">
-                                        <table width="100%" cellpadding="0" cellspacing="0">
-                                            <tr>
-                                                <td width="50%" style="padding: 0;">
-                                                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #2E7D32; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">
-                                                        Data
-                                                    </p>
-                                                    <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: bold;">
-                                                        {{data_webinar}}
-                                                    </p>
-                                                </td>
-                                                <td width="50%" style="padding: 0;">
-                                                    <p style="margin: 0 0 4px 0; font-size: 12px; color: #2E7D32; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">
-                                                        Ora
-                                                    </p>
-                                                    <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: bold;">
-                                                        21:00 (ora italiana)
-                                                    </p>
-                                                </td>
-                                            </tr>
-                                        </table>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td style="padding: 10px 25px 20px 25px;">
-                                        <p style="margin: 0 0 4px 0; font-size: 12px; color: #2E7D32; text-transform: uppercase; letter-spacing: 2px; font-weight: bold;">
-                                            Relatore
-                                        </p>
-                                        <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: bold;">
-                                            {{relatore}}
+                                    <td style="border: 1px solid rgba(123,163,201,0.35); border-radius: 6px; padding: 10px 24px;">
+                                        <p style="margin: 0; font-size: 17px; color: #ffffff; font-weight: bold;">
+                                            &#128197; {{data_webinar}} &mdash; ore 21:00
                                         </p>
                                     </td>
                                 </tr>
                             </table>
+                        </td>
+                    </tr>
+
+                    <!-- Linea acciaio -->
+                    <tr>
+                        <td style="padding: 0 40px 24px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid rgba(123,163,201,0.25); font-size: 0; height: 1px;">&nbsp;</td></tr></table>
+                        </td>
+                    </tr>
+
+                    <!-- Relatore -->
+                    <tr>
+                        <td align="center" style="padding: 0 30px 4px 30px;">
+                            <p style="margin: 0; font-size: 13px; color: #7ba3c9; letter-spacing: 2px; text-transform: uppercase; font-weight: bold;">
+                                Relatore
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 4px 30px 4px 30px;">
+                            <p style="margin: 0; font-size: 21px; color: #ffffff; font-weight: bold;">
+                                {{relatore}}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 2px 40px 26px 40px;">
+                            <p style="margin: 0; font-size: 13px; color: #9bb0c4; line-height: 1.5;">
+                                Odontoiatra &bull; Dottorato in Parodontologia Sperimentale &bull; Clinica Arcara, Termini Imerese
+                            </p>
                         </td>
                     </tr>
 
                     <!-- Messaggio: link arriva il giorno del webinar -->
                     <tr>
-                        <td align="center" style="padding: 5px 30px 10px 30px;">
-                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0d1a0d; border-radius: 8px; border: 1px solid #1e3e1e;">
+                        <td style="padding: 0 24px 28px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: rgba(123,163,201,0.08); border: 1px solid rgba(123,163,201,0.2); border-radius: 8px;">
                                 <tr>
-                                    <td style="padding: 20px 25px; text-align: center;">
-                                        <p style="margin: 0; font-size: 17px; color: #ffffff; font-weight: bold; line-height: 1.5;">
+                                    <td style="padding: 24px 24px; text-align: center;">
+                                        <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: bold; line-height: 1.5;">
                                             &#128231; Il link per accedere al webinar le arriver&agrave; via email il giorno dell'evento.
                                         </p>
-                                        <p style="margin: 10px 0 0 0; font-size: 14px; color: #999999; line-height: 1.5;">
+                                        <p style="margin: 12px 0 0 0; font-size: 14px; color: #9bb0c4; line-height: 1.5;">
                                             Non deve salvare nulla &mdash; pensiamo a tutto noi.
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Come funziona -->
+                    <tr>
+                        <td style="padding: 0 24px 28px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td width="3" style="background-color: #7ba3c9; border-radius: 2px;"></td>
+                                    <td style="padding: 16px 0 16px 20px;">
+                                        <p style="margin: 0 0 14px 0; font-size: 14px; color: #7ba3c9; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">
+                                            Come funziona
+                                        </p>
+                                        <p style="margin: 0 0 10px 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; Il giorno del webinar ricever&agrave; un'email con il link personale
+                                        </p>
+                                        <p style="margin: 0 0 10px 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; La stanza Zoom sar&agrave; attiva 5 minuti prima dell'inizio
+                                        </p>
+                                        <p style="margin: 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; Non serve un account Zoom &mdash; basta cliccare sul link
                                         </p>
                                     </td>
                                 </tr>
@@ -121,45 +134,34 @@
 
                     <!-- Separator -->
                     <tr>
-                        <td style="padding: 15px 50px 20px 50px;">
-                            <table width="100%" cellpadding="0" cellspacing="0">
-                                <tr>
-                                    <td style="border-top: 1px solid #1e2e1e; font-size: 0; line-height: 0; height: 1px;">&nbsp;</td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-
-                    <!-- Istruzioni -->
-                    <tr>
-                        <td style="padding: 0 30px 10px 30px;">
-                            <p style="color: #999999; font-size: 14px; line-height: 1.7; margin: 0 0 6px 0;">
-                                <strong style="color: #aaaaaa;">Come funziona:</strong>
-                            </p>
-                            <p style="color: #888888; font-size: 14px; line-height: 1.7; margin: 0 0 4px 0;">
-                                &#8226;&nbsp; Il giorno del webinar ricever&agrave; un'email con il link personale
-                            </p>
-                            <p style="color: #888888; font-size: 14px; line-height: 1.7; margin: 0 0 4px 0;">
-                                &#8226;&nbsp; La stanza Zoom sar&agrave; attiva 5 minuti prima dell'inizio
-                            </p>
-                            <p style="color: #888888; font-size: 14px; line-height: 1.7; margin: 0 0 15px 0;">
-                                &#8226;&nbsp; Non serve un account Zoom &mdash; basta cliccare sul link
-                            </p>
+                        <td style="padding: 0 40px 12px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid rgba(123,163,201,0.2); font-size: 0; height: 1px;">&nbsp;</td></tr></table>
                         </td>
                     </tr>
 
                     <!-- Footer -->
                     <tr>
-                        <td style="padding: 10px 30px 25px 30px; background-color: #0d120d; border-radius: 0 0 12px 12px;">
-                            <p style="color: #555555; font-size: 12px; line-height: 1.6; margin: 0; text-align: center;">
-                                Domande? Scrivici a contact@osseotouch.com<br><br>
-                                A presto,<br>
-                                <strong style="color: #888888;">Osseotouch</strong>
+                        <td style="padding: 16px 24px 22px 24px;">
+                            <p style="color: #9bb0c4; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;">
+                                Domande? Scrivici a contact@osseotouch.com
+                            </p>
+                            <p style="color: #4a5a6a; font-size: 11px; line-height: 1.6; margin: 8px 0 0 0; text-align: center;">
+                                Osseotouch &mdash; contact@osseotouch.com
+                            </p>
+                            <p style="color: #3a4a5a; font-size: 10px; line-height: 1.4; margin: 6px 0 0 0; text-align: center;">
+                                &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
                             </p>
                         </td>
                     </tr>
 
+                            </table>
+                        </td>
+                    </tr>
                 </table>
+                <!--[if gte mso 9]>
+                </v:textbox>
+                </v:rect>
+                <![endif]-->
             </td>
         </tr>
     </table>
