@@ -153,6 +153,11 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
     // Per invito one-click: link_confirm viene passato come parametro opzionale (generato per-contatto con HMAC)
     html = html.replace(/\{\{link_confirm\}\}/g, zoomLink || data.link_webinar || '#');
+    // Link consenso GDPR (per-contatto, basati su email destinatario)
+    const consentBase = `https://dashboard-cs-production.up.railway.app/consent?email=${encodeURIComponent(to)}&campagna=${encodeURIComponent(tag || templateName)}`;
+    html = html.replace(/\{\{link_consenso_si\}\}/g, `${consentBase}&risposta=si`);
+    html = html.replace(/\{\{link_consenso_solo_email\}\}/g, `${consentBase}&risposta=solo_email`);
+    html = html.replace(/\{\{link_consenso_no\}\}/g, `${consentBase}&risposta=no`);
 
     let subject;
     if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;
