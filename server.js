@@ -391,6 +391,7 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mercato TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS gruppo_whatsapp BOOLEAN DEFAULT false`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_secondaria TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS cellulare_secondario TEXT`);
 
         // Migrazione: campi consenso GDPR
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS consenso_email TEXT`);
@@ -5337,16 +5338,17 @@ app.get('/privacy-policy', (req, res) => {
 
 // Registrazione webinar (PUBBLICA, no auth — chiamata dal form landing page)
 app.post('/api/webinar/register', async (req, res) => {
-    const { nome, cognome, email, citta, ha_mm, replay } = req.body;
+    const { nome, cognome, email, cellulare, citta, ha_mm, replay } = req.body;
 
     // Validazione campi obbligatori
-    if (!nome || !cognome || !email || !citta || !ha_mm) {
+    if (!nome || !cognome || !email || !cellulare || !citta || !ha_mm) {
         return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
     }
 
     const emailClean = email.trim().toLowerCase();
     const nomeClean = nome.trim();
     const cognomeClean = cognome.trim();
+    const cellulareClean = cellulare.trim().replace(/\s+/g, '');
     const cittaClean = citta.trim().toUpperCase(); // R3: citta MAIUSCOLO
     const dichiaraMM = (ha_mm === 'si');
 
@@ -5373,7 +5375,7 @@ app.post('/api/webinar/register', async (req, res) => {
 
         // 1. Cerca contatto esistente per email
         const existing = await client.query(
-            'SELECT c.id, c.tipo, c.cognome, c.nome, c.citta FROM crm_contatti c WHERE LOWER(c.email) = $1',
+            'SELECT c.id, c.tipo, c.cognome, c.nome, c.citta, c.cellulare, c.cellulare_secondario FROM crm_contatti c WHERE LOWER(c.email) = $1',
             [emailClean]
         );
 
@@ -5386,6 +5388,18 @@ app.post('/api/webinar/register', async (req, res) => {
             const contatto = existing.rows[0];
             contattoId = contatto.id;
             const tipo = contatto.tipo || 'lead';
+
+            // Aggiorna cellulare: se diverso da quello nel DB, salva come secondario
+            if (cellulareClean) {
+                const cellulareDB = (contatto.cellulare || '').replace(/\s+/g, '');
+                if (!cellulareDB) {
+                    // Nessun cellulare nel DB: salva come principale
+                    await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]);
+                } else if (cellulareClean !== cellulareDB && !contatto.cellulare_secondario) {
+                    // Cellulare diverso e nessun secondario: salva come secondario
+                    await client.query('UPDATE crm_contatti SET cellulare_secondario = $1 WHERE id = $2', [cellulareClean, contattoId]);
+                }
+            }
 
             // Aggiorna citta e regione se mancanti
             if (!contatto.citta && cittaClean) {
@@ -5468,9 +5482,9 @@ app.post('/api/webinar/register', async (req, res) => {
             if (dichiaraMM) {
                 // Dice "si ho MM" -> crea ACCOUNT con prodotto MM
                 await client.query(`
-                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'account', 'ITALY')
-                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                    INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'account', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
 
                 await client.query(
                     'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
@@ -5480,9 +5494,9 @@ app.post('/api/webinar/register', async (req, res) => {
             } else {
                 // Dice "no" -> crea LEAD
                 await client.query(`
-                    INSERT INTO crm_contatti (id, cognome, nome, email, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, 'lead', 'ITALY')
-                `, [newId, cognomeClean, nomeClean, emailClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                    INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, 'lead', 'ITALY')
+                `, [newId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
                 azione = 'nuovo_lead';
             }
 
@@ -5494,6 +5508,7 @@ app.post('/api/webinar/register', async (req, res) => {
                     cognome: cognomeClean,
                     nome: nomeClean,
                     email: emailClean,
+                    cellulare: cellulareClean,
                     citta: cittaClean,
                     regione: regione,
                     tipo: dichiaraMM ? 'account' : 'lead',

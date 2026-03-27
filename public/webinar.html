@@ -310,6 +310,7 @@
 
         input[type="text"],
         input[type="email"],
+        input[type="tel"],
         select {
             width: 100%;
             padding: 11px 13px;
@@ -325,6 +326,7 @@
 
         input[type="text"]:focus,
         input[type="email"]:focus,
+        input[type="tel"]:focus,
         select:focus {
             border-color: #7ba3c9;
             background: rgba(123, 163, 201, 0.1);
@@ -879,6 +881,11 @@
                         <input type="email" id="email" name="email" placeholder="La tua email professionale" required>
                     </div>
 
+                    <div class="form-group">
+                        <label>Cellulare <span class="required">*</span></label>
+                        <input type="tel" id="cellulare" name="cellulare" placeholder="Es. 339 1234567" required>
+                    </div>
+
                     <div class="form-row">
                         <div class="form-group">
                             <label>Citt&agrave; <span class="required">*</span></label>
@@ -996,11 +1003,12 @@
                 nome: document.getElementById('nome').value.trim(),
                 cognome: document.getElementById('cognome').value.trim(),
                 email: document.getElementById('email').value.trim().toLowerCase(),
+                cellulare: document.getElementById('cellulare').value.trim(),
                 citta: document.getElementById('citta').value.trim().toUpperCase(),
                 ha_mm: document.getElementById('ha_mm').value
             };
 
-            if (!data.nome || !data.cognome || !data.email || !data.citta || !data.ha_mm) {
+            if (!data.nome || !data.cognome || !data.email || !data.cellulare || !data.citta || !data.ha_mm) {
                 errorMsg.textContent = 'Compila tutti i campi obbligatori.';
                 errorMsg.style.display = 'block';
                 btnSubmit.disabled = false;
