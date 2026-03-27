@@ -1263,17 +1263,13 @@ async function syncSutureFromOdoo() {
                 const inArrivo = arrivoMap[prod.id] || 0;
                 const costo = prod.standard_price || 0;
 
-                // Fix race condition: per in_bozza, usa il MAX tra valore Odoo e valore locale
-                // Questo protegge le bozze spostate localmente ma non ancora sincronizzate su Odoo
                 await client.query(`
                     INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, in_ordine, in_bozza, in_arrivo, costo_acquisto, best_of, last_sync)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                     ON CONFLICT (product_id) DO UPDATE SET
                         codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
                         giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
-                        in_ordine = EXCLUDED.in_ordine,
-                        in_bozza = GREATEST(EXCLUDED.in_bozza, COALESCE(suture_stock.in_bozza, 0)),
-                        in_arrivo = EXCLUDED.in_arrivo,
+                        in_ordine = EXCLUDED.in_ordine, in_bozza = EXCLUDED.in_bozza, in_arrivo = EXCLUDED.in_arrivo,
                         costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
                         last_sync = NOW()
                 `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
