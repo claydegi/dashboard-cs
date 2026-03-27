@@ -1263,13 +1263,17 @@ async function syncSutureFromOdoo() {
                 const inArrivo = arrivoMap[prod.id] || 0;
                 const costo = prod.standard_price || 0;
 
+                // Fix race condition: per in_bozza, usa il MAX tra valore Odoo e valore locale
+                // Questo protegge le bozze spostate localmente ma non ancora sincronizzate su Odoo
                 await client.query(`
                     INSERT INTO suture_stock (product_id, codice, descrizione, giacenza, impegnato, in_ordine, in_bozza, in_arrivo, costo_acquisto, best_of, last_sync)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
                     ON CONFLICT (product_id) DO UPDATE SET
                         codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
                         giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
-                        in_ordine = EXCLUDED.in_ordine, in_bozza = EXCLUDED.in_bozza, in_arrivo = EXCLUDED.in_arrivo,
+                        in_ordine = EXCLUDED.in_ordine,
+                        in_bozza = GREATEST(EXCLUDED.in_bozza, COALESCE(suture_stock.in_bozza, 0)),
+                        in_arrivo = EXCLUDED.in_arrivo,
                         costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
                         last_sync = NOW()
                 `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
@@ -8634,6 +8638,21 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
 
         // CASO 2: Nessun draft PO ma ci sono items → crea nuovo PO
         if (!draftPoIds || draftPoIds.length === 0) {
+            // Fix prezzo zero: se prezzo_unitario è 0, leggi standard_price da Odoo
+            for (const item of items) {
+                if (!item.prezzo_unitario || item.prezzo_unitario <= 0) {
+                    try {
+                        const prodData = await odooExecute(uid, 'product.product', 'read',
+                            [[item.product_id], ['standard_price']],
+                            { context: { allowed_company_ids: [1] } }
+                        );
+                        item.prezzo_unitario = (prodData && prodData[0]) ? prodData[0].standard_price : 0;
+                        console.log(`[Suture] Fix prezzo zero per ${item.codice}: fallback a standard_price=${item.prezzo_unitario}`);
+                    } catch (e) {
+                        console.warn(`[Suture] Impossibile leggere standard_price per product ${item.product_id}: ${e.message}`);
+                    }
+                }
+            }
             const orderLines = items.map(item => [0, 0, {
                 product_id: item.product_id,
                 product_qty: item.quantita,
@@ -8654,6 +8673,11 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
         }
 
         // CASO 3: Draft PO esiste → diff per allinearlo alla dashboard
+
+        // Fix PO draft multipli: avvisa e consolida su un unico PO
+        if (draftPoIds.length > 1) {
+            console.warn(`[Suture] ATTENZIONE: trovati ${draftPoIds.length} PO draft per VITREX. IDs: ${draftPoIds.join(', ')}. Uso il primo e le righe degli altri verranno migrate.`);
+        }
 
         // Leggi le righe esistenti di tutti i PO draft
         const existingLines = await odooExecute(uid, 'purchase.order.line', 'search_read',
@@ -8719,6 +8743,19 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
         const firstPoId = draftPoIds[0];
         if (!poCommands[firstPoId]) poCommands[firstPoId] = [];
         for (const [pid, item] of Object.entries(desiredMap)) {
+            // Fix prezzo zero: se prezzo_unitario è 0, leggi standard_price da Odoo
+            if (!item.prezzo_unitario || item.prezzo_unitario <= 0) {
+                try {
+                    const prodData = await odooExecute(uid, 'product.product', 'read',
+                        [[item.product_id], ['standard_price']],
+                        { context: { allowed_company_ids: [1] } }
+                    );
+                    item.prezzo_unitario = (prodData && prodData[0]) ? prodData[0].standard_price : 0;
+                    console.log(`[Suture] Fix prezzo zero per ${item.codice}: fallback a standard_price=${item.prezzo_unitario}`);
+                } catch (e) {
+                    console.warn(`[Suture] Impossibile leggere standard_price per product ${item.product_id}: ${e.message}`);
+                }
+            }
             poCommands[firstPoId].push([0, 0, {
                 product_id: item.product_id,
                 product_qty: item.quantita,
@@ -8738,9 +8775,31 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
             }
         }
 
-        // Leggi i nomi dei PO aggiornati
+        // Fix PO draft multipli: cancella i PO extra rimasti vuoti (senza righe)
+        if (draftPoIds.length > 1) {
+            for (let i = 1; i < draftPoIds.length; i++) {
+                try {
+                    const extraLines = await odooExecute(uid, 'purchase.order.line', 'search',
+                        [[['order_id', '=', draftPoIds[i]]]],
+                        { context: { allowed_company_ids: [1] } }
+                    );
+                    if (!extraLines || extraLines.length === 0) {
+                        await odooExecute(uid, 'purchase.order', 'unlink',
+                            [[draftPoIds[i]]],
+                            { context: { allowed_company_ids: [1], force_company: 1 } }
+                        );
+                        console.log(`[Suture] PO draft extra ${draftPoIds[i]} cancellato (vuoto)`);
+                    }
+                } catch (e) {
+                    console.warn(`[Suture] Impossibile cancellare PO draft ${draftPoIds[i]}: ${e.message}`);
+                }
+            }
+        }
+
+        // Leggi i nomi dei PO aggiornati (solo quelli ancora esistenti)
+        const remainingPoIds = [draftPoIds[0]]; // Il primo è sempre presente
         const poNames = await odooExecute(uid, 'purchase.order', 'read',
-            [draftPoIds, ['name']],
+            [remainingPoIds, ['name']],
             { context: { allowed_company_ids: [1] } }
         );
         const names = poNames.map(p => p.name).join(', ');
@@ -8753,8 +8812,11 @@ app.put('/api/suture/aggiorna-bozza', requireAdmin, async (req, res) => {
     }
 });
 
-// POST /api/suture/conferma-ordine — Aggiunge righe al PO draft VITREX esistente, oppure ne crea uno nuovo
+// POST /api/suture/conferma-ordine — DISABILITATO (causa duplicati: aggiungeva righe senza dedup)
+// Usare sposta-in-bozza + aggiorna-bozza che gestisce correttamente il diff.
 app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
+    return res.status(410).json({ error: 'Endpoint disabilitato. Usare sposta-in-bozza + aggiorna-bozza.' });
+    /* CODICE ORIGINALE DISABILITATO:
     try {
         const { items } = req.body;
         if (!items || !Array.isArray(items) || items.length === 0) {
@@ -8820,6 +8882,7 @@ app.post('/api/suture/conferma-ordine', requireAdmin, async (req, res) => {
         console.error('[Suture API] Errore creazione/aggiornamento PO:', err.message);
         res.status(500).json({ error: `Errore ordine: ${err.message}` });
     }
+    FINE CODICE DISABILITATO */
 });
 
 // ==================== RIEPILOGO CRM ====================
