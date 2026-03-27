@@ -9620,6 +9620,8 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
             lineaProdotto = 'BLEXO';
         } else if (eventNameLower.includes('idem')) {
             lineaProdotto = 'IDEM_SINGAPORE';
+        } else if (eventNameLower.includes('easy-pin') || eventNameLower.includes('easy pin') || eventNameLower.includes('easypin')) {
+            lineaProdotto = 'EASY PIN';
         }
         console.log(`[Calendly] Linea prodotto rilevata: ${lineaProdotto} (da evento: ${eventType})`);
 
