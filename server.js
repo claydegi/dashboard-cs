@@ -8394,7 +8394,6 @@ app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
                    c.end_date,
                    c.budget_micros,
                    c.webinar_tag,
-                   c.created_at,
                    c.updated_at,
                    COALESCE(SUM(m.impressioni), 0)::INTEGER AS totale_impressioni,
                    COALESCE(SUM(m.clic), 0)::INTEGER AS totale_clic,
@@ -8413,7 +8412,7 @@ app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
             ${statusFilter}
             GROUP BY c.campaign_id, c.campaign_name, c.campaign_type, c.status,
                      c.start_date, c.end_date, c.budget_micros, c.webinar_tag,
-                     c.created_at, c.updated_at
+                     c.updated_at
             ORDER BY totale_costo_micros DESC
         `, [anno]);
         res.json(result.rows);
