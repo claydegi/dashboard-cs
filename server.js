@@ -8386,8 +8386,8 @@ app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
     const anno = parseInt(req.query.anno) || 2026;
     try {
         const statusFilter = includeRemoved
-            ? "WHERE c.start_date >= '2026-01-01'"
-            : "WHERE c.status IN ('ENABLED', 'PAUSED') AND c.start_date >= '2026-01-01'";
+            ? "WHERE c.start_date >= '2026-01-01' AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'"
+            : "WHERE c.status IN ('ENABLED', 'PAUSED') AND c.start_date >= '2026-01-01' AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'";
         const result = await pool.query(`
             SELECT c.campaign_id,
                    c.campaign_name,
