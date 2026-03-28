@@ -8378,23 +8378,36 @@ app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
     }
 });
 
-// GET /api/google-ads/campagne — lista campagne con metriche aggregate (all-time, stored in gads_campagne)
+// GET /api/google-ads/campagne — lista campagne con metriche aggregate
+// Parametri: include_removed=true, anno=2026 (default: 2026, filtra metriche per anno)
 app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
     const includeRemoved = req.query.include_removed === 'true';
+    const anno = parseInt(req.query.anno) || 2026;
     try {
-        const statusFilter = includeRemoved ? '' : "WHERE status IN ('ENABLED', 'PAUSED')";
+        const statusFilter = includeRemoved ? '' : "WHERE c.status IN ('ENABLED', 'PAUSED')";
         const result = await pool.query(`
-            SELECT *,
-                   CASE WHEN totale_conversioni > 0
-                        THEN totale_costo_micros / totale_conversioni
+            SELECT c.*,
+                   COALESCE(SUM(m.impressioni), 0)::INTEGER AS totale_impressioni,
+                   COALESCE(SUM(m.clic), 0)::INTEGER AS totale_clic,
+                   COALESCE(SUM(m.costo_micros), 0)::BIGINT AS totale_costo_micros,
+                   COALESCE(SUM(m.conversioni), 0)::REAL AS totale_conversioni,
+                   CASE WHEN SUM(m.conversioni) > 0
+                        THEN SUM(m.costo_micros) / SUM(m.conversioni)
                         ELSE 0 END AS costo_per_conversione_micros,
-                   CASE WHEN totale_impressioni > 0
-                        THEN totale_clic::REAL / totale_impressioni
+                   CASE WHEN SUM(m.impressioni) > 0
+                        THEN SUM(m.clic)::REAL / SUM(m.impressioni)
                         ELSE 0 END AS ctr_totale
-            FROM gads_campagne
+            FROM gads_campagne c
+            LEFT JOIN gads_metriche_giornaliere m
+                ON c.campaign_id = m.campaign_id
+                AND EXTRACT(YEAR FROM m.data) = $1
             ${statusFilter}
+            GROUP BY c.campaign_id, c.campaign_name, c.campaign_type, c.status,
+                     c.start_date, c.end_date, c.budget_micros, c.webinar_tag,
+                     c.totale_impressioni, c.totale_clic, c.totale_costo_micros,
+                     c.totale_conversioni, c.created_at, c.updated_at
             ORDER BY totale_costo_micros DESC
-        `);
+        `, [anno]);
         res.json(result.rows);
     } catch (err) {
         console.error('[Google Ads] Errore campagne:', err.message);
