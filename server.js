@@ -8386,7 +8386,16 @@ app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
     try {
         const statusFilter = includeRemoved ? '' : "WHERE c.status IN ('ENABLED', 'PAUSED')";
         const result = await pool.query(`
-            SELECT c.*,
+            SELECT c.campaign_id,
+                   c.campaign_name,
+                   c.campaign_type,
+                   c.status,
+                   c.start_date,
+                   c.end_date,
+                   c.budget_micros,
+                   c.webinar_tag,
+                   c.created_at,
+                   c.updated_at,
                    COALESCE(SUM(m.impressioni), 0)::INTEGER AS totale_impressioni,
                    COALESCE(SUM(m.clic), 0)::INTEGER AS totale_clic,
                    COALESCE(SUM(m.costo_micros), 0)::BIGINT AS totale_costo_micros,
@@ -8404,8 +8413,7 @@ app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
             ${statusFilter}
             GROUP BY c.campaign_id, c.campaign_name, c.campaign_type, c.status,
                      c.start_date, c.end_date, c.budget_micros, c.webinar_tag,
-                     c.totale_impressioni, c.totale_clic, c.totale_costo_micros,
-                     c.totale_conversioni, c.created_at, c.updated_at
+                     c.created_at, c.updated_at
             ORDER BY totale_costo_micros DESC
         `, [anno]);
         res.json(result.rows);
