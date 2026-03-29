@@ -59,7 +59,8 @@ const WEBINAR_DATA = {
         link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
         link_webinar: 'https://app.osseotouch.com/webinar',
-        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Malavasi'
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Malavasi',
+        video_campagna: 'PT1_SF_WEBINAR_MALAVASI_REC'
     },
     'WEBINAR_ARCARA_ELEVATE': {
         nome_webinar: 'Sinus Lift con Magnetic Mallet: come massimizzare la stabilita\' implantare',
@@ -71,7 +72,8 @@ const WEBINAR_DATA = {
         link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Sinus Lift con Magnetic Mallet, 7 aprile ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-arcara-iscrizione/',
-        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara'
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara',
+        video_campagna: null
     }
 };
 
@@ -5055,11 +5057,6 @@ const ZOOM_WEBINAR_IDS = {
     'WEBINAR_ARCARA_ELEVATE': '82008974573'
 };
 
-// Mapping webinar tag -> campagna video tracking (per filtrare watching time nella dashboard)
-const WEBINAR_VIDEO_CAMPAIGNS = {
-    'WEBINAR_MALAVASI_PT1': 'PT1_SF_WEBINAR_MALAVASI_REC'
-    // WEBINAR_ARCARA_ELEVATE: non ancora mappato (webinar futuro, nessun video disponibile)
-};
 
 // POST /api/webinar/sync-zoom-participants — scarica partecipanti da Zoom e salva nel DB con scoring
 app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) => {
@@ -5845,8 +5842,7 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Parametro tag obbligatorio' });
     }
     try {
-        // Deriva campagna video dal tag per filtrare watching time corretto
-        const videoCampagna = WEBINAR_VIDEO_CAMPAIGNS[tag] || null;
+        const videoCampagna = (WEBINAR_DATA[tag] && WEBINAR_DATA[tag].video_campagna) || null;
 
         const result = await pool.query(`
             SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
@@ -5860,7 +5856,7 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
                        COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
                 FROM crm_video_tracking
                 WHERE LOWER(crm_video_tracking.email) = LOWER(r.email)
-                  AND ($3::text IS NULL OR crm_video_tracking.campagna = $3)
+                  AND crm_video_tracking.campagna = $3
             ) vt ON true
             WHERE r.webinar_tag = $1
             ORDER BY r.created_at DESC
