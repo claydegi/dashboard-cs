@@ -5055,6 +5055,12 @@ const ZOOM_WEBINAR_IDS = {
     'WEBINAR_ARCARA_ELEVATE': '82008974573'
 };
 
+// Mapping webinar tag -> campagna video tracking (per filtrare watching time nella dashboard)
+const WEBINAR_VIDEO_CAMPAIGNS = {
+    'WEBINAR_MALAVASI_PT1': 'PT1_SF_WEBINAR_MALAVASI_REC'
+    // WEBINAR_ARCARA_ELEVATE: non ancora mappato (webinar futuro, nessun video disponibile)
+};
+
 // POST /api/webinar/sync-zoom-participants — scarica partecipanti da Zoom e salva nel DB con scoring
 app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
@@ -5839,6 +5845,9 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
         return res.status(400).json({ error: 'Parametro tag obbligatorio' });
     }
     try {
+        // Deriva campagna video dal tag per filtrare watching time corretto
+        const videoCampagna = WEBINAR_VIDEO_CAMPAIGNS[tag] || null;
+
         const result = await pool.query(`
             SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
                    (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
@@ -5851,11 +5860,12 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
                        COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
                 FROM crm_video_tracking
                 WHERE LOWER(crm_video_tracking.email) = LOWER(r.email)
+                  AND ($3::text IS NULL OR crm_video_tracking.campagna = $3)
             ) vt ON true
             WHERE r.webinar_tag = $1
             ORDER BY r.created_at DESC
             LIMIT $2
-        `, [tag, limit]);
+        `, [tag, limit, videoCampagna]);
         res.json({ registrants: result.rows });
     } catch (err) {
         console.error('[Webinar Registrants Latest]', err);
