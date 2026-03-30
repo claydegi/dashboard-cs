@@ -8386,14 +8386,14 @@ app.post('/api/google-ads/sync', requireReportsKey, async (req, res) => {
 
 // GET /api/google-ads/campagne — lista campagne con metriche aggregate
 // Parametri: include_removed=true, anno=2026 (default: 2026, filtra metriche per anno)
-// Mostra solo campagne con start_date >= 2026-01-01
+// Mostra solo campagne con start_date >= 2026-01-01 + whitelist Blexo (dati solo 2026)
 app.get('/api/google-ads/campagne', requireAdmin, async (req, res) => {
     const includeRemoved = req.query.include_removed === 'true';
     const anno = parseInt(req.query.anno) || 2026;
     try {
         const statusFilter = includeRemoved
-            ? "WHERE c.start_date >= '2026-01-01' AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'"
-            : "WHERE c.status IN ('ENABLED', 'PAUSED') AND c.start_date >= '2026-01-01' AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'";
+            ? "WHERE (c.start_date >= '2026-01-01' OR c.campaign_id = '23202072362') AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'"
+            : "WHERE c.status IN ('ENABLED', 'PAUSED') AND (c.start_date >= '2026-01-01' OR c.campaign_id = '23202072362') AND c.campaign_name NOT LIKE '%Iscrizioni%canale YT%'";
         const result = await pool.query(`
             SELECT c.campaign_id,
                    c.campaign_name,
