@@ -1272,7 +1272,13 @@ async function syncSutureFromOdoo() {
                     ON CONFLICT (product_id) DO UPDATE SET
                         codice = EXCLUDED.codice, descrizione = EXCLUDED.descrizione,
                         giacenza = EXCLUDED.giacenza, impegnato = EXCLUDED.impegnato,
-                        in_ordine = EXCLUDED.in_ordine, in_bozza = EXCLUDED.in_bozza, in_arrivo = EXCLUDED.in_arrivo,
+                        in_ordine = EXCLUDED.in_ordine,
+                        in_bozza = CASE
+                            WHEN EXCLUDED.in_bozza > 0 THEN EXCLUDED.in_bozza
+                            WHEN EXCLUDED.in_arrivo > COALESCE(suture_stock.in_arrivo, 0) THEN 0
+                            ELSE COALESCE(suture_stock.in_bozza, 0)
+                        END,
+                        in_arrivo = EXCLUDED.in_arrivo,
                         costo_acquisto = EXCLUDED.costo_acquisto, best_of = EXCLUDED.best_of,
                         last_sync = NOW()
                 `, [prod.id, codice, prod.name || '', giacenza, impegnato, inOrdine, inBozza, inArrivo, costo, isBestOf]);
