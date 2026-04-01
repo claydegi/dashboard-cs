@@ -851,13 +851,17 @@ function renderSutureTable() {
     const btnAggiornaBozza = container.querySelector('#btnAggiornaBozza');
     if (btnAggiornaBozza) {
         btnAggiornaBozza.addEventListener('click', async () => {
+            if (btnAggiornaBozza.disabled) return;
             const totale = sutureInBozza.reduce((s, i) => s + i.quantita * i.prezzo, 0).toFixed(2);
             const msg = sutureInBozza.length === 0
                 ? 'Vuoi rimuovere TUTTE le righe dalla bozza in Odoo?'
                 : `Aggiornare la bozza in Odoo?\n\n${sutureInBozza.length} righe — Totale: €${totale}\n\nLe righe rimosse qui verranno eliminate anche dal PO in Odoo.`;
-            if (!confirm(msg)) return;
-
             btnAggiornaBozza.disabled = true;
+            if (!confirm(msg)) {
+                btnAggiornaBozza.disabled = false;
+                return;
+            }
+
             btnAggiornaBozza.textContent = 'Aggiornamento in corso...';
             try {
                 const payload = { items: sutureInBozza.map(i => ({
@@ -980,12 +984,16 @@ function refreshSutureDropdown() {
     const btnConferma = document.getElementById('btnConfermaOrdine');
     if (btnConferma) {
         btnConferma.addEventListener('click', async () => {
+            if (btnConferma.disabled) return;
             if (sutureOrdine.length === 0) { showToast('Nessun articolo nell\'ordine', 'error'); return; }
 
             const riepilogo = sutureOrdine.map(i => `${i.codice} x${i.quantita}`).join(', ');
-            if (!confirm(`Aggiungere alla bozza locale:\n\n${riepilogo}\n\nPoi clicca "Aggiorna Bozza → Odoo" per sincronizzare.`)) return;
-
             btnConferma.disabled = true;
+            if (!confirm(`Aggiungere alla bozza locale:\n\n${riepilogo}\n\nPoi clicca "Aggiorna Bozza → Odoo" per sincronizzare.`)) {
+                btnConferma.disabled = false;
+                return;
+            }
+
             btnConferma.textContent = 'Spostamento in corso...';
             try {
                 const payload = { items: sutureOrdine.map(i => ({
