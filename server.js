@@ -8546,13 +8546,14 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const totArrivo = inArrivoItems.reduce((s, i) => s + i.valore, 0);
         const totDaOrdinare = daOrdinareItems.reduce((s, i) => s + i.valore, 0);
 
-        // Ordini clienti in sospeso — solo per prodotti non coperti (no bozza, no arrivo)
-        // Se il prodotto è già in bozza o in arrivo, l'ordine è gestito e non serve mostrarlo
+        // Ordini clienti in sospeso — solo per prodotti coperti da giacenza + ordini confermati
+        // La bozza non è ancora un ordine reale, quindi non copre il cliente.
         const prodottiCoperti = new Set();
         for (const row of result.rows) {
-            const ib = parseFloat(row.in_bozza) || 0;
+            const giacenza = parseFloat(row.giacenza) || 0;
+            const impegnato = parseFloat(row.impegnato) || 0;
             const ia = parseFloat(row.in_arrivo) || 0;
-            if (ib > 0 || ia > 0) prodottiCoperti.add(row.codice);
+            if (giacenza + ia >= impegnato) prodottiCoperti.add(row.codice);
         }
         const ordCliResult = await pool.query(`
             SELECT sale_order_name, partner_name, codice, date_order, qty_to_deliver
