@@ -5622,6 +5622,171 @@ app.post('/api/webinar/register', async (req, res) => {
     }
 });
 
+// POST /api/leads/whatsapp-group — Landing page YouTube Ads → iscrizione gruppo WhatsApp
+// Campi: nome, cognome, citta, cellulare, ha_mm, consenso_privacy, fonte
+// Logica: cerca contatto per cellulare (normalizzato), crea o aggiorna, score, log GDPR
+app.post('/api/leads/whatsapp-group', async (req, res) => {
+    const { nome, cognome, citta, cellulare, ha_mm, consenso_privacy, fonte } = req.body;
+
+    // Validazione
+    if (!nome || !cognome || !citta || !cellulare || !ha_mm) {
+        return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+    }
+    if (!consenso_privacy) {
+        return res.status(400).json({ error: 'Consenso privacy obbligatorio' });
+    }
+
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cittaClean = citta.trim().toUpperCase();
+    // Normalizza cellulare: rimuovi spazi, trattini, parentesi. Mantieni +
+    const cellulareClean = cellulare.trim().replace(/[\s\-\(\)]/g, '');
+    const dichiaraMM = (ha_mm === 'si');
+    const fonteTag = fonte || 'lp_whatsapp_group';
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const oggi = new Date().toISOString().split('T')[0];
+
+        // 1. Cerca contatto esistente per cellulare (normalizzato, senza spazi)
+        const existing = await client.query(
+            `SELECT c.id, c.tipo, c.cognome, c.nome, c.email, c.citta, c.cellulare, c.cellulare_secondario
+             FROM crm_contatti c
+             WHERE REPLACE(REPLACE(REPLACE(REPLACE(c.cellulare, ' ', ''), '-', ''), '(', ''), ')', '') = $1
+                OR REPLACE(REPLACE(REPLACE(REPLACE(c.cellulare_secondario, ' ', ''), '-', ''), '(', ''), ')', '') = $1`,
+            [cellulareClean]
+        );
+
+        let contattoId;
+        let azione;
+
+        if (existing.rows.length > 0) {
+            // ========== CONTATTO ESISTENTE ==========
+            const contatto = existing.rows[0];
+            contattoId = contatto.id;
+            const tipo = contatto.tipo || 'lead';
+
+            // Aggiorna citta e regione se mancanti
+            if (!contatto.citta && cittaClean) {
+                const regioneLookup = lookupRegione(cittaClean);
+                await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, regioneLookup, contattoId]);
+            }
+
+            // Aggiorna gruppo_whatsapp = true
+            await client.query('UPDATE crm_contatti SET gruppo_whatsapp = true WHERE id = $1', [contattoId]);
+
+            // Verifica prodotti MM
+            const haMMnelDB = await client.query("SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'", [contattoId]);
+            const haMMesistente = haMMnelDB.rows.length > 0;
+
+            if (tipo === 'lead' && dichiaraMM) {
+                // Lead dice "si ho MM" -> PROMUOVI ad account
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+
+                if (!haMMesistente) {
+                    await client.query(
+                        'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                        [contattoId, 'MM', oggi, fonteTag]
+                    );
+                }
+
+                await client.query('INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)', [contattoId, 'MM']);
+
+                // Cancella score GENERICO
+                await client.query("DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                await client.query("DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+
+                azione = 'promosso';
+            } else {
+                azione = 'esistente_coerente';
+            }
+
+        } else {
+            // ========== CONTATTO NUOVO ==========
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            const newId = Math.min(minId.rows[0].min_id, 0) - 1;
+            contattoId = newId;
+
+            const regione = lookupRegione(cittaClean);
+            const tipoNuovo = dichiaraMM ? 'account' : 'lead';
+
+            await client.query(`
+                INSERT INTO crm_contatti (id, cognome, nome, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 0, $9, 'ITALY', true)
+            `, [newId, cognomeClean, nomeClean, cellulareClean, cittaClean, regione, fonteTag, oggi, tipoNuovo]);
+
+            if (dichiaraMM) {
+                await client.query(
+                    'INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)',
+                    [newId, 'MM', oggi, fonteTag]
+                );
+            }
+
+            // Log new_contatto per sync
+            await client.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)`,
+                [newId, JSON.stringify({
+                    cognome: cognomeClean, nome: nomeClean,
+                    cellulare: cellulareClean, citta: cittaClean, regione,
+                    tipo: tipoNuovo, mercato: 'ITALY',
+                    prodotti: dichiaraMM ? ['MM'] : [],
+                    fonte: fonteTag
+                })]
+            );
+
+            azione = dichiaraMM ? 'nuovo_account' : 'nuovo_lead';
+        }
+
+        // 2. Score: +30 punti (iscrizione gruppo whatsapp)
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'MM' : 'GENERICO';
+
+        const scoreResult = await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [contattoId, lineaScore, 'iscrizione_gruppo_whatsapp', 30, oggi]
+        );
+
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_score', $1, $2)`,
+            [contattoId, JSON.stringify({
+                linea_prodotto: lineaScore,
+                tipo_attivita: 'iscrizione_gruppo_whatsapp',
+                punti: 30, data_evento: oggi,
+                label: 'Iscrizione gruppo WhatsApp (landing YouTube)',
+                score_manuale_id: scoreResult.rows[0].id
+            })]
+        );
+
+        // 3. Log consenso GDPR
+        await client.query(
+            `INSERT INTO crm_consensi_log (contatto_id, tipo_consenso, valore, fonte, data_consenso)
+             VALUES ($1, 'privacy_form', true, $2, NOW())`,
+            [contattoId, fonteTag]
+        );
+
+        // 4. Log WhatsApp click
+        await client.query(
+            `INSERT INTO crm_whatsapp_clicks (contatto_id, gruppo, created_at) VALUES ($1, $2, NOW())`,
+            [contattoId, 'MAGNETO_DINAMICA_YT']
+        );
+
+        await client.query('COMMIT');
+
+        console.log(`[WhatsApp LP] ${cognomeClean} ${nomeClean} | cell=${cellulareClean} | azione=${azione} | score +30 ${lineaScore} | id=${contattoId}`);
+
+        res.json({ ok: true, azione, contatto_id: contattoId });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[WhatsApp LP] Errore:', err);
+        res.status(500).json({ error: 'Errore server. Riprova.' });
+    } finally {
+        client.release();
+    }
+});
+
 // GET /api/webinar/confirm — one-click registration per contatti esistenti (da mailing)
 // Flusso: email mailing → click "Partecipo" → questo endpoint → redirect a /webinar-conferma
 // Token = HMAC-SHA256(email, REPORTS_API_KEY) per evitare registrazioni abusive
