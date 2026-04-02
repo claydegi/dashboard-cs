@@ -5788,6 +5788,28 @@ app.post('/api/leads/whatsapp-group', async (req, res) => {
     }
 });
 
+// GET /api/whatsapp-group/stats — counter iscrizioni gruppo WhatsApp per dashboard marketing
+app.get('/api/whatsapp-group/stats', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(`
+            SELECT
+                COUNT(*)::int AS totale,
+                COUNT(*) FILTER (WHERE c.tipo = 'lead')::int AS lead,
+                COUNT(*) FILTER (WHERE c.tipo = 'account')::int AS account,
+                COUNT(*) FILTER (WHERE c.fonte_sync = 'lp_whatsapp_group' AND c.id < 0)::int AS nuovi,
+                COUNT(*) FILTER (WHERE c.fonte_sync = 'lp_whatsapp_group' AND c.id < 0 AND c.tipo = 'lead')::int AS nuovi_lead,
+                COUNT(*) FILTER (WHERE c.fonte_sync = 'lp_whatsapp_group' AND c.id < 0 AND c.tipo = 'account')::int AS nuovi_account
+            FROM crm_contatti c
+            WHERE c.gruppo_whatsapp = true
+        `);
+        const row = result.rows[0] || { totale: 0, lead: 0, account: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0 };
+        res.json(row);
+    } catch (err) {
+        console.error('[WhatsApp Stats]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // GET /api/webinar/confirm — one-click registration per contatti esistenti (da mailing)
 // Flusso: email mailing → click "Partecipo" → questo endpoint → redirect a /webinar-conferma
 // Token = HMAC-SHA256(email, REPORTS_API_KEY) per evitare registrazioni abusive

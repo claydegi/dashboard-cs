@@ -443,6 +443,7 @@
                     <h2>Calendario Webinar</h2>
                     <div id="webinarCalendar"></div>
                     <div id="webinarStatsPanel"></div>
+                    <div id="whatsappGroupPanel"></div>
                     <div id="googleAdsPanel"></div>
                 </section>
 
@@ -552,12 +553,13 @@
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp] = await Promise.all([
+            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp] = await Promise.all([
                 fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/google-ads/campagne?key=${ADMIN_KEY}`)
+                fetch(`${API_URL}/google-ads/campagne?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/whatsapp-group/stats?key=${ADMIN_KEY}`)
             ]);
 
             // Attivita'
@@ -579,6 +581,10 @@
 
             // Stats registrazioni webinar
             renderWebinarStats(webinarStats);
+
+            // Stats gruppo WhatsApp
+            const waGroupStats = waGroupResp.ok ? await waGroupResp.json() : null;
+            renderWhatsAppGroupStats(waGroupStats);
 
             // Google Ads stats (solo admin, dati dinamici da PostgreSQL)
             const gadsData = gadsResp.ok ? await gadsResp.json() : [];
@@ -691,6 +697,34 @@
             `;
         }
         panel.innerHTML = html;
+    }
+
+    function renderWhatsAppGroupStats(stats) {
+        const panel = document.getElementById('whatsappGroupPanel');
+        if (!panel || !IS_ADMIN) return;
+        const s = stats || { totale: 0, lead: 0, account: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0 };
+        panel.innerHTML = `
+            <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid #25d366; border-radius:8px;">
+                <div style="font-size:0.8rem; font-weight:600; color:#25d366; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
+                    &#128172; Gruppo WhatsApp Magnetic Mallet
+                </div>
+                <div class="webinar-counter">
+                    <div class="wc-item">
+                        <span class="wc-num">${s.lead}</span>
+                        <span class="wc-label">Lead</span>
+                    </div>
+                    <div class="wc-item">
+                        <span class="wc-num">${s.account}</span>
+                        <span class="wc-label">Account</span>
+                    </div>
+                    <div class="wc-item wc-totale">
+                        <span class="wc-num">${s.totale}</span>
+                        <span class="wc-label">Totale</span>
+                    </div>
+                </div>
+                <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${s.nuovi_lead} nuovi lead e ${s.nuovi_account} nuovi account</div>
+            </div>
+        `;
     }
 
     async function renderGoogleAdsPanel(campagne) {
