@@ -5760,16 +5760,17 @@ app.post('/api/leads/whatsapp-group', async (req, res) => {
         );
 
         // 3. Log consenso GDPR
+        const emailConsent = existing.rows.length > 0 ? (existing.rows[0].email || cellulareClean) : cellulareClean;
         await client.query(
-            `INSERT INTO crm_consensi_log (contatto_id, tipo_consenso, valore, fonte, data_consenso)
-             VALUES ($1, 'privacy_form', true, $2, NOW())`,
-            [contattoId, fonteTag]
+            `INSERT INTO crm_consensi_log (contatto_id, email, azione, fonte, campagna)
+             VALUES ($1, $2, 'consenso_privacy_form', $3, 'whatsapp_magnetic_mallet')`,
+            [contattoId, emailConsent, fonteTag]
         );
 
         // 4. Log WhatsApp click
         await client.query(
-            `INSERT INTO crm_whatsapp_clicks (contatto_id, gruppo, created_at) VALUES ($1, $2, NOW())`,
-            [contattoId, 'MAGNETO_DINAMICA_YT']
+            `INSERT INTO crm_whatsapp_clicks (contatto_id, email, gruppo, clicked_at) VALUES ($1, $2, $3, NOW())`,
+            [contattoId, emailConsent, 'MAGNETO_DINAMICA_YT']
         );
 
         await client.query('COMMIT');
