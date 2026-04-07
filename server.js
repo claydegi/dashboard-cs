@@ -6383,6 +6383,7 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
         }
 
         let fissati = 0, errori = 0;
+        const emailErrori = [];
         for (const r of result.rows) {
             try {
                 const zoomResult = await registerZoomWebinarParticipant(webinarId, r.email, r.nome, r.cognome);
@@ -6391,6 +6392,7 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
                     fissati++;
                 } else {
                     errori++;
+                    emailErrori.push(r.email);
                 }
                 // Pausa ogni 10 per non saturare Zoom API
                 if ((fissati + errori) % 10 === 0) {
@@ -6399,11 +6401,12 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
             } catch (err) {
                 console.error(`[Fix Zoom] Errore per ${r.email}:`, err.message);
                 errori++;
+                emailErrori.push(r.email);
             }
         }
 
         console.log(`[Fix Zoom] ${tag}: ${fissati} fissati, ${errori} errori su ${result.rows.length}`);
-        res.json({ ok: true, webinar_tag: tag, da_fissare: result.rows.length, fissati, errori });
+        res.json({ ok: true, webinar_tag: tag, da_fissare: result.rows.length, fissati, errori, email_errori: emailErrori });
     } catch (err) {
         console.error('[Fix Zoom]', err);
         res.status(500).json({ error: err.message });
