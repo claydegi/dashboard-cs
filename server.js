@@ -6342,6 +6342,74 @@ app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/webinar/fix-zoom-links — registra su Zoom tutti gli iscritti senza link e salva join_url
+app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
+    const { webinar_tag, test_email } = req.body;
+    const tag = webinar_tag || 'WEBINAR_ARCARA_ELEVATE';
+    const webinarId = ZOOM_WEBINAR_IDS[tag];
+
+    if (!webinarId) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto o senza ID Zoom: ${tag}` });
+    }
+
+    try {
+        // Se test_email: registra solo quello
+        if (test_email) {
+            const reg = await pool.query(
+                'SELECT id, email, nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2',
+                [tag, test_email.toLowerCase()]
+            );
+            if (reg.rows.length === 0) {
+                return res.json({ ok: false, error: `${test_email} non trovato tra gli iscritti di ${tag}` });
+            }
+            const r = reg.rows[0];
+            const zoomResult = await registerZoomWebinarParticipant(webinarId, r.email, r.nome, r.cognome);
+            if (zoomResult && zoomResult.join_url) {
+                await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE id = $2', [zoomResult.join_url, r.id]);
+                return res.json({ ok: true, email: r.email, zoom_link: zoomResult.join_url });
+            } else {
+                return res.json({ ok: false, error: 'Zoom API non ha restituito join_url — verificare credenziali Zoom su Railway' });
+            }
+        }
+
+        // Batch: tutti quelli senza zoom_link
+        const result = await pool.query(
+            'SELECT id, email, nome, cognome FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND (zoom_link IS NULL OR zoom_link = \'\')',
+            [tag]
+        );
+
+        if (result.rows.length === 0) {
+            return res.json({ ok: true, messaggio: 'Tutti gli iscritti hanno gia\' il link Zoom', fissati: 0 });
+        }
+
+        let fissati = 0, errori = 0;
+        for (const r of result.rows) {
+            try {
+                const zoomResult = await registerZoomWebinarParticipant(webinarId, r.email, r.nome, r.cognome);
+                if (zoomResult && zoomResult.join_url) {
+                    await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE id = $2', [zoomResult.join_url, r.id]);
+                    fissati++;
+                } else {
+                    errori++;
+                }
+                // Pausa ogni 10 per non saturare Zoom API
+                if ((fissati + errori) % 10 === 0) {
+                    await new Promise(r => setTimeout(r, 1000));
+                }
+            } catch (err) {
+                console.error(`[Fix Zoom] Errore per ${r.email}:`, err.message);
+                errori++;
+            }
+        }
+
+        console.log(`[Fix Zoom] ${tag}: ${fissati} fissati, ${errori} errori su ${result.rows.length}`);
+        res.json({ ok: true, webinar_tag: tag, da_fissare: result.rows.length, fissati, errori });
+    } catch (err) {
+        console.error('[Fix Zoom]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti (salta chi ha gia' ricevuto)
 app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
