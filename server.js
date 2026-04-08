@@ -5064,6 +5064,44 @@ const ZOOM_WEBINAR_IDS = {
 };
 
 
+// GET /api/webinar/recordings — ottieni URL download registrazione Zoom
+app.get('/api/webinar/recordings', requireAdmin, async (req, res) => {
+    const tag = req.query.webinar_tag || 'WEBINAR_ARCARA_ELEVATE';
+    const webinarId = ZOOM_WEBINAR_IDS[tag];
+    if (!webinarId) return res.status(400).json({ error: `Tag sconosciuto: ${tag}` });
+
+    try {
+        const token = await getZoomAccessToken();
+        const response = await fetch(`https://api.zoom.us/v2/past_webinars/${webinarId}/instances`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const instances = await response.json();
+
+        // Prova con l'ID webinar diretto per le registrazioni
+        const recResponse = await fetch(`https://api.zoom.us/v2/meetings/${webinarId}/recordings`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const recordings = await recResponse.json();
+
+        if (recordings.recording_files && recordings.recording_files.length > 0) {
+            const files = recordings.recording_files.map(f => ({
+                id: f.id,
+                type: f.recording_type,
+                file_type: f.file_type,
+                file_size_mb: Math.round((f.file_size || 0) / 1024 / 1024),
+                download_url: f.download_url + '?access_token=' + token,
+                status: f.status
+            }));
+            res.json({ ok: true, webinar_tag: tag, files });
+        } else {
+            res.json({ ok: false, webinar_tag: tag, error: 'Nessuna registrazione trovata', zoom_response: recordings });
+        }
+    } catch (err) {
+        console.error('[Recordings]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/webinar/sync-zoom-participants — scarica partecipanti da Zoom e salva nel DB con scoring
 app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) => {
     const { webinar_tag } = req.body;
