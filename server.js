@@ -5174,13 +5174,13 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
             if (upsert.rows[0].is_new) inseriti++;
             else aggiornati++;
 
-            // Scoring: +200 per ogni soglia (>=10min, >=25min, >=40min) — max +600
+            // Scoring: <10min=10, 11-30min=200, >30min=400
             // Linea prodotto: estratta dal tag webinar (es. WEBINAR_MALAVASI_PT1 -> PT1)
             if (contattoId && !upsert.rows[0].score_assegnato) {
                 let punti = 0;
-                if (p.durata_minuti >= 10) punti += 200;
-                if (p.durata_minuti >= 25) punti += 200;
-                if (p.durata_minuti >= 40) punti += 200;
+                if (p.durata_minuti > 30) punti = 400;
+                else if (p.durata_minuti >= 11) punti = 200;
+                else if (p.durata_minuti >= 1) punti = 10;
 
                 if (punti > 0) {
                     const oggi = new Date().toISOString().split('T')[0];
@@ -6411,6 +6411,19 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
         console.error('[Fix Zoom]', err);
         res.status(500).json({ error: err.message });
     }
+});
+
+// POST /api/webinar/force-zoom-link — forza un link Zoom per email specifiche (bypass Zoom API)
+app.post('/api/webinar/force-zoom-link', requireAdmin, async (req, res) => {
+    const { webinar_tag, emails, zoom_link } = req.body;
+    if (!emails || !zoom_link) return res.status(400).json({ error: 'emails e zoom_link obbligatori' });
+    const tag = webinar_tag || 'WEBINAR_ARCARA_ELEVATE';
+    let aggiornati = 0;
+    for (const email of emails) {
+        const r = await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND LOWER(email) = $3 AND (zoom_link IS NULL OR zoom_link = \'\')', [zoom_link, tag, email.toLowerCase()]);
+        aggiornati += r.rowCount;
+    }
+    res.json({ ok: true, aggiornati });
 });
 
 // POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti (salta chi ha gia' ricevuto)
