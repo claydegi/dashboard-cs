@@ -5807,6 +5807,66 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
     }
 });
 
+// DELETE /api/webinar-arcara/cleanup-test — Cancella registrazioni test con tag _REC (TEMPORANEO)
+app.delete('/api/webinar-arcara/cleanup-test', requireAdmin, async (req, res) => {
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Trova contatti da cancellare
+        const contattiTest = await client.query(`
+            SELECT DISTINCT c.id, c.email, c.nome, c.cognome
+            FROM crm_contatti c
+            INNER JOIN crm_webinar_registrazioni wr ON c.id = wr.contatto_id
+            WHERE wr.webinar_tag = 'WEBINAR_ARCARA_ELEVATE_REC'
+        `);
+
+        const contattiIds = contattiTest.rows.map(c => c.id);
+
+        if (contattiIds.length === 0) {
+            await client.query('ROLLBACK');
+            return res.json({ ok: true, message: 'Nessun contatto test da cancellare' });
+        }
+
+        // 2. Cancella score
+        const delScore = await client.query(`DELETE FROM crm_score_manuali WHERE contatto_id = ANY($1)`, [contattiIds]);
+
+        // 3. Cancella prodotti
+        const delProdotti = await client.query(`DELETE FROM crm_prodotti WHERE contatto_id = ANY($1)`, [contattiIds]);
+
+        // 4. Cancella registrazioni
+        const delRegistrazioni = await client.query(`DELETE FROM crm_webinar_registrazioni WHERE webinar_tag = 'WEBINAR_ARCARA_ELEVATE_REC'`);
+
+        // 5. Cancella contatti (solo ID negativi senza altre registrazioni)
+        const delContatti = await client.query(`
+            DELETE FROM crm_contatti
+            WHERE id = ANY($1)
+            AND id < 0
+            AND NOT EXISTS (SELECT 1 FROM crm_webinar_registrazioni WHERE contatto_id = crm_contatti.id)
+        `, [contattiIds]);
+
+        await client.query('COMMIT');
+
+        res.json({
+            ok: true,
+            deleted: {
+                contatti: contattiTest.rows,
+                score: delScore.rowCount,
+                prodotti: delProdotti.rowCount,
+                registrazioni: delRegistrazioni.rowCount,
+                contatti_rimossi: delContatti.rowCount
+            }
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[Cleanup test] Errore:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // POST /api/leads/whatsapp-group — Landing page YouTube Ads → iscrizione gruppo WhatsApp
 // Campi: nome, cognome, citta, cellulare, ha_mm, consenso_privacy, fonte
 // Logica: cerca contatto per cellulare (normalizzato), crea o aggiorna, score, log GDPR
