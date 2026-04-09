@@ -5773,7 +5773,7 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
             `INSERT INTO crm_webinar_registrazioni
              (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
              VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
-            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, dichiaraMM, azione]
+            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]
         );
 
         // 4. Score +10 per accesso registrazione (meno di +15 webinar live)
