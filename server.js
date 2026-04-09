@@ -5789,11 +5789,8 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
         );
 
         // 5. Log GDPR (consenso implicito per accesso contenuto)
-        await client.query(
-            `INSERT INTO crm_gdpr_log (contatto_id, azione, fonte, ip_address, user_agent, data_log)
-             VALUES ($1, 'consenso_implicito_webinar_recording', 'webinar_arcara_followup', $2, $3, NOW())`,
-            [contattoId, req.ip || null, req.get('user-agent') || null]
-        );
+        // Rimosso temporaneamente perché crm_gdpr_log non esiste
+        // TODO: creare tabella crm_gdpr_log se necessario
 
         await client.query('COMMIT');
         console.log(`[Webinar Arcara REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId})`);
