@@ -5745,22 +5745,25 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
             }
         } else {
             // ========== NUOVO CONTATTO ==========
+            // Genera ID negativo (pattern dashboard)
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            const newId = Math.min(minId.rows[0].min_id, 0) - 1;
+            contattoId = newId;
+
             const regioneLookup = lookupRegione(cittaClean);
             const tipoIniziale = dichiaraMM ? 'account' : 'lead';
 
-            const insertResult = await client.query(
-                `INSERT INTO crm_contatti (cognome, nome, email, cellulare, citta, regione, tipo, data_inserimento, fonte_contatto)
-                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'webinar_arcara_recording')
-                 RETURNING id`,
-                [cognomeClean, nomeClean, emailClean, cellulareClean || null, cittaClean, regioneLookup, tipoIniziale, oggi]
+            await client.query(
+                `INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, tipo, data_inserimento, fonte_sync, score, mercato)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'webinar_arcara_recording', 0, 'ITALY')`,
+                [newId, cognomeClean, nomeClean, emailClean, cellulareClean || null, cittaClean, regioneLookup, tipoIniziale, oggi]
             );
-            contattoId = insertResult.rows[0].id;
 
             // Se dichiara MM: inserisci prodotto
             if (dichiaraMM) {
                 await client.query(
                     "INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, 'MM', $2, 'webinar_arcara_recording')",
-                    [contattoId, oggi]
+                    [newId, oggi]
                 );
                 azione = 'nuovo_account_recording';
             } else {
