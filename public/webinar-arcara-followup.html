@@ -429,7 +429,7 @@
         }
 
         // === Video Tracking (YouTube IFrame API) ===
-        var VIDEO_ID_ARCARA = 'INSERISCI_VIDEO_ID_ARCARA';  // TODO: sostituire con video ID reale
+        var VIDEO_ID_ARCARA = 'N8hC0C9uI1o';
         var VIDEO_ID_MALAVASI = '5XDL-o6Uekw';
         var CAMPAGNA_ARCARA = 'ELEVATE_SF_WEBINAR_ARCARA_REC';
         var CAMPAGNA_MALAVASI = 'PT1_SF_WEBINAR_MALAVASI_REC_FROM_ARCARA';
@@ -478,12 +478,12 @@
         firstScript.parentNode.insertBefore(ytTag, firstScript);
 
         window.onYouTubeIframeAPIReady = function() {
-            // Player Arcara - TEMPORANEAMENTE DISABILITATO (manca VIDEO_ID)
-            // ytPlayerArcara = new YT.Player('ytPlayer', {
-            //     videoId: VIDEO_ID_ARCARA,
-            //     playerVars: { rel: 0, modestbranding: 1 },
-            //     events: { 'onStateChange': function(e) { onYTStateChange(e, 'arcara'); } }
-            // });
+            // Player Arcara
+            ytPlayerArcara = new YT.Player('ytPlayer', {
+                videoId: VIDEO_ID_ARCARA,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': function(e) { onYTStateChange(e, 'arcara'); } }
+            });
 
             // Player Malavasi
             ytPlayerMalavasi = new YT.Player('ytPlayerMalavasi', {
