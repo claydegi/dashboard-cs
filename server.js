@@ -5359,6 +5359,10 @@ app.get('/webinar-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-followup.html'));
 });
 
+app.get('/webinar-arcara-followup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-arcara-followup.html'));
+});
+
 app.get('/webinar-replay', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-replay.html'));
 });
@@ -5655,6 +5659,146 @@ app.post('/api/webinar/register', async (req, res) => {
         await client.query('ROLLBACK');
         console.error(`[Webinar ${WEBINAR_TAG}] Errore registrazione:`, err);
         res.status(500).json({ error: 'Errore durante l\'iscrizione. Riprova tra qualche istante.' });
+    } finally {
+        client.release();
+    }
+});
+
+// POST /api/webinar-arcara/access — Accesso alla registrazione webinar Arcara (PUBBLICA, no auth)
+// Form: nome, cognome, email, cellulare (opzionale), città, ha_mm
+// Flusso: salva contatto → registrazione → redirect immediato a landing follow-up
+app.post('/api/webinar-arcara/access', async (req, res) => {
+    const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
+
+    // Validazione campi obbligatori
+    if (!nome || !cognome || !email || !citta || !ha_mm) {
+        return res.status(400).json({ error: 'Nome, cognome, email, città e Magnetic Mallet sono obbligatori' });
+    }
+
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cellulareClean = cellulare ? cellulare.trim().replace(/\s+/g, '') : '';
+    const cittaClean = citta.trim().toUpperCase();
+    const dichiaraMM = (ha_mm === 'si');
+
+    const WEBINAR_TAG = 'WEBINAR_ARCARA_ELEVATE_REC'; // REC = recording
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Anti-duplicato: verifica se gia' richiesto accesso
+        const giaRegistrato = await client.query(
+            'SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2',
+            [WEBINAR_TAG, emailClean]
+        );
+        if (giaRegistrato.rows.length > 0) {
+            await client.query('COMMIT');
+            // Gia' registrato: consenti accesso senza errore
+            return res.json({ ok: true, azione: 'gia_registrato', messaggio: 'Accesso confermato' });
+        }
+
+        // 2. Cerca contatto esistente per email
+        const existing = await client.query(
+            'SELECT id, tipo, cellulare, citta FROM crm_contatti WHERE LOWER(email) = $1',
+            [emailClean]
+        );
+
+        let contattoId;
+        let azione = 'accesso_recording';
+        const oggi = new Date().toISOString().split('T')[0];
+
+        if (existing.rows.length > 0) {
+            // ========== CONTATTO ESISTENTE ==========
+            const contatto = existing.rows[0];
+            contattoId = contatto.id;
+            const tipo = contatto.tipo || 'lead';
+
+            // Aggiorna cellulare se fornito e mancante
+            if (cellulareClean && !contatto.cellulare) {
+                await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]);
+            }
+
+            // Aggiorna città e regione se mancanti
+            if (!contatto.citta && cittaClean) {
+                const regioneLookup = lookupRegione(cittaClean);
+                await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, regioneLookup, contattoId]);
+            }
+
+            // Gestione Magnetic Mallet: se lead dichiara MM → promuovi ad account
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+
+                // Inserisci prodotto MM se non presente
+                const haMMnelDB = await client.query(
+                    "SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                    [contattoId]
+                );
+                if (haMMnelDB.rows.length === 0) {
+                    await client.query(
+                        "INSERT INTO crm_prodotti (contatto_id, prodotto, data_acquisto) VALUES ($1, 'MM', $2)",
+                        [contattoId, oggi]
+                    );
+                }
+                azione = 'accesso_recording_promosso';
+            }
+        } else {
+            // ========== NUOVO CONTATTO ==========
+            const regioneLookup = lookupRegione(cittaClean);
+            const tipoIniziale = dichiaraMM ? 'account' : 'lead';
+
+            const insertResult = await client.query(
+                `INSERT INTO crm_contatti (cognome, nome, email, cellulare, citta, regione, tipo, data_inserimento, fonte_contatto)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'webinar_arcara_recording')
+                 RETURNING id`,
+                [cognomeClean, nomeClean, emailClean, cellulareClean || null, cittaClean, regioneLookup, tipoIniziale, oggi]
+            );
+            contattoId = insertResult.rows[0].id;
+
+            // Se dichiara MM: inserisci prodotto
+            if (dichiaraMM) {
+                await client.query(
+                    "INSERT INTO crm_prodotti (contatto_id, prodotto, data_acquisto) VALUES ($1, 'MM', $2)",
+                    [contattoId, oggi]
+                );
+                azione = 'nuovo_account_recording';
+            } else {
+                azione = 'nuovo_lead_recording';
+            }
+        }
+
+        // 3. Salva registrazione con città e ha_mm
+        await client.query(
+            `INSERT INTO crm_webinar_registrazioni
+             (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione, data_registrazione, zoom_link_inviato)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), TRUE)`,
+            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, dichiaraMM, azione]
+        );
+
+        // 4. Score +10 per accesso registrazione (meno di +15 webinar live)
+        await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, punti, motivo, data_assegnazione, sincronizzato_odoo)
+             VALUES ($1, 10, 'Accesso registrazione Webinar Arcara Elevate', NOW(), FALSE)`,
+            [contattoId]
+        );
+
+        // 5. Log GDPR (consenso implicito per accesso contenuto)
+        await client.query(
+            `INSERT INTO crm_gdpr_log (contatto_id, azione, fonte, ip_address, user_agent, data_log)
+             VALUES ($1, 'consenso_implicito_webinar_recording', 'webinar_arcara_followup', $2, $3, NOW())`,
+            [contattoId, req.ip || null, req.get('user-agent') || null]
+        );
+
+        await client.query('COMMIT');
+        console.log(`[Webinar Arcara REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId})`);
+
+        res.json({ ok: true, azione: 'accesso_confermato', messaggio: 'Accesso alla registrazione confermato' });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`[Webinar Arcara REC] Errore accesso:`, err);
+        res.status(500).json({ error: 'Errore durante la registrazione. Riprova tra qualche istante.' });
     } finally {
         client.release();
     }
