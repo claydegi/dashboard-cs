@@ -5737,7 +5737,7 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
                 );
                 if (haMMnelDB.rows.length === 0) {
                     await client.query(
-                        "INSERT INTO crm_prodotti (contatto_id, prodotto, data_acquisto) VALUES ($1, 'MM', $2)",
+                        "INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, 'MM', $2, 'webinar_arcara_recording')",
                         [contattoId, oggi]
                     );
                 }
@@ -5759,7 +5759,7 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
             // Se dichiara MM: inserisci prodotto
             if (dichiaraMM) {
                 await client.query(
-                    "INSERT INTO crm_prodotti (contatto_id, prodotto, data_acquisto) VALUES ($1, 'MM', $2)",
+                    "INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, 'MM', $2, 'webinar_arcara_recording')",
                     [contattoId, oggi]
                 );
                 azione = 'nuovo_account_recording';
