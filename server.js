@@ -5779,11 +5779,13 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
             [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]
         );
 
-        // 4. Score +10 per accesso registrazione (meno di +15 webinar live)
+        // 4. Score +10 per accesso registrazione (meno di +30 webinar live)
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'PT1' : 'GENERICO';
         await client.query(
-            `INSERT INTO crm_score_manuali (contatto_id, punti, motivo, data_assegnazione, sincronizzato_odoo)
-             VALUES ($1, 10, 'Accesso registrazione Webinar Arcara Elevate', NOW(), FALSE)`,
-            [contattoId]
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, 'accesso_webinar_recording', 10, $3)`,
+            [contattoId, lineaScore, oggi]
         );
 
         // 5. Log GDPR (consenso implicito per accesso contenuto)
