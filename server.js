@@ -5771,8 +5771,8 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
         // 3. Salva registrazione con città e ha_mm
         await client.query(
             `INSERT INTO crm_webinar_registrazioni
-             (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione, data_registrazione, zoom_link_inviato)
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), TRUE)`,
+             (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
             [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, dichiaraMM, azione]
         );
 
