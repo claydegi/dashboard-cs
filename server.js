@@ -5666,7 +5666,8 @@ app.post('/api/webinar/register', async (req, res) => {
 
 // POST /api/webinar-arcara/access — Accesso alla registrazione webinar Arcara (PUBBLICA, no auth)
 // Form: nome, cognome, email, cellulare (opzionale), città, ha_mm
-// Flusso: salva contatto → registrazione → redirect immediato a landing follow-up
+// Flusso: salva contatto → registrazione (stesso tag del live) → redirect immediato a landing follow-up
+// Nota: usa WEBINAR_ARCARA_ELEVATE (stesso tag del live) per unificare contatori. L'azione distingue: *_recording vs esistente_coerente/promosso
 app.post('/api/webinar-arcara/access', async (req, res) => {
     const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
 
@@ -5682,7 +5683,7 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
     const cittaClean = citta.trim().toUpperCase();
     const dichiaraMM = (ha_mm === 'si');
 
-    const WEBINAR_TAG = 'WEBINAR_ARCARA_ELEVATE_REC'; // REC = recording
+    const WEBINAR_TAG = 'WEBINAR_ARCARA_ELEVATE'; // Stesso tag del live (unifica contatori)
 
     const client = await pool.connect();
     try {
