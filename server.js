@@ -73,7 +73,7 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Sinus Lift con Magnetic Mallet, 7 aprile ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-arcara-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara',
-        video_campagna: null
+        video_campagna: 'ELEVATE_SF_WEBINAR_ARCARA_REC'
     }
 };
 
