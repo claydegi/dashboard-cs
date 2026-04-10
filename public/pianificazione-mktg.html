@@ -976,9 +976,8 @@
             // Ricarica la lista forzando un refresh
             const listDiv = document.getElementById(listId);
             if (listDiv) { listDiv.dataset.loaded = ''; listDiv.style.display = 'none'; }
-            // Ricarica anche le stats
-            const statsResp = await fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`);
-            if (statsResp.ok) { renderWebinarStats(await statsResp.json()); }
+            // Ricarica tutto
+            caricaTutto();
         } catch (err) {
             alert('Errore nella risoluzione');
             console.error(err);
