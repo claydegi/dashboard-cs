@@ -1093,6 +1093,30 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_opportunita_assegnato ON opportunita(assegnato_a)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_opportunita_data ON opportunita(data_chiamata)`);
 
+        // Tabella watch time YouTube per webinar (aggiornata manualmente da JESFAG)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS webinar_youtube_watchtime (
+                id SERIAL PRIMARY KEY,
+                webinar_tag TEXT UNIQUE NOT NULL,
+                watch_time_ore REAL DEFAULT 0,
+                views INTEGER DEFAULT 0,
+                updated_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+
+        // Inserisci/aggiorna dati iniziali per i due webinar (idempotente)
+        await client.query(`
+            INSERT INTO webinar_youtube_watchtime (webinar_tag, watch_time_ore, views, updated_at)
+            VALUES
+                ('WEBINAR_MALAVASI_PT1', 50.98, 185, NOW()),
+                ('WEBINAR_ARCARA_ELEVATE', 0.0, 0, NOW())
+            ON CONFLICT (webinar_tag)
+            DO UPDATE SET
+                watch_time_ore = EXCLUDED.watch_time_ore,
+                views = EXCLUDED.views,
+                updated_at = NOW()
+        `);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -6271,89 +6295,37 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
             };
         }
 
-        // 2. Esegui script Python per recuperare watch time YouTube
-        const { spawn } = require('child_process');
-        const pythonPath = 'python';
-        const scriptPath = path.join(__dirname, '../OSSEOTOUCH AI/JESFAG/youtube/get_webinar_watchtime.py');
+        // 2. Recupera watch time YouTube dal database
+        const youtubeResult = await pool.query(`
+            SELECT webinar_tag, watch_time_ore, views
+            FROM webinar_youtube_watchtime
+            WHERE webinar_tag IN ('WEBINAR_MALAVASI_PT1', 'WEBINAR_ARCARA_ELEVATE')
+        `);
 
-        const pythonProcess = spawn(pythonPath, [scriptPath], {
-            cwd: path.join(__dirname, '../OSSEOTOUCH AI/JESFAG')
-        });
+        const youtubeWatchTime = {};
+        for (const row of youtubeResult.rows) {
+            youtubeWatchTime[row.webinar_tag] = {
+                watch_time_ore: parseFloat(row.watch_time_ore) || 0,
+                views: parseInt(row.views) || 0
+            };
+        }
 
-        let pythonOutput = '';
-        let pythonError = '';
+        // 3. Combina i risultati
+        const result = {
+            WEBINAR_MALAVASI_PT1: {
+                zoom_watch_time_ore: zoomWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
+                youtube_watch_time_ore: youtubeWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
+                youtube_views: youtubeWatchTime['WEBINAR_MALAVASI_PT1']?.views || 0
+            },
+            WEBINAR_ARCARA_ELEVATE: {
+                zoom_watch_time_ore: zoomWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
+                youtube_watch_time_ore: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
+                youtube_views: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.views || 0
+            },
+            timestamp: new Date().toISOString()
+        };
 
-        pythonProcess.stdout.on('data', (data) => {
-            pythonOutput += data.toString();
-        });
-
-        pythonProcess.stderr.on('data', (data) => {
-            pythonError += data.toString();
-        });
-
-        pythonProcess.on('close', (code) => {
-            if (code !== 0) {
-                console.error('[Webinar WatchTime] Python error:', pythonError);
-                // Anche in caso di errore Python, restituisci almeno i dati Zoom
-                return res.json({
-                    WEBINAR_MALAVASI_PT1: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: 0,
-                        youtube_error: 'Errore recupero dati YouTube'
-                    },
-                    WEBINAR_ARCARA_ELEVATE: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: 0,
-                        youtube_error: 'Errore recupero dati YouTube'
-                    }
-                });
-            }
-
-            // Parsa output JSON dello script Python
-            try {
-                // Estrai solo il JSON dall'output (tra le linee ====)
-                const jsonMatch = pythonOutput.match(/\{[\s\S]*"webinar_watchtime"[\s\S]*\}/);
-                if (!jsonMatch) {
-                    throw new Error('JSON non trovato nell\'output Python');
-                }
-
-                const pythonData = JSON.parse(jsonMatch[0]);
-                const youtubeWatchTime = pythonData.webinar_watchtime || {};
-
-                // 3. Combina i risultati
-                const result = {
-                    WEBINAR_MALAVASI_PT1: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: youtubeWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
-                        youtube_views: youtubeWatchTime['WEBINAR_MALAVASI_PT1']?.views || 0
-                    },
-                    WEBINAR_ARCARA_ELEVATE: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
-                        youtube_views: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.views || 0
-                    },
-                    timestamp: new Date().toISOString()
-                };
-
-                res.json(result);
-            } catch (parseErr) {
-                console.error('[Webinar WatchTime] Parse error:', parseErr);
-                console.error('[Webinar WatchTime] Python output:', pythonOutput);
-                // In caso di errore parsing, restituisci solo dati Zoom
-                res.json({
-                    WEBINAR_MALAVASI_PT1: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_MALAVASI_PT1']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: 0,
-                        youtube_error: 'Errore parsing dati YouTube'
-                    },
-                    WEBINAR_ARCARA_ELEVATE: {
-                        zoom_watch_time_ore: zoomWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
-                        youtube_watch_time_ore: 0,
-                        youtube_error: 'Errore parsing dati YouTube'
-                    }
-                });
-            }
-        });
+        res.json(result);
 
     } catch (err) {
         console.error('[Webinar WatchTime]', err);
