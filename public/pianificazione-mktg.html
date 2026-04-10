@@ -553,13 +553,14 @@
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp] = await Promise.all([
+            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp, watchTimeResp] = await Promise.all([
                 fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/google-ads/campagne?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/whatsapp-group/stats?key=${ADMIN_KEY}`)
+                fetch(`${API_URL}/whatsapp-group/stats?key=${ADMIN_KEY}`),
+                fetch(`${API_URL}/webinar/watchtime?key=${ADMIN_KEY}`)
             ]);
 
             // Attivita'
@@ -570,6 +571,9 @@
             // Webinar stats
             const webinarStats = webinarResp.ok ? await webinarResp.json() : {};
 
+            // Webinar watch time (Zoom + YouTube)
+            const watchTimeData = watchTimeResp.ok ? await watchTimeResp.json() : {};
+
             // Render richieste
             renderRichieste(richieste);
 
@@ -579,8 +583,8 @@
             // Calendario webinar (passa attivita' promosse per generare entries dinamiche)
             renderCalendario(daEseguireAtt);
 
-            // Stats registrazioni webinar
-            renderWebinarStats(webinarStats);
+            // Stats registrazioni webinar (con watch time)
+            renderWebinarStats(webinarStats, watchTimeData);
 
             // Stats gruppo WhatsApp
             const waGroupStats = waGroupResp.ok ? await waGroupResp.json() : null;
@@ -633,11 +637,12 @@
         `).join('');
     }
 
-    function renderWebinarStats(webinarStats) {
+    function renderWebinarStats(webinarStats, watchTimeData) {
         const panel = document.getElementById('webinarStatsPanel');
         if (!panel) return;
         // Assicura che tutti i webinar del calendario appaiano anche con 0 registrazioni
         const stats = webinarStats || {};
+        const watchTime = watchTimeData || {};
         for (const w of WEBINAR_CALENDAR) {
             if (!stats[w.tag]) {
                 stats[w.tag] = { totale: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0, lead: 0, account: 0, da_verificare: 0 };
@@ -651,11 +656,19 @@
         let html = '';
         for (const tag of tags) {
             const s = stats[tag];
+            const wt = watchTime[tag] || {};
             const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
             const toggleId = 'toggle_' + tag;
             const listId = 'list_' + tag;
             const latestToggleId = 'latest_toggle_' + tag;
             const latestListId = 'latest_list_' + tag;
+
+            // Watch time section
+            const zoomHours = wt.zoom_watch_time_ore || 0;
+            const youtubeHours = wt.youtube_watch_time_ore || 0;
+            const youtubeViews = wt.youtube_views || 0;
+            const hasWatchTime = zoomHours > 0 || youtubeHours > 0;
+
             html += `
                 <div style="margin-top:16px; padding:14px 16px; background:var(--gray-50, #f9fafb); border:1px solid var(--gray-200, #e5e7eb); border-radius:8px;">
                     <div style="font-size:0.8rem; font-weight:600; color:var(--gray-600, #4b5563); margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
@@ -676,6 +689,23 @@
                         </div>
                     </div>
                     <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${s.nuovi_lead} nuovi lead e ${s.nuovi_account} nuovi account</div>
+                    ${hasWatchTime ? `
+                        <div style="margin-top:12px; padding-top:12px; border-top:1px solid var(--gray-200, #e5e7eb);">
+                            <div style="font-size:0.75rem; font-weight:600; color:var(--gray-500, #6b7280); margin-bottom:8px; text-transform:uppercase; letter-spacing:0.5px;">
+                                &#128249; Watch Time
+                            </div>
+                            <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                                <div style="background:white; padding:10px; border-radius:6px; border:1px solid var(--gray-200, #e5e7eb);">
+                                    <div style="font-size:1.1rem; font-weight:700; color:#8b5cf6;">${zoomHours.toFixed(1)}h</div>
+                                    <div style="font-size:0.7rem; color:var(--gray-500, #6b7280); margin-top:2px;">Zoom (Live)</div>
+                                </div>
+                                <div style="background:white; padding:10px; border-radius:6px; border:1px solid var(--gray-200, #e5e7eb);">
+                                    <div style="font-size:1.1rem; font-weight:700; color:#ff0000;">${youtubeHours.toFixed(1)}h</div>
+                                    <div style="font-size:0.7rem; color:var(--gray-500, #6b7280); margin-top:2px;">YouTube (${youtubeViews} views)</div>
+                                </div>
+                            </div>
+                        </div>
+                    ` : ''}
                     ${s.da_verificare > 0 ? `<div style="margin-top:8px; text-align:center;">
                         <span style="background:#ef4444; color:white; padding:3px 12px; border-radius:12px; font-size:0.82rem; font-weight:600;">
                             &#9888; ${s.da_verificare} da sistemare
