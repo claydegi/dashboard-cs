@@ -7107,6 +7107,87 @@ app.get('/video-landing', async (req, res) => {
 </html>`);
 });
 
+// FIX ARCARA: ri-aggancia contatto_id NULL nel video tracking + assegna score CRM
+app.post('/api/video-tracking/fix-arcara', requireAdmin, async (req, res) => {
+    const CAMPAGNA_ARCARA = 'ELEVATE_SF_WEBINAR_ARCARA_REC';
+    const LINEA = 'ELEVATE';
+    try {
+        // 1. Aggiorna contatto_id dove è NULL
+        const fixIds = await pool.query(`
+            UPDATE crm_video_tracking vt
+            SET contatto_id = c.id
+            FROM crm_contatti c
+            WHERE LOWER(vt.email) = LOWER(c.email)
+              AND vt.contatto_id IS NULL
+              AND vt.campagna = $1
+        `, [CAMPAGNA_ARCARA]);
+
+        // 2. Rimuovi score_events vecchi (avevano contatto_id NULL)
+        const delOld = await pool.query(`
+            DELETE FROM crm_video_tracking
+            WHERE campagna = $1 AND evento IN ('score_10min','score_25min','score_40min')
+        `, [CAMPAGNA_ARCARA]);
+
+        // 3. Rimuovi score_manuali video_watch ELEVATE (per ricalcolo pulito)
+        const delSm = await pool.query(`
+            DELETE FROM crm_score_manuali
+            WHERE tipo_attivita = 'video_watch' AND linea_prodotto = $1
+        `, [LINEA]);
+
+        // 4. Calcola max secondi per ogni contatto
+        const maxPerContatto = await pool.query(`
+            SELECT contatto_id, MIN(email) as email, MAX(secondi_visti) as max_sec
+            FROM crm_video_tracking
+            WHERE campagna = $1 AND contatto_id IS NOT NULL AND evento IN ('play','progress','ended')
+            GROUP BY contatto_id
+            HAVING MAX(secondi_visti) >= 600
+        `, [CAMPAGNA_ARCARA]);
+
+        // 5. Assegna score
+        const soglie = [
+            { nome: 'score_10min', minSec: 600, punti: 200, label: 'Video watch >=10min' },
+            { nome: 'score_25min', minSec: 1500, punti: 200, label: 'Video watch >=25min' },
+            { nome: 'score_40min', minSec: 2400, punti: 200, label: 'Video watch >=40min' }
+        ];
+        const oggi = new Date().toISOString().split('T')[0];
+        let scoreAssegnati = 0;
+        for (const row of maxPerContatto.rows) {
+            for (const soglia of soglie) {
+                if (row.max_sec >= soglia.minSec) {
+                    await pool.query(
+                        `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+                         VALUES ($1, $2, 'video_watch', $3, $4)`,
+                        [row.contatto_id, LINEA, soglia.punti, oggi]
+                    );
+                    await pool.query(
+                        `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+                         VALUES ('add_score', $1, $2)`,
+                        [row.contatto_id, JSON.stringify({ linea_prodotto: LINEA, tipo_attivita: 'video_watch', punti: soglia.punti, label: soglia.label, data_evento: oggi })]
+                    );
+                    await pool.query(
+                        `INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                         VALUES ($1, $2, $3, $4, $5, 4058, $6)`,
+                        [row.contatto_id, row.email, CAMPAGNA_ARCARA, soglia.nome, row.max_sec, Math.round(row.max_sec / 4058 * 100)]
+                    );
+                    scoreAssegnati++;
+                }
+            }
+        }
+        res.json({
+            ok: true,
+            contatto_id_fixati: fixIds.rowCount,
+            old_score_events_rimossi: delOld.rowCount,
+            old_score_manuali_rimossi: delSm.rowCount,
+            contatti_con_10min: maxPerContatto.rows.length,
+            score_assegnati: scoreAssegnati,
+            punti_totali: scoreAssegnati * 200
+        });
+    } catch (err) {
+        console.error('[Fix Arcara Tracking]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // FIX: ricalcola score video registrazione con soglie a minuti (200+200+200, come webinar live)
 app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
     const CAMPAGNA = 'PT1_SF_WEBINAR_MALAVASI_REC';
