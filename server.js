@@ -1108,8 +1108,8 @@ async function initDB() {
         await client.query(`
             INSERT INTO webinar_youtube_watchtime (webinar_tag, watch_time_ore, views, updated_at)
             VALUES
-                ('WEBINAR_MALAVASI_PT1', 50.98, 185, NOW()),
-                ('WEBINAR_ARCARA_ELEVATE', 0.0, 0, NOW())
+                ('WEBINAR_MALAVASI_PT1', 53.5, 185, NOW()),
+                ('WEBINAR_ARCARA_ELEVATE', 22.0, 100, NOW())
             ON CONFLICT (webinar_tag)
             DO UPDATE SET
                 watch_time_ore = EXCLUDED.watch_time_ore,
