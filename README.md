@@ -89,6 +89,8 @@ git push
 
 ## API Endpoints
 
+### Task Management
+
 | Metodo | Endpoint | Descrizione | Auth |
 |--------|----------|-------------|------|
 | GET | /api/tasks | Lista tutti i task | Admin |
@@ -101,6 +103,31 @@ git push
 | PUT | /api/tasks/:id/status | Cambia stato | - |
 | DELETE | /api/tasks/:id | Elimina task | Admin |
 | POST | /api/tasks/:id/comments | Aggiungi commento | - |
+
+### Webinar Analytics
+
+| Metodo | Endpoint | Descrizione | Auth |
+|--------|----------|-------------|------|
+| GET | /api/webinar/stats | Statistiche iscrizioni webinar | Admin |
+| GET | /api/webinar/watchtime | Watch time Zoom + YouTube | Admin |
+| GET | /api/webinar/registrants | Lista iscritti webinar | Admin |
+
+**Tabella PostgreSQL**: `webinar_youtube_watchtime`
+```sql
+CREATE TABLE webinar_youtube_watchtime (
+    id SERIAL PRIMARY KEY,
+    webinar_tag TEXT UNIQUE NOT NULL,
+    watch_time_ore REAL DEFAULT 0,
+    views INTEGER DEFAULT 0,
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+```
+
+**Aggiornamento manuale watch time YouTube**:
+1. Apri YouTube Studio > Analytics per ogni video webinar
+2. Copia watch time (ore) e views
+3. Aggiorna `server.js` linee 1109-1112 con i nuovi valori
+4. Commit e push per deploy
 
 ## Sicurezza
 
