@@ -5820,6 +5820,16 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
         await client.query('COMMIT');
         console.log(`[Webinar Arcara REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId})`);
 
+        // 6. Invio email con link alla registrazione (fire-and-forget, stessa logica di /api/webinar/register replay=true)
+        sendWebinarEmail('WEBINAR_REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+            .then(async () => {
+                try {
+                    await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE LOWER(email) = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
+                    console.log(`[Webinar Arcara REC] Email recording inviata a ${emailClean}`);
+                } catch (e) { console.error(`[Webinar Arcara REC] Errore update followup_inviato:`, e.message); }
+            })
+            .catch(err => console.error(`[Webinar Arcara REC] Errore invio email recording a ${emailClean}:`, err.message));
+
         res.json({ ok: true, azione: 'accesso_confermato', messaggio: 'Accesso alla registrazione confermato' });
 
     } catch (err) {
