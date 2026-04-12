@@ -74,6 +74,45 @@ const WEBINAR_DATA = {
         link_webinar: 'https://www.osseotouch.com/webinar-arcara-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara',
         video_campagna: 'ELEVATE_SF_WEBINAR_ARCARA_REC'
+    },
+    'WEBINAR_TARDANI_GUIDATA': {
+        nome_webinar: 'La chirurgia guidata con il Magnetic Mallet',
+        data_webinar: '20 aprile 2026',
+        relatore: 'Dr. Alessandro Tardani',
+        subject_conferma: 'Iscrizione confermata — Webinar Dr. Tardani, 20 aprile ore 21:00',
+        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Tardani',
+        subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
+        link_followup: 'https://app.osseotouch.com/webinar-followup',
+        subject_invito: 'Webinar — Chirurgia guidata con Magnetic Mallet, 20 aprile ore 21:00',
+        link_webinar: 'https://www.osseotouch.com/webinar-tardani-iscrizione/',
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Tardani',
+        video_campagna: 'GUIDATA_SF_WEBINAR_TARDANI_REC'
+    },
+    'WEBINAR_BOSCHINI_BLEXO': {
+        nome_webinar: '18 Mesi di Blexo — Estrattori di nuova generazione',
+        data_webinar: '18 maggio 2026',
+        relatore: 'Dr. Luca Boschini',
+        subject_conferma: 'Iscrizione confermata — Webinar Dr. Boschini, 18 maggio ore 21:00',
+        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Boschini',
+        subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
+        link_followup: 'https://app.osseotouch.com/webinar-followup',
+        subject_invito: 'Webinar — 18 Mesi di Blexo, 18 maggio ore 21:00',
+        link_webinar: 'https://www.osseotouch.com/webinar-boschini-blexo/',
+        subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Boschini',
+        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_REC'
+    },
+    'WEBINAR_BOSCHINI_BLEXO_EN': {
+        nome_webinar: '18 Months of Blexo — Next-Generation Extractors',
+        data_webinar: 'May 25, 2026',
+        relatore: 'Dr. Luca Boschini',
+        subject_conferma: 'Registration confirmed — Webinar Dr. Boschini, 18 Months of Blexo',
+        subject_reminder: 'Your webinar is available — Dr. Boschini',
+        subject_followup: 'Thank you for watching — Next steps',
+        link_followup: 'https://app.osseotouch.com/webinar-followup',
+        subject_invito: 'Webinar — 18 Months of Blexo, next-generation extractors',
+        link_webinar: 'https://www.osseotouch.com/webinar-boschini-blexo-english/',
+        subject_replay_accesso: 'Watch the webinar recording — Dr. Boschini, 18 Months of Blexo',
+        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_EN_REC'
     }
 };
 
@@ -5084,7 +5123,10 @@ async function registerZoomWebinarParticipant(webinarId, email, nome, cognome) {
 // Mapping webinar tag -> ID Zoom
 const ZOOM_WEBINAR_IDS = {
     'WEBINAR_MALAVASI_PT1': '89390770164',
-    'WEBINAR_ARCARA_ELEVATE': '82008974573'
+    'WEBINAR_ARCARA_ELEVATE': '82008974573',
+    'WEBINAR_TARDANI_GUIDATA': '',
+    'WEBINAR_BOSCHINI_BLEXO': ''
+    // WEBINAR_BOSCHINI_BLEXO_EN: nessun Zoom (registrato)
 };
 
 
@@ -5686,6 +5728,197 @@ app.post('/api/webinar/register', async (req, res) => {
     } finally {
         client.release();
     }
+});
+
+// ==================== WEBINAR TARDANI — Chirurgia Guidata (20 aprile 2026) ====================
+app.post('/api/webinar-tardani/register', async (req, res) => {
+    const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
+    if (!nome || !cognome || !email || !citta || !ha_mm) {
+        return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+    }
+    const WEBINAR_TAG = 'WEBINAR_TARDANI_GUIDATA';
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cellulareClean = (cellulare || '').trim().replace(/\s+/g, '');
+    const cittaClean = citta.trim().toUpperCase();
+    const dichiaraMM = (ha_mm === 'si');
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const giaIscritto = await client.query('SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2', [WEBINAR_TAG, emailClean]);
+        if (giaIscritto.rows.length > 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Sei gia\' iscritto a questo webinar.' }); }
+        const existing = await client.query('SELECT c.id, c.tipo, c.cognome, c.nome, c.citta, c.cellulare, c.cellulare_secondario FROM crm_contatti c WHERE LOWER(c.email) = $1', [emailClean]);
+        let contattoId; let azione; const oggi = new Date().toISOString().split('T')[0];
+        if (existing.rows.length > 0) {
+            const contatto = existing.rows[0]; contattoId = contatto.id; const tipo = contatto.tipo || 'lead';
+            if (cellulareClean) { const cellDB = (contatto.cellulare || '').replace(/\s+/g, ''); if (!cellDB) { await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]); } else if (cellulareClean !== cellDB && !contatto.cellulare_secondario) { await client.query('UPDATE crm_contatti SET cellulare_secondario = $1 WHERE id = $2', [cellulareClean, contattoId]); } }
+            if (!contatto.citta && cittaClean) { const reg = lookupRegione(cittaClean); await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, reg, contattoId]); } else if (cittaClean) { const reg = lookupRegione(cittaClean); if (reg) await client.query('UPDATE crm_contatti SET regione = $1 WHERE id = $2 AND regione IS NULL', [reg, contattoId]); }
+            const haMMnelDB = await client.query("SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'", [contattoId]);
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+                if (haMMnelDB.rows.length === 0) await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                await client.query('INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)', [contattoId, 'MM']);
+                const delM = await client.query("DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                const delP = await client.query("DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                if ((delM.rowCount||0)+(delP.rowCount||0)>0) await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('delete_score_generico', $1, $2)", [contattoId, JSON.stringify({motivo:'promozione_webinar_registrazione'})]);
+                azione = 'promosso';
+            } else { azione = 'esistente_coerente'; }
+        } else {
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            contattoId = Math.min(minId.rows[0].min_id, 0) - 1;
+            const regione = lookupRegione(cittaClean);
+            if (dichiaraMM) {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,'account','ITALY')", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1,$2,$3,$4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                azione = 'nuovo_account';
+            } else {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,'lead','ITALY')", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                azione = 'nuovo_lead';
+            }
+            await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)", [contattoId, JSON.stringify({cognome:cognomeClean,nome:nomeClean,email:emailClean,cellulare:cellulareClean,citta:cittaClean,regione,tipo:dichiaraMM?'account':'lead',mercato:'ITALY',prodotti:dichiaraMM?['MM']:[],fonte:'webinar_registrazione'})]);
+        }
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'GUIDATA' : 'GENERICO';
+        const scoreRes = await client.query('INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento) VALUES ($1,$2,$3,$4,$5) RETURNING id', [contattoId, lineaScore, 'iscrizione_webinar', 30, oggi]);
+        await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_score', $1, $2)", [contattoId, JSON.stringify({linea_prodotto:lineaScore,tipo_attivita:'iscrizione_webinar',punti:30,data_evento:oggi,label:'Iscrizione webinar Tardani',score_manuale_id:scoreRes.rows[0].id})]);
+        await client.query('INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]);
+        await client.query('COMMIT');
+        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | id=${contattoId}`);
+        let zoomJoinUrl = null;
+        const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
+        if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
+        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
+    } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
+    finally { client.release(); }
+});
+
+// ==================== WEBINAR BOSCHINI BLEXO ITA (18 maggio 2026) ====================
+app.post('/api/webinar-boschini/register', async (req, res) => {
+    const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
+    if (!nome || !cognome || !email || !citta || !ha_mm) {
+        return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+    }
+    const WEBINAR_TAG = 'WEBINAR_BOSCHINI_BLEXO';
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cellulareClean = (cellulare || '').trim().replace(/\s+/g, '');
+    const cittaClean = citta.trim().toUpperCase();
+    const dichiaraMM = (ha_mm === 'si');
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const giaIscritto = await client.query('SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2', [WEBINAR_TAG, emailClean]);
+        if (giaIscritto.rows.length > 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'Sei gia\' iscritto a questo webinar.' }); }
+        const existing = await client.query('SELECT c.id, c.tipo, c.cognome, c.nome, c.citta, c.cellulare, c.cellulare_secondario FROM crm_contatti c WHERE LOWER(c.email) = $1', [emailClean]);
+        let contattoId; let azione; const oggi = new Date().toISOString().split('T')[0];
+        if (existing.rows.length > 0) {
+            const contatto = existing.rows[0]; contattoId = contatto.id; const tipo = contatto.tipo || 'lead';
+            if (cellulareClean) { const cellDB = (contatto.cellulare || '').replace(/\s+/g, ''); if (!cellDB) { await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]); } else if (cellulareClean !== cellDB && !contatto.cellulare_secondario) { await client.query('UPDATE crm_contatti SET cellulare_secondario = $1 WHERE id = $2', [cellulareClean, contattoId]); } }
+            if (!contatto.citta && cittaClean) { const reg = lookupRegione(cittaClean); await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, reg, contattoId]); } else if (cittaClean) { const reg = lookupRegione(cittaClean); if (reg) await client.query('UPDATE crm_contatti SET regione = $1 WHERE id = $2 AND regione IS NULL', [reg, contattoId]); }
+            const haMMnelDB = await client.query("SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'", [contattoId]);
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+                if (haMMnelDB.rows.length === 0) await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                await client.query('INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)', [contattoId, 'MM']);
+                const delM = await client.query("DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                const delP = await client.query("DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                if ((delM.rowCount||0)+(delP.rowCount||0)>0) await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('delete_score_generico', $1, $2)", [contattoId, JSON.stringify({motivo:'promozione_webinar_registrazione'})]);
+                azione = 'promosso';
+            } else { azione = 'esistente_coerente'; }
+        } else {
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            contattoId = Math.min(minId.rows[0].min_id, 0) - 1;
+            const regione = lookupRegione(cittaClean);
+            if (dichiaraMM) {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,'account','ITALY')", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1,$2,$3,$4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                azione = 'nuovo_account';
+            } else {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,'lead','ITALY')", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, 'webinar_registrazione', oggi]);
+                azione = 'nuovo_lead';
+            }
+            await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)", [contattoId, JSON.stringify({cognome:cognomeClean,nome:nomeClean,email:emailClean,cellulare:cellulareClean,citta:cittaClean,regione,tipo:dichiaraMM?'account':'lead',mercato:'ITALY',prodotti:dichiaraMM?['MM']:[],fonte:'webinar_registrazione'})]);
+        }
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'BLEXO' : 'GENERICO';
+        const scoreRes = await client.query('INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento) VALUES ($1,$2,$3,$4,$5) RETURNING id', [contattoId, lineaScore, 'iscrizione_webinar', 30, oggi]);
+        await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_score', $1, $2)", [contattoId, JSON.stringify({linea_prodotto:lineaScore,tipo_attivita:'iscrizione_webinar',punti:30,data_evento:oggi,label:'Iscrizione webinar Boschini Blexo',score_manuale_id:scoreRes.rows[0].id})]);
+        await client.query('INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]);
+        await client.query('COMMIT');
+        console.log(`[Webinar ${WEBINAR_TAG}] Registrazione: ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +30 ${lineaScore} | id=${contattoId}`);
+        let zoomJoinUrl = null;
+        const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
+        if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
+        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
+    } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
+    finally { client.release(); }
+});
+
+// ==================== WEBINAR BOSCHINI BLEXO ENGLISH (May 25, 2026 — recorded) ====================
+app.post('/api/webinar-boschini-en/register', async (req, res) => {
+    const { nome, cognome, email, cellulare, citta, country, ha_mm } = req.body;
+    if (!nome || !cognome || !email || !citta || !country || !ha_mm) {
+        return res.status(400).json({ error: 'Please fill in all required fields.' });
+    }
+    const WEBINAR_TAG = 'WEBINAR_BOSCHINI_BLEXO_EN';
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cellulareClean = (cellulare || '').trim().replace(/\s+/g, '');
+    const cittaClean = citta.trim().toUpperCase();
+    const countryClean = country.trim().toUpperCase();
+    const dichiaraMM = (ha_mm === 'si');
+    const mercato = (countryClean === 'ITALY' || countryClean === 'ITALIA') ? 'ITALY' : 'INTERNATIONAL';
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const giaIscritto = await client.query('SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND email = $2', [WEBINAR_TAG, emailClean]);
+        if (giaIscritto.rows.length > 0) { await client.query('ROLLBACK'); return res.status(409).json({ error: 'You are already registered for this webinar.' }); }
+        const existing = await client.query('SELECT c.id, c.tipo, c.cognome, c.nome, c.citta, c.cellulare, c.cellulare_secondario FROM crm_contatti c WHERE LOWER(c.email) = $1', [emailClean]);
+        let contattoId; let azione; const oggi = new Date().toISOString().split('T')[0];
+        if (existing.rows.length > 0) {
+            const contatto = existing.rows[0]; contattoId = contatto.id; const tipo = contatto.tipo || 'lead';
+            if (cellulareClean) { const cellDB = (contatto.cellulare || '').replace(/\s+/g, ''); if (!cellDB) { await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]); } else if (cellulareClean !== cellDB && !contatto.cellulare_secondario) { await client.query('UPDATE crm_contatti SET cellulare_secondario = $1 WHERE id = $2', [cellulareClean, contattoId]); } }
+            if (!contatto.citta && cittaClean) { await client.query('UPDATE crm_contatti SET citta = $1 WHERE id = $2', [cittaClean, contattoId]); }
+            const haMMnelDB = await client.query("SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'", [contattoId]);
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+                if (haMMnelDB.rows.length === 0) await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                await client.query('INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)', [contattoId, 'MM']);
+                const delM = await client.query("DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                const delP = await client.query("DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                if ((delM.rowCount||0)+(delP.rowCount||0)>0) await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('delete_score_generico', $1, $2)", [contattoId, JSON.stringify({motivo:'promozione_webinar_registrazione'})]);
+                azione = 'promosso';
+            } else { azione = 'esistente_coerente'; }
+        } else {
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            contattoId = Math.min(minId.rows[0].min_id, 0) - 1;
+            if (dichiaraMM) {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,0,'account',$9)", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, 'webinar_registrazione', oggi, mercato]);
+                await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1,$2,$3,$4)', [contattoId, 'MM', oggi, 'webinar_registrazione']);
+                azione = 'nuovo_account';
+            } else {
+                await client.query("INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, fonte_sync, data_inserimento, score, tipo, mercato) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,0,'lead',$9)", [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, 'webinar_registrazione', oggi, mercato]);
+                azione = 'nuovo_lead';
+            }
+            await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)", [contattoId, JSON.stringify({cognome:cognomeClean,nome:nomeClean,email:emailClean,cellulare:cellulareClean,citta:cittaClean,country:countryClean,tipo:dichiaraMM?'account':'lead',mercato,prodotti:dichiaraMM?['MM']:[],fonte:'webinar_registrazione'})]);
+        }
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'BLEXO' : 'GENERICO';
+        const scoreRes = await client.query('INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento) VALUES ($1,$2,$3,$4,$5) RETURNING id', [contattoId, lineaScore, 'iscrizione_webinar', 30, oggi]);
+        await client.query("INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_score', $1, $2)", [contattoId, JSON.stringify({linea_prodotto:lineaScore,tipo_attivita:'iscrizione_webinar',punti:30,data_evento:oggi,label:'Webinar Boschini Blexo EN registration',score_manuale_id:scoreRes.rows[0].id})]);
+        await client.query('INSERT INTO crm_webinar_registrazioni (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)', [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]);
+        await client.query('COMMIT');
+        console.log(`[Webinar ${WEBINAR_TAG}] Registration: ${cognomeClean} ${nomeClean} <${emailClean}> | action=${azione} | score +30 ${lineaScore} | id=${contattoId} | country=${countryClean}`);
+        // No Zoom for recorded webinar — send email with recording access
+        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, null, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, messaggio: 'Registration completed successfully' });
+    } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Error:`, err); res.status(500).json({error:'Registration failed. Please try again.'}); }
+    finally { client.release(); }
 });
 
 // POST /api/webinar-arcara/access — Accesso alla registrazione webinar Arcara (PUBBLICA, no auth)
