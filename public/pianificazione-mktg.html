@@ -3,60 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pianificazione Marketing - OSSEOTOUCH</title>
+    <title>Attivita' Marketing - OSSEOTOUCH</title>
     <link rel="stylesheet" href="style.css">
     <style>
-        .mktg-form-section {
-            background: white;
-            padding: 28px 32px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 28px;
-            border-left: 5px solid var(--primary);
-        }
-        .mktg-form-section h3 {
-            margin: 0 0 20px 0;
-            font-size: 1.15rem;
-            color: var(--gray-700);
-            font-weight: 600;
-        }
-        .mktg-form-row {
-            display: grid;
-            grid-template-columns: 180px 1fr;
-            gap: 14px;
-            align-items: start;
-        }
-        .mktg-form-section .form-group {
-            margin-bottom: 0;
-        }
-        .mktg-form-section input,
-        .mktg-form-section select,
-        .mktg-form-section textarea {
-            width: 100%;
-            padding: 11px 14px;
-            border: 1px solid var(--gray-300);
-            border-radius: 8px;
-            font-size: 0.95rem;
-            font-family: inherit;
-            box-sizing: border-box;
-            transition: border-color 0.2s;
-        }
-        .mktg-form-section input:focus,
-        .mktg-form-section select:focus,
-        .mktg-form-section textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-        }
-        .mktg-form-section textarea {
-            resize: vertical;
-            min-height: 100px;
-        }
-        .mktg-form-actions {
-            margin-top: 16px;
-            display: flex;
-            gap: 8px;
-        }
         .mktg-section {
             margin-bottom: 28px;
         }
@@ -66,29 +15,6 @@
             margin: 0 0 12px 0;
             padding-bottom: 8px;
             border-bottom: 2px solid var(--gray-200);
-        }
-        .card-actions {
-            margin-top: 10px;
-            display: flex;
-            gap: 6px;
-        }
-        .card-actions button {
-            padding: 5px 12px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.8rem;
-            font-weight: 600;
-            transition: opacity 0.2s;
-        }
-        .card-actions button:hover { opacity: 0.85; }
-        .btn-promuovi { background: #8b5cf6; color: white; }
-        .btn-fatto { background: var(--success); color: white; }
-        .btn-elimina { background: var(--danger); color: white; }
-        .report-card-richiedente {
-            font-size: 0.8rem;
-            color: var(--gray-500);
-            margin-top: 4px;
         }
         .webinar-counter {
             margin-top: 12px;
@@ -379,65 +305,14 @@
 <body>
     <div class="container">
         <header>
-            <h1>Pianificazione Marketing</h1>
+            <h1>Attivita' Marketing</h1>
             <nav>
                 <a href="admin.html" class="nav-link nav-back">&#8592; Torna alla Dashboard</a>
             </nav>
         </header>
 
         <main>
-            <!-- Form inserimento attivita' -->
-            <section class="mktg-form-section" id="formSection">
-                <h3>Inserisci attivita'</h3>
-                <form id="attivitaForm">
-                    <div class="mktg-form-row">
-                        <div class="form-group" id="richiedenteGroup">
-                            <label for="richiedente" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Richiedente</label>
-                            <select id="richiedente" required>
-                                <option value="">Seleziona...</option>
-                                <option value="claudio">Claudio</option>
-                                <option value="manuel">Manuel</option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label for="titolo" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Titolo *</label>
-                            <input type="text" id="titolo" placeholder="Es. Campagna email nuovi contatti Lombardia" required>
-                        </div>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 200px;gap:14px;margin-top:14px;">
-                        <div class="form-group">
-                            <label for="descrizione" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Descrizione</label>
-                            <textarea id="descrizione" placeholder="Dettagli sull'attivita', obiettivi, note..." rows="4"></textarea>
-                        </div>
-                        <div class="form-group">
-                            <label for="dataPrevista" style="font-size:0.85rem;color:var(--gray-500);margin-bottom:4px;display:block;">Data prevista</label>
-                            <input type="date" id="dataPrevista">
-                        </div>
-                    </div>
-                    <div class="mktg-form-actions">
-                        <button type="submit" class="btn btn-primary" style="padding: 11px 28px; font-size: 0.95rem;">Conferma</button>
-                    </div>
-                </form>
-            </section>
-
-            <!-- Riquadri attivita' e consensi -->
             <div id="mktgSections">
-                <!-- Riquadro: Attivita' richieste -->
-                <section class="mktg-section">
-                    <h2>Attivita' richieste</h2>
-                    <div id="richiesteGrid" class="report-cards-grid">
-                        <p class="loading">Caricamento...</p>
-                    </div>
-                </section>
-
-                <!-- Riquadro: Attivita' da eseguire -->
-                <section class="mktg-section">
-                    <h2>Prossime Attivita' Mktg</h2>
-                    <div id="daEseguireGrid" class="report-cards-grid">
-                        <p class="loading">Caricamento...</p>
-                    </div>
-                </section>
-
                 <!-- Riquadro: Calendario Webinar -->
                 <section class="mktg-section">
                     <h2>Calendario Webinar</h2>
@@ -470,9 +345,8 @@
     const API_URL = window.location.origin + '/api';
     const params = new URLSearchParams(window.location.search);
     const ADMIN_KEY = params.get('key') || '';
-    const RICHIEDENTE_FISSO = params.get('richiedente') || '';
     const FROM_PAGE = params.get('from') || '';
-    const IS_ADMIN = !RICHIEDENTE_FISSO;
+    const IS_ADMIN = true;
 
     document.addEventListener('DOMContentLoaded', () => {
         if (!ADMIN_KEY) {
@@ -494,67 +368,12 @@
             }
         }
 
-        // Se richiedente fisso (Kim/Massimo), nascondi riquadri admin e semplifica form
-        if (RICHIEDENTE_FISSO) {
-            const sel = document.getElementById('richiedente');
-            let opt = sel.querySelector(`option[value="${RICHIEDENTE_FISSO}"]`);
-            if (!opt) {
-                opt = document.createElement('option');
-                opt.value = RICHIEDENTE_FISSO;
-                opt.textContent = RICHIEDENTE_FISSO.charAt(0).toUpperCase() + RICHIEDENTE_FISSO.slice(1);
-                sel.appendChild(opt);
-            }
-            sel.value = RICHIEDENTE_FISSO;
-            document.getElementById('richiedenteGroup').style.display = 'none';
-            document.querySelector('.mktg-form-row').style.gridTemplateColumns = '1fr';
-
-            // Titolo pagina adattato
-            document.querySelector('h1').textContent = 'Proponi attivita\' marketing';
-        }
-
-        // Form submit
-        document.getElementById('attivitaForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const titolo = document.getElementById('titolo').value.trim();
-            const descrizione = document.getElementById('descrizione').value.trim();
-            const dataPrevista = document.getElementById('dataPrevista').value || null;
-            const richiedente = RICHIEDENTE_FISSO || document.getElementById('richiedente').value;
-
-            if (!titolo || !richiedente) return;
-
-            try {
-                const resp = await fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ titolo, descrizione: descrizione || null, richiedente, data_prevista: dataPrevista })
-                });
-                if (!resp.ok) throw new Error('Errore');
-
-                // Redirect o reload
-                if (FROM_PAGE === 'kim') {
-                    window.location.href = `dashboard-kim.html?key=${ADMIN_KEY}`;
-                } else if (FROM_PAGE === 'massimo') {
-                    window.location.href = `dashboard-massimo.html?key=${ADMIN_KEY}`;
-                } else {
-                    document.getElementById('titolo').value = '';
-                    document.getElementById('descrizione').value = '';
-                    document.getElementById('dataPrevista').value = '';
-                    document.getElementById('richiedente').value = '';
-                    caricaTutto();
-                }
-            } catch (err) {
-                console.error('Errore invio:', err);
-                alert('Errore durante il salvataggio');
-            }
-        });
-
         caricaTutto();
     });
 
     async function caricaTutto() {
         try {
-            const [attivitaResp, consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp, watchTimeResp] = await Promise.all([
-                fetch(`${API_URL}/attivita-mktg?key=${ADMIN_KEY}`),
+            const [consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp, watchTimeResp] = await Promise.all([
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`),
@@ -563,25 +382,14 @@
                 fetch(`${API_URL}/webinar/watchtime?key=${ADMIN_KEY}`)
             ]);
 
-            // Attivita'
-            const attivita = attivitaResp.ok ? await attivitaResp.json() : [];
-            const richieste = attivita.filter(a => a.stato === 'richiesta');
-            const daEseguireAtt = attivita.filter(a => a.stato === 'da_eseguire');
-
             // Webinar stats
             const webinarStats = webinarResp.ok ? await webinarResp.json() : {};
 
             // Webinar watch time (Zoom + YouTube)
             const watchTimeData = watchTimeResp.ok ? await watchTimeResp.json() : {};
 
-            // Render richieste
-            renderRichieste(richieste);
-
-            // Render da eseguire (solo attivita' promosse)
-            renderDaEseguire(daEseguireAtt, webinarStats);
-
-            // Calendario webinar (passa attivita' promosse per generare entries dinamiche)
-            renderCalendario(daEseguireAtt);
+            // Calendario webinar
+            renderCalendario();
 
             // Stats registrazioni webinar (con watch time)
             renderWebinarStats(webinarStats, watchTimeData);
@@ -614,28 +422,6 @@
         }
     }
 
-    function renderRichieste(richieste) {
-        const grid = document.getElementById('richiesteGrid');
-        if (richieste.length === 0) {
-            grid.innerHTML = '<div class="empty-state"><p>Nessuna attivita\' richiesta</p></div>';
-            return;
-        }
-        grid.innerHTML = richieste.map(a => `
-            <div class="report-card" style="border-left-color: #f59e0b; cursor: default;">
-                <div class="report-card-tipo" style="color: #f59e0b;">Attivita' richiesta / in costruzione</div>
-                <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
-                ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
-                ${a.data_prevista ? `<div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">&#128197; ${formatData(a.data_prevista)}</div>` : ''}
-                <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
-                ${IS_ADMIN ? `
-                    <div class="card-actions">
-                        <button class="btn-promuovi" onclick="promuovi(${a.id})">Promuovi</button>
-                        <button class="btn-elimina" onclick="elimina(${a.id})">Elimina</button>
-                    </div>
-                ` : ''}
-            </div>
-        `).join('');
-    }
 
     function renderWebinarStats(webinarStats, watchTimeData) {
         const panel = document.getElementById('webinarStatsPanel');
@@ -1066,71 +852,6 @@
         btn.innerHTML = '&#9650; Ultimi 10 iscritti';
     }
 
-    function findWebinarTag(titolo, webinarStats) {
-        const titoloLower = titolo.toLowerCase();
-        if (!titoloLower.includes('webinar')) return null;
-        const tags = Object.keys(webinarStats);
-        for (const tag of tags) {
-            const parts = tag.toLowerCase().split('_').filter(p => p !== 'webinar');
-            if (parts.some(part => titoloLower.includes(part))) return tag;
-        }
-        return null; // nessun fallback: se non matcha, non mostra counter
-    }
-
-    function renderDaEseguire(attivita, webinarStats) {
-        const grid = document.getElementById('daEseguireGrid');
-        let html = '';
-
-        // Attivita' promosse
-        html += attivita.map(a => {
-            const tag = findWebinarTag(a.titolo, webinarStats || {});
-            const stats = tag ? webinarStats[tag] : null;
-            const counterHtml = stats ? `
-                <div class="webinar-counter-title">Registrazioni Webinar</div>
-                <div class="webinar-counter">
-                    <div class="wc-item">
-                        <span class="wc-num">${stats.lead}</span>
-                        <span class="wc-label">Lead</span>
-                    </div>
-                    <div class="wc-item">
-                        <span class="wc-num">${stats.account}</span>
-                        <span class="wc-label">Account</span>
-                    </div>
-                    <div class="wc-item wc-totale">
-                        <span class="wc-num">${stats.totale}</span>
-                        <span class="wc-label">Totale</span>
-                    </div>
-                </div>
-                <div style="text-align:center; font-size:0.88rem; color:var(--gray-600, #4b5563); margin-top:8px;">di cui ${stats.nuovi_lead} nuovi lead e ${stats.nuovi_account} nuovi account</div>
-            ` : '';
-
-            return `
-            <div class="report-card" style="border-left-color: #8b5cf6; cursor: default;">
-                <div class="report-card-tipo" style="color: #8b5cf6;">&#9993; Attivita' da eseguire</div>
-                <div class="report-card-titolo">${escapeHtml(a.titolo)}</div>
-                ${a.descrizione ? `<div class="report-card-data">${escapeHtml(a.descrizione)}</div>` : ''}
-                <div style="font-size:0.85rem;color:#8b5cf6;margin-top:4px;">
-                    &#128197; ${a.data_prevista ? formatData(a.data_prevista) : '<em style="color:var(--gray-400);">Data non definita</em>'}
-                    ${IS_ADMIN ? `<input type="date" value="${a.data_prevista || ''}" onchange="aggiornaData(${a.id}, this.value)" style="margin-left:8px;padding:3px 6px;border:1px solid var(--gray-300);border-radius:4px;font-size:0.8rem;">` : ''}
-                </div>
-                <div class="report-card-richiedente">Richiesta da: ${escapeHtml(capitalizza(a.richiedente))}</div>
-                ${counterHtml}
-                ${IS_ADMIN ? `
-                    <div class="card-actions">
-                        <button class="btn-fatto" onclick="fatto(${a.id})">Fatto</button>
-                        <button class="btn-elimina" onclick="elimina(${a.id})">Elimina</button>
-                    </div>
-                ` : ''}
-            </div>
-            `;
-        }).join('');
-
-        if (!html) {
-            grid.innerHTML = '<div class="empty-state"><p>Nessuna attivita\' da eseguire</p></div>';
-        } else {
-            grid.innerHTML = html;
-        }
-    }
 
     function renderConsensi(data) {
         const grid = document.getElementById('consensiGrid');
@@ -1159,57 +880,6 @@
         `;
     }
 
-    // Azioni admin
-    async function promuovi(id) {
-        try {
-            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stato: 'da_eseguire' })
-            });
-            caricaTutto();
-        } catch (err) {
-            console.error('Errore promuovi:', err);
-        }
-    }
-
-    async function fatto(id) {
-        try {
-            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ stato: 'eseguita' })
-            });
-            caricaTutto();
-        } catch (err) {
-            console.error('Errore fatto:', err);
-        }
-    }
-
-    async function elimina(id) {
-        if (!confirm('Eliminare questa attivita\'?')) return;
-        try {
-            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
-                method: 'DELETE'
-            });
-            caricaTutto();
-        } catch (err) {
-            console.error('Errore elimina:', err);
-        }
-    }
-
-    async function aggiornaData(id, data) {
-        try {
-            await fetch(`${API_URL}/attivita-mktg/${id}?key=${ADMIN_KEY}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data_prevista: data || null })
-            });
-            caricaTutto();
-        } catch (err) {
-            console.error('Errore aggiorna data:', err);
-        }
-    }
 
     function formatData(dataStr) {
         if (!dataStr) return '';
@@ -1268,7 +938,7 @@
         return false;
     }
 
-    function renderCalendario(attivitaPromosse) {
+    function renderCalendario() {
         const container = document.getElementById('webinarCalendar');
         const anno = 2026;
         const oggi = new Date();
@@ -1277,44 +947,7 @@
         const oggiMese = oggi.getMonth() + 1;
         const oggiAnno = oggi.getFullYear();
 
-        // Genera entries dinamiche da attivita' promosse con "WEBINAR" nel titolo
-        const tagsHardcoded = new Set(WEBINAR_CALENDAR.map(w => (w.tag || '').toUpperCase()));
-        const dinamiche = (attivitaPromosse || [])
-            .filter(a => a.titolo && a.titolo.toUpperCase().includes('WEBINAR') && a.data_prevista)
-            .filter(a => {
-                // Evita duplicati: se esiste gia' un hardcoded con tag corrispondente, salta
-                const titoloUp = a.titolo.toUpperCase();
-                for (const tag of tagsHardcoded) {
-                    const parts = tag.split('_').filter(p => p !== 'WEBINAR');
-                    if (parts.some(p => titoloUp.includes(p))) return false;
-                }
-                return true;
-            })
-            .map(a => {
-                const dataWebinar = new Date(a.data_prevista + 'T00:00:00');
-                // Promo: 1 mese prima del webinar
-                const promoInizio = new Date(dataWebinar);
-                promoInizio.setMonth(promoInizio.getMonth() - 1);
-                // Follow-up: dal giorno dopo fino a 1 settimana dopo il webinar
-                const followupInizio = new Date(dataWebinar);
-                followupInizio.setDate(followupInizio.getDate() + 1);
-                const followupFine = new Date(dataWebinar);
-                followupFine.setDate(followupFine.getDate() + 7);
-
-                const pad = (n) => String(n).padStart(2, '0');
-                const toStr = (d) => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-
-                return {
-                    nome: a.titolo,
-                    tag: null,
-                    promo_inizio: toStr(promoInizio),
-                    data_webinar: toStr(dataWebinar),
-                    followup_inizio: toStr(followupInizio),
-                    followup_fine: toStr(followupFine)
-                };
-            });
-
-        const tuttiWebinar = [...WEBINAR_CALENDAR, ...dinamiche];
+        const tuttiWebinar = [...WEBINAR_CALENDAR];
 
         // Filtra: nascondi webinar il cui follow-up è terminato
         const webinarAttivi = tuttiWebinar.filter(w => {
