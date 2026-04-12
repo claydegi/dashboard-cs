@@ -205,101 +205,6 @@
             border-radius: 50%;
             flex-shrink: 0;
         }
-        /* === Calendario Mailing === */
-        .mcal {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-        .mcal-container {
-            min-width: 800px;
-        }
-        .mcal-header-row, .mcal-row {
-            display: flex;
-        }
-        .mcal-region-label {
-            width: 100px;
-            flex-shrink: 0;
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            color: var(--gray-700, #374151);
-            padding: 4px 6px;
-            display: flex;
-            align-items: center;
-        }
-        .mcal-day-header {
-            flex: 1;
-            text-align: center;
-            font-size: 0.6rem;
-            color: var(--gray-400, #9ca3af);
-            padding: 3px 0;
-            min-width: 18px;
-        }
-        .mcal-day-header.mcal-today { color: #ef4444; font-weight: 700; }
-        .mcal-day-header.mcal-weekend { color: var(--gray-300, #d1d5db); }
-        .mcal-day-header.mcal-month-sep { border-left: 2px solid var(--gray-300, #d1d5db); }
-        .mcal-row {
-            border-bottom: 1px solid var(--gray-100, #f3f4f6);
-        }
-        .mcal-cell {
-            flex: 1;
-            min-width: 18px;
-            height: 26px;
-            position: relative;
-        }
-        .mcal-cell.mcal-month-sep { border-left: 2px solid var(--gray-100, #f3f4f6); }
-        .mcal-cell.mcal-sent {
-            background: rgba(59, 130, 246, 0.3);
-        }
-        .mcal-cell.mcal-sent-start { border-radius: 4px 0 0 4px; }
-        .mcal-cell.mcal-sent-end { border-radius: 0 4px 4px 0; }
-        .mcal-cell.mcal-sent-single { border-radius: 4px; }
-        .mcal-cell.mcal-planned {
-            background: rgba(139, 92, 246, 0.3);
-            border-radius: 4px;
-        }
-        .mcal-cell.mcal-cooldown {
-            background: repeating-linear-gradient(
-                45deg,
-                transparent,
-                transparent 3px,
-                rgba(239, 68, 68, 0.12) 3px,
-                rgba(239, 68, 68, 0.12) 6px
-            );
-        }
-        .mcal-cell.mcal-conflict {
-            box-shadow: inset 0 0 0 2px #ef4444;
-            border-radius: 3px;
-        }
-        .mcal-cell.mcal-today-marker {
-            border-left: 2px solid #ef4444;
-        }
-        .mcal-cell[title] { cursor: help; }
-        .mcal-legend {
-            display: flex;
-            gap: 18px;
-            margin-top: 14px;
-            padding-top: 10px;
-            border-top: 1px solid var(--gray-100, #f3f4f6);
-            flex-wrap: wrap;
-        }
-        .mcal-legend-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 0.72rem;
-            color: var(--gray-500, #6b7280);
-        }
-        .mcal-legend-swatch {
-            width: 16px;
-            height: 11px;
-            border-radius: 2px;
-            flex-shrink: 0;
-        }
     </style>
 </head>
 <body>
@@ -320,14 +225,6 @@
                     <div id="webinarStatsPanel"></div>
                     <div id="whatsappGroupPanel"></div>
                     <div id="googleAdsPanel"></div>
-                </section>
-
-                <!-- Riquadro: Calendario Mailing -->
-                <section class="mktg-section">
-                    <h2>Calendario Mailing</h2>
-                    <div id="mailingCalendar">
-                        <p class="loading">Caricamento...</p>
-                    </div>
                 </section>
 
                 <!-- Riquadro: Consensi GDPR -->
@@ -373,10 +270,9 @@
 
     async function caricaTutto() {
         try {
-            const [consensiResp, webinarResp, mailingResp, gadsResp, waGroupResp, watchTimeResp] = await Promise.all([
+            const [consensiResp, webinarResp, gadsResp, waGroupResp, watchTimeResp] = await Promise.all([
                 fetch(`${API_URL}/consent-stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/stats?key=${ADMIN_KEY}`),
-                fetch(`${API_URL}/mailing/storico?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/google-ads/campagne?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/whatsapp-group/stats?key=${ADMIN_KEY}`),
                 fetch(`${API_URL}/webinar/watchtime?key=${ADMIN_KEY}`)
@@ -401,14 +297,6 @@
             // Google Ads stats (solo admin, dati dinamici da PostgreSQL)
             const gadsData = gadsResp.ok ? await gadsResp.json() : [];
             await renderGoogleAdsPanel(gadsData);
-
-            // Calendario mailing
-            if (mailingResp.ok) {
-                const mailingData = await mailingResp.json();
-                renderMailingCalendar(mailingData.storico || [], mailingData.pianificati || []);
-            } else {
-                document.getElementById('mailingCalendar').innerHTML = '<div class="empty-state"><p>Dati mailing non disponibili</p></div>';
-            }
 
             // Consensi
             if (consensiResp.ok) {
@@ -1071,187 +959,6 @@
         container.innerHTML = `<div class="wcal">${html}</div>`;
     }
 
-    // === CALENDARIO MAILING ===
-    const REGIONI_ATTIVE = ['LIGURIA', 'PIEMONTE', 'LOMBARDIA', 'CAMPANIA', 'LAZIO', "VALLE D'AOSTA", 'PUGLIA', 'BASILICATA', 'VENETO', 'FRIULI VENEZIA GIULIA', 'TRENTINO-ALTO ADIGE'];
-    const COOLDOWN_DAYS = 4;
-    const MESI_ABBR = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
-
-    function toDateStr(d) {
-        return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-    }
-
-    function renderMailingCalendar(storico, pianificati) {
-        const container = document.getElementById('mailingCalendar');
-        const oggi = new Date();
-        oggi.setHours(0,0,0,0);
-
-        // Finestra: 6gg indietro (cooldown attivo + contesto), 30gg avanti (pianificazione)
-        const DAYS_BACK = 6, DAYS_FORWARD = 30;
-        const startDate = new Date(oggi);
-        startDate.setDate(startDate.getDate() - DAYS_BACK);
-        const endDate = new Date(oggi);
-        endDate.setDate(endDate.getDate() + DAYS_FORWARD);
-
-        // Genera array di giorni
-        const days = [];
-        for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate()+1)) {
-            days.push(new Date(d));
-        }
-
-        // Mappa storico: regione -> { dateStr -> {tag, n_destinatari} }
-        const regionData = {};
-        REGIONI_ATTIVE.forEach(r => { regionData[r] = {}; });
-
-        for (const row of storico) {
-            const reg = (row.regione || '').toUpperCase();
-            if (!regionData[reg]) continue;
-            const ds = row.data_invio ? row.data_invio.substring(0, 10) : null;
-            if (!ds) continue;
-            if (!regionData[reg][ds]) {
-                regionData[reg][ds] = { tags: [], tot: 0 };
-            }
-            regionData[reg][ds].tags.push(row.tag);
-            regionData[reg][ds].tot += (row.n_destinatari || 0);
-        }
-
-        // Pianificati: regione -> { dateStr -> {tag, nome} }
-        const regionPlanned = {};
-        REGIONI_ATTIVE.forEach(r => { regionPlanned[r] = {}; });
-
-        for (const camp of pianificati) {
-            if (!camp.data_prevista) continue;
-            const ds = camp.data_prevista.substring(0, 10);
-            // Split regioni (comma-separated). Se vuoto, tutte le regioni
-            let regs = REGIONI_ATTIVE;
-            if (camp.regioni && camp.regioni.trim()) {
-                regs = camp.regioni.split(',').map(r => r.trim().toUpperCase()).filter(r => regionPlanned[r] !== undefined);
-                if (regs.length === 0) regs = REGIONI_ATTIVE;
-            }
-            for (const reg of regs) {
-                if (!regionPlanned[reg]) continue;
-                regionPlanned[reg][ds] = { tag: camp.tag, nome: camp.nome || camp.tag };
-            }
-        }
-
-        // Calcolo cooldown per regione: regione -> Set di dateStr in cooldown
-        const regionCooldown = {};
-        REGIONI_ATTIVE.forEach(r => {
-            regionCooldown[r] = new Set();
-            // Raccogli tutte le date di invio (storico + pianificati)
-            const allDates = new Set([...Object.keys(regionData[r]), ...Object.keys(regionPlanned[r])]);
-            for (const ds of allDates) {
-                // Solo se e' un mailing effettivo (storico) o pianificato genera cooldown
-                const baseDate = new Date(ds + 'T00:00:00');
-                for (let i = 1; i <= COOLDOWN_DAYS; i++) {
-                    const cd = new Date(baseDate);
-                    cd.setDate(cd.getDate() + i);
-                    regionCooldown[r].add(toDateStr(cd));
-                }
-            }
-        });
-
-        // Header giorni
-        const oggiStr = toDateStr(oggi);
-        let headerHtml = '<div class="mcal-region-label" style="border-bottom:2px solid var(--gray-200,#e5e7eb)"></div>';
-        let prevMonth = -1;
-        for (const day of days) {
-            const m = day.getMonth();
-            const d = day.getDate();
-            const dow = day.getDay();
-            const ds = toDateStr(day);
-            let cls = 'mcal-day-header';
-            if (ds === oggiStr) cls += ' mcal-today';
-            else if (dow === 0 || dow === 6) cls += ' mcal-weekend';
-            if (m !== prevMonth && prevMonth !== -1) cls += ' mcal-month-sep';
-            const label = d === 1 ? MESI_ABBR[m] + ' ' + d : d;
-            headerHtml += `<div class="${cls}" title="${ds}">${label}</div>`;
-            prevMonth = m;
-        }
-
-        // Righe per regione
-        let rowsHtml = '';
-        for (const reg of REGIONI_ATTIVE) {
-            rowsHtml += `<div class="mcal-row">`;
-            const labelShort = reg === "VALLE D'AOSTA" ? 'V.AOSTA' : reg.substring(0,3) === 'LOM' ? 'LOMBARDIA' : reg;
-            rowsHtml += `<div class="mcal-region-label">${escapeHtml(labelShort)}</div>`;
-
-            let prevM = -1;
-            for (const day of days) {
-                const ds = toDateStr(day);
-                const m = day.getMonth();
-                let cls = 'mcal-cell';
-                let title = '';
-
-                if (m !== prevM && prevM !== -1) cls += ' mcal-month-sep';
-
-                const sent = regionData[reg][ds];
-                const planned = regionPlanned[reg][ds];
-                const isCooldown = regionCooldown[reg].has(ds);
-                const isToday = ds === oggiStr;
-
-                if (sent) {
-                    cls += ' mcal-sent';
-                    title = sent.tags.join(', ') + ' (' + sent.tot + ' dest.)';
-                }
-                if (planned && !sent) {
-                    cls += ' mcal-planned';
-                    title = 'PIANIFICATO: ' + planned.nome;
-                    if (isCooldown) {
-                        cls += ' mcal-conflict';
-                        title += ' ⚠ CONFLITTO COOLDOWN';
-                    }
-                }
-                if (isCooldown && !sent && !planned) {
-                    cls += ' mcal-cooldown';
-                    title = 'Cooldown — evitare invii';
-                }
-                if (isToday) {
-                    cls += ' mcal-today-marker';
-                    if (!title) title = 'Oggi';
-                }
-
-                rowsHtml += `<div class="${cls}"${title ? ' title="' + escapeHtml(title) + '"' : ''}></div>`;
-                prevM = m;
-            }
-            rowsHtml += '</div>';
-        }
-
-        // Legenda
-        const legendHtml = `
-            <div class="mcal-legend">
-                <div class="mcal-legend-item">
-                    <div class="mcal-legend-swatch" style="background:rgba(59,130,246,0.35);border:1px solid rgba(59,130,246,0.6);"></div>
-                    Mailing inviato
-                </div>
-                <div class="mcal-legend-item">
-                    <div class="mcal-legend-swatch" style="background:rgba(139,92,246,0.35);border:1px solid rgba(139,92,246,0.6);"></div>
-                    Campagna pianificata
-                </div>
-                <div class="mcal-legend-item">
-                    <div class="mcal-legend-swatch" style="background:repeating-linear-gradient(45deg,transparent,transparent 2px,rgba(239,68,68,0.15) 2px,rgba(239,68,68,0.15) 4px);border:1px solid rgba(239,68,68,0.3);"></div>
-                    Cooldown (4gg)
-                </div>
-                <div class="mcal-legend-item">
-                    <div class="mcal-legend-swatch" style="background:rgba(139,92,246,0.3);box-shadow:inset 0 0 0 2px #ef4444;border-radius:2px;"></div>
-                    Conflitto
-                </div>
-                <div class="mcal-legend-item">
-                    <div style="width:2px;height:11px;background:#ef4444;flex-shrink:0;"></div>
-                    Oggi
-                </div>
-            </div>
-        `;
-
-        container.innerHTML = `
-            <div class="mcal">
-                <div class="mcal-container">
-                    <div class="mcal-header-row">${headerHtml}</div>
-                    ${rowsHtml}
-                </div>
-                ${legendHtml}
-            </div>
-        `;
-    }
     </script>
 </body>
 </html>
