@@ -6576,6 +6576,23 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
     }
 });
 
+// PATCH /api/webinar/watchtime — aggiorna watch time YouTube manuale per un webinar
+app.patch('/api/webinar/watchtime', requireAdmin, async (req, res) => {
+    try {
+        const { webinar_tag, watch_time_ore, views } = req.body;
+        if (!webinar_tag) return res.status(400).json({ error: 'webinar_tag richiesto' });
+        const result = await pool.query(
+            `UPDATE webinar_youtube_watchtime SET watch_time_ore = COALESCE($1, watch_time_ore), views = COALESCE($2, views), updated_at = NOW() WHERE webinar_tag = $3 RETURNING *`,
+            [watch_time_ore, views, webinar_tag]
+        );
+        if (result.rowCount === 0) return res.status(404).json({ error: 'webinar_tag non trovato' });
+        res.json(result.rows[0]);
+    } catch (err) {
+        console.error('[Webinar WatchTime PATCH]', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/webinar/registrants — lista iscritti webinar per tendina espandibile dashboard
 app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     const tag = req.query.tag;
