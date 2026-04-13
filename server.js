@@ -599,7 +599,17 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_tag ON crm_webinar_registrazioni(webinar_tag)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_webinar_reg_email ON crm_webinar_registrazioni(email)`);
-        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_webinar_reg_unique ON crm_webinar_registrazioni(webinar_tag, email)`);
+        // Cleanup duplicati: mantieni solo la prima registrazione per email+tag
+        await client.query(`
+            DELETE FROM crm_webinar_registrazioni
+            WHERE id NOT IN (
+                SELECT MIN(id) FROM crm_webinar_registrazioni
+                GROUP BY webinar_tag, LOWER(email)
+            )
+        `);
+        // Unique index case-insensitive (ricrea se necessario)
+        await client.query(`DROP INDEX IF EXISTS idx_webinar_reg_unique`);
+        await client.query(`CREATE UNIQUE INDEX idx_webinar_reg_unique ON crm_webinar_registrazioni(webinar_tag, LOWER(email))`);
 
         // Migrazione: cambia FK da CASCADE a SET NULL per proteggere registrazioni webinar dalla cancellazione contatti
         await client.query(`
@@ -6485,15 +6495,15 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT
                 r.webinar_tag,
-                COUNT(*)::int AS totale,
-                COUNT(*) FILTER (WHERE r.azione IN ('nuovo_account', 'nuovo_lead'))::int AS nuovi,
-                COUNT(*) FILTER (WHERE r.azione = 'nuovo_lead')::int AS nuovi_lead,
-                COUNT(*) FILTER (WHERE r.azione = 'nuovo_account')::int AS nuovi_account,
-                COUNT(*) FILTER (WHERE
-                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead')::int AS lead,
-                COUNT(*) FILTER (WHERE
-                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account')::int AS account,
-                COUNT(*) FILTER (WHERE r.da_verificare = TRUE)::int AS da_verificare
+                COUNT(DISTINCT LOWER(r.email))::int AS totale,
+                COUNT(DISTINCT CASE WHEN r.azione IN ('nuovo_account', 'nuovo_lead') THEN LOWER(r.email) END)::int AS nuovi,
+                COUNT(DISTINCT CASE WHEN r.azione = 'nuovo_lead' THEN LOWER(r.email) END)::int AS nuovi_lead,
+                COUNT(DISTINCT CASE WHEN r.azione = 'nuovo_account' THEN LOWER(r.email) END)::int AS nuovi_account,
+                COUNT(DISTINCT CASE WHEN
+                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead' THEN LOWER(r.email) END)::int AS lead,
+                COUNT(DISTINCT CASE WHEN
+                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'account' THEN LOWER(r.email) END)::int AS account,
+                COUNT(DISTINCT CASE WHEN r.da_verificare = TRUE THEN LOWER(r.email) END)::int AS da_verificare
             FROM crm_webinar_registrazioni r
             GROUP BY r.webinar_tag
         `);
@@ -6602,13 +6612,14 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
     try {
         // Lookup via email (robusto: funziona anche dopo remap ID negativo->positivo)
         const result = await pool.query(`
-            SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+            SELECT DISTINCT ON (LOWER(r.email))
+                   r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
                    r.da_verificare, r.motivo_verifica,
                    (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo
             FROM crm_webinar_registrazioni r
             WHERE r.webinar_tag = $1
-            ORDER BY r.created_at DESC
+            ORDER BY LOWER(r.email), r.created_at ASC
         `, [tag]);
         res.json({ registrants: result.rows });
     } catch (err) {
@@ -6628,21 +6639,25 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
         const videoCampagna = (WEBINAR_DATA[tag] && WEBINAR_DATA[tag].video_campagna) || null;
 
         const result = await pool.query(`
-            SELECT r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
-                   (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
-                   (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo,
-                   (SELECT mailing_ricevuto FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS mailing_ricevuto,
-                   vt.max_sec, vt.ha_play
-            FROM crm_webinar_registrazioni r
-            LEFT JOIN LATERAL (
-                SELECT COALESCE(MAX(secondi_visti), 0) AS max_sec,
-                       COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
-                FROM crm_video_tracking
-                WHERE LOWER(crm_video_tracking.email) = LOWER(r.email)
-                  AND crm_video_tracking.campagna = $3
-            ) vt ON true
-            WHERE r.webinar_tag = $1
-            ORDER BY r.created_at DESC
+            SELECT * FROM (
+                SELECT DISTINCT ON (LOWER(r.email))
+                       r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
+                       (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
+                       (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo,
+                       (SELECT mailing_ricevuto FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS mailing_ricevuto,
+                       vt.max_sec, vt.ha_play
+                FROM crm_webinar_registrazioni r
+                LEFT JOIN LATERAL (
+                    SELECT COALESCE(MAX(secondi_visti), 0) AS max_sec,
+                           COALESCE(bool_or(evento IN ('play','progress','ended')), false) AS ha_play
+                    FROM crm_video_tracking
+                    WHERE LOWER(crm_video_tracking.email) = LOWER(r.email)
+                      AND crm_video_tracking.campagna = $3
+                ) vt ON true
+                WHERE r.webinar_tag = $1
+                ORDER BY LOWER(r.email), r.created_at ASC
+            ) sub
+            ORDER BY created_at DESC
             LIMIT $2
         `, [tag, limit, videoCampagna]);
         res.json({ registrants: result.rows });
