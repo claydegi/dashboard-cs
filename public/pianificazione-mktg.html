@@ -322,13 +322,11 @@
                 stats[w.tag] = { totale: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0, lead: 0, account: 0, da_verificare: 0 };
             }
         }
-        const tags = Object.keys(stats);
-        if (tags.length === 0) {
-            panel.innerHTML = '';
-            return;
-        }
+        // Mostra SOLO i webinar del calendario, nell'ordine definito
+        const tags = WEBINAR_CALENDAR.map(w => w.tag);
         let html = '';
         for (const tag of tags) {
+            if (!stats[tag]) continue;
             const s = stats[tag];
             const wt = watchTime[tag] || {};
             const nomeWebinar = tag.replace(/_/g, ' ').replace(/WEBINAR /i, '');
@@ -815,7 +813,7 @@
         },
         {
             nome: 'Dr. Boschini — Blexo ITA',
-            tag: 'WEBINAR_BOSCHINI_BLEXO_ITA',
+            tag: 'WEBINAR_BOSCHINI_BLEXO',
             promo_inizio: '2026-05-04',
             data_webinar: '2026-05-18',
             followup_inizio: '2026-05-19',
@@ -823,7 +821,7 @@
         },
         {
             nome: 'Dr. Boschini — Blexo ENG',
-            tag: 'WEBINAR_BOSCHINI_BLEXO_ENG',
+            tag: 'WEBINAR_BOSCHINI_BLEXO_EN',
             promo_inizio: '2026-05-11',
             data_webinar: '2026-05-25',
             followup_inizio: '2026-05-26',
