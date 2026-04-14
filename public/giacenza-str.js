@@ -20,9 +20,6 @@ async function loadGiacenze() {
         document.getElementById('lastUpdate').textContent =
             `Ultimo aggiornamento: ${timestamp.toLocaleString('it-IT')}`;
 
-        // Render alerts
-        renderAlerts(data.kits);
-
         // Render kits
         renderKits(data.kits);
 
@@ -33,92 +30,12 @@ async function loadGiacenze() {
     }
 }
 
-function renderAlerts(kits) {
-    const container = document.getElementById('alertContainer');
-    const critical = [];
-    const warnings = [];
-
-    // Check each kit for critical availability
-    Object.entries(kits).forEach(([id, kit]) => {
-        if (id === 'fpdfirst') {
-            if (kit.disponibilita < 10) {
-                critical.push(`${kit.nome}: solo ${kit.disponibilita} pz disponibili`);
-            }
-        } else if (kit.configurazioni) {
-            // Check all configurations
-            Object.entries(kit.configurazioni).forEach(([config, qty]) => {
-                if (qty <= 1) {
-                    critical.push(`${kit.nome} (${config}): solo ${qty} kit`);
-                } else if (qty < 10) {
-                    warnings.push(`${kit.nome} (${config}): ${qty} kit`);
-                }
-            });
-        } else {
-            if (kit.disponibilita <= 1) {
-                critical.push(`${kit.nome}: solo ${kit.disponibilita} kit`);
-            } else if (kit.disponibilita < 10) {
-                warnings.push(`${kit.nome}: ${kit.disponibilita} kit`);
-            }
-        }
-
-        // Check for negative stock in components
-        if (kit.componenti) {
-            Object.entries(kit.componenti).forEach(([code, stock]) => {
-                if (stock.meta < 0 || stock.osnrgy < 0) {
-                    warnings.push(`${code}: giacenza negativa (META: ${stock.meta}, OSNRGY: ${stock.osnrgy})`);
-                }
-            });
-        } else if (kit.stock && (kit.stock.meta < 0 || kit.stock.osnrgy < 0)) {
-            warnings.push(`${kit.nome}: giacenza negativa (META: ${kit.stock.meta}, OSNRGY: ${kit.stock.osnrgy})`);
-        }
-    });
-
-    let html = '';
-
-    if (critical.length > 0) {
-        html += '<div class="alert-critical">';
-        html += '<strong>⚠️ ATTENZIONE: Disponibilità critiche</strong><ul style="margin: 8px 0 0 20px;">';
-        critical.forEach(msg => {
-            html += `<li>${msg}</li>`;
-        });
-        html += '</ul></div>';
-    }
-
-    if (warnings.length > 0) {
-        html += '<div class="alert-warning">';
-        html += '<strong>⚡ Avvisi</strong><ul style="margin: 8px 0 0 20px;">';
-        warnings.forEach(msg => {
-            html += `<li>${msg}</li>`;
-        });
-        html += '</ul></div>';
-    }
-
-    container.innerHTML = html;
-}
-
 function renderKits(kits) {
     const grid = document.getElementById('kitsGrid');
     let html = '';
 
-    // Order: show critical first
-    const kitOrder = [
-        'pt1',           // 1 kit completo
-        'guided',        // 1 kit
-        'levacorone',    // 7 kit
-        'black_ruby',    // 50 kit
-        'easyin',        // 57 kit
-        'elevate',       // 65 kit
-        'espansori',     // 101 kit base
-        'osteotomi',     // 111 kit
-        'estrattori',    // 119 kit
-        'easypin',       // 22 kit completo
-        'fpdfirst'       // 66 pz
-    ];
-
-    kitOrder.forEach(kitId => {
-        if (!kits[kitId]) return;
-
-        const kit = kits[kitId];
+    // Render all kits
+    Object.entries(kits).forEach(([kitId, kit]) => {
         html += renderKitCard(kitId, kit);
     });
 
