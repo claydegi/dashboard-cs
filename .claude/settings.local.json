@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm install:*)",
+      "Bash(node server.js:*)",
+      "Bash(timeout:*)",
+      "Bash(curl:*)",
+      "Bash(findstr:*)",
+      "Bash(git config:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git branch:*)",
+      "Bash(git remote add:*)",
+      "Bash(git push:*)",
+      "Bash(dir \"C:\\\\Users\\\\Claudio De Giglio\\\\OneDrive\\\\Desktop\\\\OSSEOTOUCH AI\\\\ANTONIA\\\\reports\")",
+      "Bash(python -c \"\nimport requests\nfrom pathlib import Path\nfrom datetime import date\n\nAPI_URL = ''https://dashboard-cs-production.up.railway.app''\nAPI_KEY = ''chiave-segreta-admin-2024''\n\nreports = [\n    \\(''ANTONIA/reports/Report_crediti_kim.html'', ''crediti_kim'', ''Report Crediti KIM - 04/02/2026''\\),\n    \\(''ANTONIA/reports/Report_crediti_Massimo.html'', ''crediti_massimo'', ''Report Crediti MASSIMO - 04/02/2026''\\),\n    \\(''ANTONIA/reports/Report_vendite_progressivo_Kim.html'', ''vendite_kim'', ''Report Vendite Progressivo KIM - 04/02/2026''\\),\n    \\(''ANTONIA/reports/Report_vendite_progressivo_Detto.html'', ''vendite_massimo'', ''Report Vendite Progressivo MASSIMO - 04/02/2026''\\),\n]\n\ndata_oggi = date.today\\(\\).strftime\\(''%Y-%m-%d''\\)\n\nfor file_path, tipo, titolo in reports:\n    try:\n        contenuto = Path\\(file_path\\).read_text\\(encoding=''utf-8''\\)\n        payload = {\n            ''tipo'': tipo,\n            ''titolo'': titolo,\n            ''data_report'': data_oggi,\n            ''contenuto_html'': contenuto\n        }\n        resp = requests.post\\(\n            f''{API_URL}/api/reports'',\n            json=payload,\n            headers={''Content-Type'': ''application/json'', ''X-API-Key'': API_KEY},\n            timeout=30\n        \\)\n        if resp.status_code == 201:\n            print\\(f''[OK] {tipo}: caricato \\(ID: {resp.json\\(\\).get\\(\"\"id\"\"\\)}\\)''\\)\n        else:\n            print\\(f''[ERR] {tipo}: {resp.status_code} - {resp.text[:100]}''\\)\n    except Exception as e:\n        print\\(f''[ERR] {tipo}: {e}''\\)\n\")",
+      "Bash(dir \"C:\\\\Users\\\\Claudio De Giglio\\\\OneDrive\\\\Desktop\\\\OSSEOTOUCH AI\\\\ANTONIA\\\\reports\\\\*.html\")",
+      "Bash(cmd /c \"dir /O-D \"\"C:\\\\Users\\\\Claudio De Giglio\\\\OneDrive\\\\Desktop\\\\OSSEOTOUCH AI\\\\ANTONIA\\\\reports\\\\*.html\"\"\")",
+      "Bash(dir /s /b \"C:\\\\Users\\\\Claudio De Giglio\\\\OneDrive\\\\Desktop\\\\OSSEOTOUCH AI\")",
+      "Bash(cmd /c \"dir \"\"C:\\\\Users\\\\Claudio De Giglio\\\\OneDrive\\\\Desktop\\\\OSSEOTOUCH AI\\\\ANTONIA\\\\reports\"\"\")"
+    ]
+  }
+}

@@ -10826,6 +10826,68 @@ app.put('/api/opportunita/:id/complete', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== GIACENZE STRUMENTI MM ====================
+
+/**
+ * GET /api/giacenze-strumenti - Legge giacenze strumenti MM da JSON
+ */
+app.get('/api/giacenze-strumenti', requireAdmin, async (req, res) => {
+    try {
+        const dataPath = path.join(
+            'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\data',
+            'giacenze_strumenti.json'
+        );
+
+        if (!fs.existsSync(dataPath)) {
+            return res.status(404).json({ error: 'Dati non disponibili. Eseguire prima il sync.' });
+        }
+
+        const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+        res.json(data);
+    } catch (err) {
+        console.error('[Giacenze STR] Errore lettura:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+/**
+ * POST /api/giacenze-strumenti/sync - Trigger sync da Odoo
+ */
+app.post('/api/giacenze-strumenti/sync', requireAdmin, async (req, res) => {
+    try {
+        const { spawn } = require('child_process');
+        const scriptPath = 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\sync_giacenze_strumenti.py';
+
+        const child = spawn('python', [scriptPath], {
+            cwd: 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda'
+        });
+
+        let output = '';
+        let errors = '';
+
+        child.stdout.on('data', (data) => {
+            output += data.toString();
+        });
+
+        child.stderr.on('data', (data) => {
+            errors += data.toString();
+        });
+
+        child.on('close', (code) => {
+            if (code === 0) {
+                console.log('[Giacenze STR] Sync completato');
+                res.json({ success: true, message: 'Sync completato con successo' });
+            } else {
+                console.error('[Giacenze STR] Sync fallito:', errors);
+                res.status(500).json({ error: 'Sync fallito', details: errors });
+            }
+        });
+    } catch (err) {
+        console.error('[Giacenze STR] Errore sync:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ==================== AVVIO SERVER ====================
 
 async function start() {

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Giacenze Strumenti MM - Dashboard CS</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .giacenza-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+        .giacenza-timestamp {
+            font-size: 0.85rem;
+            color: #6b7280;
+        }
+        .giacenza-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .kit-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-left: 4px solid #2563eb;
+        }
+        .kit-card.critical {
+            border-left-color: #dc2626;
+            background: #fef2f2;
+        }
+        .kit-card.warning {
+            border-left-color: #f59e0b;
+            background: #fffbeb;
+        }
+        .kit-name {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 12px;
+        }
+        .kit-disponibilita {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #2563eb;
+            margin-bottom: 8px;
+        }
+        .kit-card.critical .kit-disponibilita {
+            color: #dc2626;
+        }
+        .kit-card.warning .kit-disponibilita {
+            color: #f59e0b;
+        }
+        .kit-label {
+            font-size: 0.85rem;
+            color: #6b7280;
+            margin-bottom: 12px;
+        }
+        .kit-bottleneck {
+            font-size: 0.9rem;
+            color: #374151;
+            background: #f3f4f6;
+            padding: 8px 12px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+        }
+        .kit-configurazioni {
+            margin-top: 12px;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+        .config-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 6px 0;
+            font-size: 0.9rem;
+        }
+        .config-name {
+            color: #6b7280;
+        }
+        .config-qty {
+            font-weight: 600;
+            color: #1f2937;
+        }
+        .kit-note {
+            font-size: 0.85rem;
+            color: #6b7280;
+            font-style: italic;
+            margin-top: 8px;
+            padding: 8px;
+            background: #f9fafb;
+            border-radius: 4px;
+        }
+        .componenti-table {
+            margin-top: 12px;
+            font-size: 0.85rem;
+        }
+        .componenti-toggle {
+            background: #f3f4f6;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            color: #374151;
+            margin-top: 8px;
+            width: 100%;
+            text-align: left;
+        }
+        .componenti-toggle:hover {
+            background: #e5e7eb;
+        }
+        .componenti-details {
+            display: none;
+            margin-top: 12px;
+            font-size: 0.8rem;
+        }
+        .componenti-details.show {
+            display: block;
+        }
+        .componenti-details table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .componenti-details th,
+        .componenti-details td {
+            padding: 6px 8px;
+            text-align: left;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .componenti-details th {
+            background: #f9fafb;
+            font-weight: 600;
+            color: #6b7280;
+        }
+        .componenti-details td {
+            color: #374151;
+        }
+        .negative-stock {
+            color: #dc2626;
+            font-weight: 600;
+        }
+        .alert-critical {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #991b1b;
+        }
+        .alert-warning {
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 6px;
+            padding: 12px;
+            margin-bottom: 20px;
+            color: #92400e;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Giacenze Strumenti Magnetic Mallet</h1>
+            <nav>
+                <a href="admin.html" class="nav-link nav-back">← Torna alla Dashboard</a>
+            </nav>
+        </header>
+
+        <main>
+            <div class="giacenza-header">
+                <div>
+                    <p class="giacenza-timestamp" id="lastUpdate">Ultimo aggiornamento: --</p>
+                </div>
+                <button class="btn btn-primary btn-small" id="btnRefresh">Aggiorna ora</button>
+            </div>
+
+            <!-- Alert critici -->
+            <div id="alertContainer"></div>
+
+            <!-- Grid kits -->
+            <div class="giacenza-grid" id="kitsGrid">
+                <p class="loading">Caricamento dati...</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="giacenza-str.js"></script>
+</body>
+</html>
