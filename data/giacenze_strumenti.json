@@ -592,12 +592,6 @@
           "totale": 22,
           "found": true
         },
-        "CEP2.7": {
-          "meta": 0,
-          "osnrgy": 0,
-          "totale": 0,
-          "found": true
-        },
         "CEP3.1": {
           "meta": 10,
           "osnrgy": 205,
@@ -616,7 +610,6 @@
         "Solo FCINSEP (vendita separata)": 64
       },
       "pins_disponibili": {
-        "CEP2.7 (2.7mm - 5pcs)": 0,
         "CEP3.1 (3.1mm - 5pcs)": 215,
         "CEP3.5 (3.5mm - 5pcs)": 435
       },
