@@ -294,9 +294,9 @@
             const waGroupStats = waGroupResp.ok ? await waGroupResp.json() : null;
             renderWhatsAppGroupStats(waGroupStats);
 
-            // Google Ads stats (solo admin, dati dinamici da PostgreSQL)
-            const gadsData = gadsResp.ok ? await gadsResp.json() : [];
-            await renderGoogleAdsPanel(gadsData);
+            // Google Ads stats — NASCOSTO temporaneamente (14/04/2026)
+            // const gadsData = gadsResp.ok ? await gadsResp.json() : [];
+            // await renderGoogleAdsPanel(gadsData);
 
             // Consensi
             if (consensiResp.ok) {
