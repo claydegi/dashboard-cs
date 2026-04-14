@@ -26,12 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
 
-    // Aggiorna link storico con chiave
-    const storicoLink = document.querySelector('.nav-storico');
-    if (storicoLink) {
-        storicoLink.href = `storico.html?key=${ADMIN_KEY}`;
-    }
-
     // Aggiorna link report con chiave
     const reportLink = document.querySelector('.nav-report');
     if (reportLink) {
