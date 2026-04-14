@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-14T16:33:09.625951",
+  "timestamp": "2026-04-14T18:12:48.893766",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -592,6 +592,12 @@
           "totale": 22,
           "found": true
         },
+        "CEP2.7": {
+          "meta": 0,
+          "osnrgy": 0,
+          "totale": 0,
+          "found": true
+        },
         "CEP3.1": {
           "meta": 10,
           "osnrgy": 205,
@@ -610,6 +616,7 @@
         "Solo FCINSEP (vendita separata)": 64
       },
       "pins_disponibili": {
+        "CEP2.7 (2.7mm - 5pcs)": 0,
         "CEP3.1 (3.1mm - 5pcs)": 215,
         "CEP3.5 (3.5mm - 5pcs)": 435
       },
@@ -661,6 +668,266 @@
         "found": true
       },
       "disponibilita": 66
+    },
+    "blexo_pathfinder": {
+      "nome": "Blexo Pathfinder",
+      "componenti": {
+        "BXO-ARCH": {
+          "meta": 0,
+          "osnrgy": 73,
+          "totale": 73,
+          "found": true
+        },
+        "BXO-SLIM": {
+          "meta": 0,
+          "osnrgy": 54,
+          "totale": 54,
+          "found": true
+        },
+        "BXO-LONGRT": {
+          "meta": 0,
+          "osnrgy": 61,
+          "totale": 61,
+          "found": true
+        },
+        "BXO-MICRO": {
+          "meta": 0,
+          "osnrgy": 47,
+          "totale": 47,
+          "found": true
+        }
+      },
+      "disponibilita": 47,
+      "bottleneck": "BXO-MICRO",
+      "note": "4 strumenti vendibili separatamente o con Anglefit"
+    },
+    "blexo_anglefit": {
+      "nome": "Blexo Anglefit",
+      "componenti": {
+        "BXO-LEFTS": {
+          "meta": 0,
+          "osnrgy": 102,
+          "totale": 102,
+          "found": true
+        },
+        "BXO-RIGHTS": {
+          "meta": 0,
+          "osnrgy": 103,
+          "totale": 103,
+          "found": true
+        },
+        "BXO-MESIAL": {
+          "meta": 0,
+          "osnrgy": 82,
+          "totale": 82,
+          "found": true
+        },
+        "BXO-DISTAL": {
+          "meta": 0,
+          "osnrgy": 86,
+          "totale": 86,
+          "found": true
+        }
+      },
+      "disponibilita": 82,
+      "bottleneck": "BXO-MESIAL",
+      "note": "4 strumenti vendibili separatamente o con Pathfinder"
+    },
+    "box_allin": {
+      "nome": "Box ALL-IN",
+      "componenti": {
+        "BOX-W": {
+          "meta": 0,
+          "osnrgy": 292,
+          "totale": 292,
+          "found": true
+        },
+        "PALLIN-W": {
+          "meta": 0,
+          "osnrgy": 194,
+          "totale": 194,
+          "found": true
+        }
+      },
+      "disponibilita": 194,
+      "bottleneck": "PALLIN-W",
+      "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
+    },
+    "blexo_completo": {
+      "nome": "Blexo Completo (8 strumenti + Box ALL-IN)",
+      "componenti": {
+        "BXO-ARCH": {
+          "meta": 0,
+          "osnrgy": 73,
+          "totale": 73,
+          "found": true
+        },
+        "BXO-SLIM": {
+          "meta": 0,
+          "osnrgy": 54,
+          "totale": 54,
+          "found": true
+        },
+        "BXO-LONGRT": {
+          "meta": 0,
+          "osnrgy": 61,
+          "totale": 61,
+          "found": true
+        },
+        "BXO-MICRO": {
+          "meta": 0,
+          "osnrgy": 47,
+          "totale": 47,
+          "found": true
+        },
+        "BXO-LEFTS": {
+          "meta": 0,
+          "osnrgy": 102,
+          "totale": 102,
+          "found": true
+        },
+        "BXO-RIGHTS": {
+          "meta": 0,
+          "osnrgy": 103,
+          "totale": 103,
+          "found": true
+        },
+        "BXO-MESIAL": {
+          "meta": 0,
+          "osnrgy": 82,
+          "totale": 82,
+          "found": true
+        },
+        "BXO-DISTAL": {
+          "meta": 0,
+          "osnrgy": 86,
+          "totale": 86,
+          "found": true
+        },
+        "BOX-W": {
+          "meta": 0,
+          "osnrgy": 292,
+          "totale": 292,
+          "found": true
+        },
+        "PALLIN-W": {
+          "meta": 0,
+          "osnrgy": 194,
+          "totale": 194,
+          "found": true
+        }
+      },
+      "disponibilita": 47,
+      "bottleneck": "BXO-MICRO",
+      "configurazioni": {
+        "Blexo Pathfinder (4pcs)": 47,
+        "Blexo Anglefit (4pcs)": 82,
+        "Box ALL-IN (2pcs)": 194,
+        "Blexo Completo (8+2=10pcs)": 47
+      },
+      "note": "BOX-W condiviso con Kit Elevate"
+    },
+    "total_extraction": {
+      "nome": "Total Extraction (Blexo 8pcs + Estrattori 4pcs + Box ALL-IN)",
+      "componenti": {
+        "BXO-ARCH": {
+          "meta": 0,
+          "osnrgy": 73,
+          "totale": 73,
+          "found": true
+        },
+        "BXO-SLIM": {
+          "meta": 0,
+          "osnrgy": 54,
+          "totale": 54,
+          "found": true
+        },
+        "BXO-LONGRT": {
+          "meta": 0,
+          "osnrgy": 61,
+          "totale": 61,
+          "found": true
+        },
+        "BXO-MICRO": {
+          "meta": 0,
+          "osnrgy": 47,
+          "totale": 47,
+          "found": true
+        },
+        "BXO-LEFTS": {
+          "meta": 0,
+          "osnrgy": 102,
+          "totale": 102,
+          "found": true
+        },
+        "BXO-RIGHTS": {
+          "meta": 0,
+          "osnrgy": 103,
+          "totale": 103,
+          "found": true
+        },
+        "BXO-MESIAL": {
+          "meta": 0,
+          "osnrgy": 82,
+          "totale": 82,
+          "found": true
+        },
+        "BXO-DISTAL": {
+          "meta": 0,
+          "osnrgy": 86,
+          "totale": 86,
+          "found": true
+        },
+        "BOX-W": {
+          "meta": 0,
+          "osnrgy": 292,
+          "totale": 292,
+          "found": true
+        },
+        "PALLIN-W": {
+          "meta": 0,
+          "osnrgy": 194,
+          "totale": 194,
+          "found": true
+        },
+        "FPCEXTR1": {
+          "meta": 88,
+          "osnrgy": 31,
+          "totale": 119,
+          "found": true
+        },
+        "FPCEXTR2": {
+          "meta": 162,
+          "osnrgy": 50,
+          "totale": 212,
+          "found": true
+        },
+        "FPCEXTR3-RVS": {
+          "meta": 162,
+          "osnrgy": 55,
+          "totale": 217,
+          "found": true
+        },
+        "FPCEXTR4": {
+          "meta": 6,
+          "osnrgy": 25,
+          "totale": 31,
+          "found": true
+        },
+        "FPCEXTR5": {
+          "meta": 166,
+          "osnrgy": 12,
+          "totale": 178,
+          "found": true
+        }
+      },
+      "disponibilita": 47,
+      "configurazioni": {
+        "Blexo Completo (8+2)": 47,
+        "Estrattori Essential (4)": 119,
+        "Total Extraction (14pcs totali)": 47
+      },
+      "note": "Configurazione completa: tutti gli strumenti estrazione"
     }
   }
 }
