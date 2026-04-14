@@ -10840,6 +10840,8 @@ app.get('/api/giacenze-strumenti', requireAdmin, async (req, res) => {
         }
 
         const data = JSON.parse(fs.readFileSync(dataPath, 'utf-8'));
+        console.log('[Giacenze STR] Timestamp dati:', data.timestamp);
+        console.log('[Giacenze STR] Numero kits:', Object.keys(data.kits).length);
         res.json(data);
     } catch (err) {
         console.error('[Giacenze STR] Errore lettura:', err);
