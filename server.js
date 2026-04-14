@@ -10833,10 +10833,7 @@ app.put('/api/opportunita/:id/complete', requireAdmin, async (req, res) => {
  */
 app.get('/api/giacenze-strumenti', requireAdmin, async (req, res) => {
     try {
-        const dataPath = path.join(
-            'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\data',
-            'giacenze_strumenti.json'
-        );
+        const dataPath = path.join(__dirname, 'data', 'giacenze_strumenti.json');
 
         if (!fs.existsSync(dataPath)) {
             return res.status(404).json({ error: 'Dati non disponibili. Eseguire prima il sync.' });

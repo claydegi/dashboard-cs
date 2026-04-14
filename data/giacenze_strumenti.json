@@ -1,0 +1,131 @@
+{
+  "timestamp": "2026-04-14T15:00:00.000Z",
+  "kits": {
+    "fpdfirst": {
+      "nome": "FPD FIRST",
+      "disponibilita": 66,
+      "stock": {
+        "meta": 30,
+        "osnrgy": 36,
+        "totale": 66
+      }
+    },
+    "pt1": {
+      "nome": "Kit PT1",
+      "disponibilita": 1,
+      "bottleneck": "Componente X",
+      "componenti": {
+        "PT1-001": {
+          "meta": 1,
+          "osnrgy": 0,
+          "totale": 1
+        },
+        "PT1-002": {
+          "meta": 5,
+          "osnrgy": 3,
+          "totale": 8
+        }
+      }
+    },
+    "guided": {
+      "nome": "Kit Guided",
+      "disponibilita": 1,
+      "componenti": {
+        "GD-001": {
+          "meta": 1,
+          "osnrgy": 2,
+          "totale": 3
+        }
+      }
+    },
+    "levacorone": {
+      "nome": "Kit Levacorone",
+      "disponibilita": 7,
+      "componenti": {
+        "LC-001": {
+          "meta": 7,
+          "osnrgy": 5,
+          "totale": 12
+        }
+      }
+    },
+    "black_ruby": {
+      "nome": "Black Ruby",
+      "disponibilita": 50,
+      "componenti": {
+        "BR-001": {
+          "meta": 30,
+          "osnrgy": 20,
+          "totale": 50
+        }
+      }
+    },
+    "easyin": {
+      "nome": "Easy IN",
+      "disponibilita": 57,
+      "componenti": {
+        "EI-001": {
+          "meta": 30,
+          "osnrgy": 27,
+          "totale": 57
+        }
+      }
+    },
+    "elevate": {
+      "nome": "Elevate",
+      "disponibilita": 65,
+      "componenti": {
+        "EL-001": {
+          "meta": 35,
+          "osnrgy": 30,
+          "totale": 65
+        }
+      }
+    },
+    "espansori": {
+      "nome": "Kit Espansori",
+      "configurazioni": {
+        "Base": 101,
+        "Completo": 45
+      },
+      "bottleneck": {
+        "Base": "ESP-001",
+        "Completo": "ESP-002"
+      }
+    },
+    "osteotomi": {
+      "nome": "Kit Osteotomi",
+      "disponibilita": 111,
+      "componenti": {
+        "OST-001": {
+          "meta": 60,
+          "osnrgy": 51,
+          "totale": 111
+        }
+      }
+    },
+    "estrattori": {
+      "nome": "Kit Estrattori",
+      "disponibilita": 119,
+      "componenti": {
+        "EST-001": {
+          "meta": 70,
+          "osnrgy": 49,
+          "totale": 119
+        }
+      }
+    },
+    "easypin": {
+      "nome": "Easy PIN",
+      "configurazioni": {
+        "Kit Completo": 22,
+        "Solo Base": 35
+      },
+      "pins_disponibili": {
+        "Pin 1.5mm": 120,
+        "Pin 2.0mm": 85,
+        "Pin 2.5mm": 95
+      }
+    }
+  }
+}
