@@ -192,5 +192,16 @@
     </div>
 
     <script src="giacenza-str.js"></script>
+    <script>
+        // Propaga la chiave admin al link di ritorno
+        const params = new URLSearchParams(window.location.search);
+        const key = params.get('key');
+        if (key) {
+            const backLink = document.querySelector('.nav-back');
+            if (backLink) {
+                backLink.href = `admin.html?key=${key}`;
+            }
+        }
+    </script>
 </body>
 </html>

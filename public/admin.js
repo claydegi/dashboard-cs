@@ -43,6 +43,12 @@ document.addEventListener('DOMContentLoaded', () => {
         mktgLink.href = `pianificazione-mktg.html?key=${ADMIN_KEY}`;
     }
 
+    // Aggiorna link giacenze strumenti con chiave
+    const giacenzaStrLink = document.querySelector('.nav-giacenza-str');
+    if (giacenzaStrLink) {
+        giacenzaStrLink.href = `giacenza-str.html?key=${ADMIN_KEY}`;
+    }
+
     loadTasks();
     setupEventListeners();
 });
