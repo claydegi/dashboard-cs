@@ -209,18 +209,6 @@ function renderKitCard(kitId, kit) {
         html += `<div class="componenti-details">`;
         html += renderComponentsTable(kit.componenti);
         html += `</div>`;
-    } else if (kit.stock) {
-        // Single instrument (fpdfirst)
-        html += `<button class="componenti-toggle">▶ Mostra dettaglio</button>`;
-        html += `<div class="componenti-details">`;
-        html += '<table>';
-        html += '<thead><tr><th>Magazzino</th><th>Quantità</th></tr></thead>';
-        html += '<tbody>';
-        html += `<tr><td>META</td><td${kit.stock.meta < 0 ? ' class="negative-stock"' : ''}>${kit.stock.meta}</td></tr>`;
-        html += `<tr><td>OSNRGY</td><td${kit.stock.osnrgy < 0 ? ' class="negative-stock"' : ''}>${kit.stock.osnrgy}</td></tr>`;
-        html += `<tr style="font-weight: 600;"><td>TOTALE</td><td>${kit.stock.totale}</td></tr>`;
-        html += '</tbody></table>';
-        html += `</div>`;
     }
 
     html += '</div>';
@@ -230,14 +218,12 @@ function renderKitCard(kitId, kit) {
 
 function renderComponentsTable(componenti) {
     let html = '<table>';
-    html += '<thead><tr><th>Codice</th><th>META</th><th>OSNRGY</th><th>Totale</th></tr></thead>';
+    html += '<thead><tr><th>Codice</th><th>Giacenza</th></tr></thead>';
     html += '<tbody>';
 
     Object.entries(componenti).forEach(([code, stock]) => {
         html += '<tr>';
         html += `<td>${code}</td>`;
-        html += `<td${stock.meta < 0 ? ' class="negative-stock"' : ''}>${stock.meta}</td>`;
-        html += `<td${stock.osnrgy < 0 ? ' class="negative-stock"' : ''}>${stock.osnrgy}</td>`;
         html += `<td><strong>${stock.totale}</strong></td>`;
         html += '</tr>';
     });
