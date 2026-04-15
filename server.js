@@ -9411,16 +9411,12 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
             // inArrivo gia sottratto nel calcolo fabbisogno, non contare due volte
             const daOrdinare = Math.max(0, fabbisogno - inBozza);
             if (daOrdinare > 0) {
-                // Se l'utente ha nascosto questo item e il fabbisogno non è aumentato, salta
-                const nascostoA = row.da_ordinare_nascosto_a !== null ? parseFloat(row.da_ordinare_nascosto_a) : null;
-                if (nascostoA !== null) {
-                    if (fabbisogno <= nascostoA) {
-                        continue; // Ancora nascosto: fabbisogno non è cresciuto
-                    }
-                    // Fabbisogno aumentato: resetta il flag, l'item ricompare
-                    pool.query('UPDATE suture_stock SET da_ordinare_nascosto_a = NULL WHERE product_id = $1', [row.product_id])
-                        .catch(e => console.warn('[Suture] Errore reset nascosto:', e.message));
+                // BEST OF con bozza > 0: il prodotto è già nel PO draft, l'utente sta già gestendo il restock.
+                // Non mostrarlo in "da ordinare" — se vuole ordinarne di più, modifica la qty nella bozza.
+                if (row.best_of && inBozza > 0) {
+                    continue;
                 }
+                // Non-BEST OF: mostra sempre (sono ordini clienti scoperti, servono)
                 daOrdinareItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
                     fabbisogno, quantita: daOrdinare, costo_acquisto: costo,
