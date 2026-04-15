@@ -624,7 +624,8 @@ async function loadSuture() {
         sutureOrdiniClienti = data.ordini_clienti || [];
         sutureOrdine = (data.da_ordinare || []).map(i => ({
             product_id: i.product_id, codice: i.codice, descrizione: i.descrizione,
-            quantita: i.quantita, prezzo: i.costo_acquisto, best_of: i.best_of, auto: true
+            quantita: i.quantita, prezzo: i.costo_acquisto, best_of: i.best_of, auto: true,
+            fabbisogno: i.fabbisogno
         }));
 
         renderSutureTable();
@@ -799,8 +800,22 @@ function renderSutureTable() {
 
     // Event handlers: Rimuovi riga da ordine
     container.querySelectorAll('.btn-remove-sutura').forEach(btn => {
-        btn.addEventListener('click', () => {
-            sutureOrdine.splice(parseInt(btn.dataset.idx), 1);
+        btn.addEventListener('click', async () => {
+            const idx = parseInt(btn.dataset.idx);
+            const item = sutureOrdine[idx];
+            // Per item AUTO: persisti la rimozione nel DB (non ricompare dopo sync)
+            if (item && item.auto) {
+                try {
+                    await fetch(`${API_URL}/suture/nascondi-da-ordinare?key=${ADMIN_KEY}`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ product_id: item.product_id, fabbisogno: item.fabbisogno || 0 })
+                    });
+                } catch (e) {
+                    console.warn('Errore nascondendo da ordinare:', e);
+                }
+            }
+            sutureOrdine.splice(idx, 1);
             renderSutureTable();
             refreshSutureDropdown();
         });

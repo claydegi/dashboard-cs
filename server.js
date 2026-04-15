@@ -1041,6 +1041,7 @@ async function initDB() {
         await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_ordine NUMERIC(10,2) DEFAULT 0`);
         await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_bozza NUMERIC(10,2) DEFAULT 0`);
         await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS in_arrivo NUMERIC(10,2) DEFAULT 0`);
+        await client.query(`ALTER TABLE suture_stock ADD COLUMN IF NOT EXISTS da_ordinare_nascosto_a NUMERIC(10,2) DEFAULT NULL`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_codice ON suture_stock(codice)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_suture_best_of ON suture_stock(best_of)`);
 
@@ -9368,7 +9369,7 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
         const meta = metaResult.rows[0] || { last_sync: null, status: 'unknown', error_message: null };
 
         const result = await pool.query(`
-            SELECT product_id, codice, descrizione, giacenza, impegnato, in_bozza, in_arrivo, costo_acquisto, best_of
+            SELECT product_id, codice, descrizione, giacenza, impegnato, in_bozza, in_arrivo, costo_acquisto, best_of, da_ordinare_nascosto_a
             FROM suture_stock ORDER BY best_of DESC, codice ASC
         `);
 
@@ -9410,6 +9411,16 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
             // inArrivo gia sottratto nel calcolo fabbisogno, non contare due volte
             const daOrdinare = Math.max(0, fabbisogno - inBozza);
             if (daOrdinare > 0) {
+                // Se l'utente ha nascosto questo item e il fabbisogno non è aumentato, salta
+                const nascostoA = row.da_ordinare_nascosto_a !== null ? parseFloat(row.da_ordinare_nascosto_a) : null;
+                if (nascostoA !== null) {
+                    if (fabbisogno <= nascostoA) {
+                        continue; // Ancora nascosto: fabbisogno non è cresciuto
+                    }
+                    // Fabbisogno aumentato: resetta il flag, l'item ricompare
+                    pool.query('UPDATE suture_stock SET da_ordinare_nascosto_a = NULL WHERE product_id = $1', [row.product_id])
+                        .catch(e => console.warn('[Suture] Errore reset nascosto:', e.message));
+                }
                 daOrdinareItems.push({
                     product_id: row.product_id, codice: row.codice, descrizione: row.descrizione,
                     fabbisogno, quantita: daOrdinare, costo_acquisto: costo,
@@ -9519,6 +9530,26 @@ app.post('/api/suture/sposta-in-bozza', requireAdmin, async (req, res) => {
         }
     } catch (err) {
         console.error('[Suture API] Errore sposta-in-bozza:', err.message);
+        res.status(500).json({ error: `Errore: ${err.message}` });
+    }
+});
+
+// POST /api/suture/nascondi-da-ordinare — Nasconde un item da "Da ordinare" persistentemente
+// L'item ricompare automaticamente se il fabbisogno aumenta (es. nuovo ordine cliente)
+app.post('/api/suture/nascondi-da-ordinare', requireAdmin, async (req, res) => {
+    try {
+        const { product_id, fabbisogno } = req.body;
+        if (!product_id) {
+            return res.status(400).json({ error: 'product_id richiesto' });
+        }
+        await pool.query(
+            `UPDATE suture_stock SET da_ordinare_nascosto_a = $1 WHERE product_id = $2`,
+            [fabbisogno || 0, product_id]
+        );
+        console.log(`[Suture] Nascosto da ordinare: product_id=${product_id} a fabbisogno=${fabbisogno}`);
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[Suture API] Errore nascondi-da-ordinare:', err.message);
         res.status(500).json({ error: `Errore: ${err.message}` });
     }
 });
