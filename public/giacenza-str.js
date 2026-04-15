@@ -54,10 +54,9 @@ function renderKits(kits) {
 }
 
 function renderKitCard(kitId, kit) {
-    let cardClass = 'kit-card';
     let disponibilita = 0;
 
-    // Determine card class and main availability
+    // Determine main availability
     if (kitId === 'fpdfirst') {
         disponibilita = kit.disponibilita;
     } else if (kit.configurazioni) {
@@ -67,13 +66,7 @@ function renderKitCard(kitId, kit) {
         disponibilita = kit.disponibilita;
     }
 
-    if (disponibilita <= 1) {
-        cardClass += ' critical';
-    } else if (disponibilita < 10) {
-        cardClass += ' warning';
-    }
-
-    let html = `<div class="${cardClass}">`;
+    let html = `<div class="kit-card">`;
     html += `<div class="kit-name">${kit.nome}</div>`;
 
     // Main availability or configurations

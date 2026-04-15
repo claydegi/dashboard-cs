@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-04-15T05:20:15.703778",
+  "timestamp": "2026-04-15T05:36:46.701541",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -104,7 +104,7 @@
       "note": "4 strumenti vendibili separatamente o con Pathfinder"
     },
     "total_extraction": {
-      "nome": "Total Extraction",
+      "nome": "Kit Extraction TOTAL",
       "componenti": {
         "BXO-ARCH": {
           "meta": 0,
@@ -219,6 +219,26 @@
       "disponibilita": 194,
       "bottleneck": "PALLIN-W",
       "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
+    },
+    "box_elevate": {
+      "nome": "Box Elevate",
+      "componenti": {
+        "BOX-W": {
+          "meta": 0,
+          "osnrgy": 292,
+          "totale": 292,
+          "found": true
+        },
+        "PELEV-W": {
+          "meta": 0,
+          "osnrgy": 121,
+          "totale": 121,
+          "found": true
+        }
+      },
+      "disponibilita": 121,
+      "bottleneck": "PELEV-W",
+      "note": "BOX-W condiviso con Kit ALL-IN e Kit Elevate completo"
     },
     "osteotomi": {
       "nome": "Kit Osteotomi Silver",
