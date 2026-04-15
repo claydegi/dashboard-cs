@@ -9504,7 +9504,7 @@ app.post('/api/suture/sposta-in-bozza', requireAdmin, async (req, res) => {
             await client.query('BEGIN');
             for (const item of items) {
                 await client.query(
-                    `UPDATE suture_stock SET in_bozza = $1 WHERE product_id = $2`,
+                    `UPDATE suture_stock SET in_bozza = in_bozza + $1 WHERE product_id = $2`,
                     [item.quantita, item.product_id]
                 );
             }
