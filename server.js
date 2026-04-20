@@ -80,7 +80,7 @@ const WEBINAR_DATA = {
         data_webinar: '20 aprile 2026',
         relatore: 'Dr. Alessandro Tardani',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Tardani, 20 aprile ore 21:00',
-        subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Tardani',
+        subject_reminder: 'Dr. Tardani — il tuo link personale per il webinar di stasera',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
         link_followup: 'https://app.osseotouch.com/webinar-followup',
         subject_invito: 'Webinar — Chirurgia guidata con Magnetic Mallet, 20 aprile ore 21:00',
