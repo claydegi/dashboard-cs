@@ -3145,16 +3145,30 @@ app.post('/api/crm/contatti/reassign-ids', requireReportsKey, async (req, res) =
             if (contact.rows.length === 0) continue;
             const c = contact.rows[0];
 
-            // Verifica se il nuovo id esiste gia' (caso merge: SQLite aveva gia' il contatto
-            // per email o per nome+cognome+citta; il record negativo e' solo un clone da rimuovere)
-            const targetExists = await client.query('SELECT id FROM crm_contatti WHERE id = $1', [nw]);
+            // Se il target nw NON esiste, creiamolo PRIMA di aggiornare le FK.
+            // Se esiste, siamo in modalita' MERGE: manteniamo il target e buttiamo il clone.
+            const targetExists = await client.query('SELECT id, email_secondaria FROM crm_contatti WHERE id = $1', [nw]);
             const isMerge = targetExists.rows.length > 0;
 
-            // Aggiorna FK in tutte le tabelle correlate.
-            // Per crm_prodotti e crm_score_manuali usiamo ON CONFLICT semantics tramite DELETE+filter
-            // per evitare duplicati nel caso di merge (entrambi i record hanno MM, ecc.)
+            if (!isMerge) {
+                // STEP 1: crea il record target con id=nw PRIMA di muovere le FK
+                await client.query(`
+                    INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, mesi_riordino, tipo, mercato)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+                `, [nw, c.cognome, c.nome, c.email, c.telefono, c.cellulare, c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score, c.mesi_riordino, c.tipo, c.mercato]);
+            } else {
+                // MERGE: salva email del clone come email_secondaria se libera e diversa
+                if (c.email) {
+                    await client.query(
+                        "UPDATE crm_contatti SET email_secondaria = $1 WHERE id = $2 AND (email_secondaria IS NULL OR email_secondaria = '') AND LOWER(email) != $1",
+                        [c.email.toLowerCase(), nw]
+                    );
+                }
+            }
+
+            // STEP 2: sposta le FK da oldId verso nw (target ora garantito esistente)
             if (isMerge) {
-                // crm_prodotti: sposta solo prodotti non gia' presenti sul target
+                // Per crm_prodotti evita duplicati: sposta solo i prodotti non gia' presenti
                 await client.query(`
                     INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte)
                     SELECT $1, prodotto, data_inserimento, fonte
@@ -3176,25 +3190,9 @@ app.post('/api/crm/contatti/reassign-ids', requireReportsKey, async (req, res) =
             await client.query('UPDATE crm_webinar_registrazioni SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
             await client.query('UPDATE crm_promozioni_log SET contatto_id = $1 WHERE contatto_id = $2', [nw, oldId]);
 
-            if (isMerge) {
-                // Merge: mantieni il record target esistente, elimina solo il clone negativo.
-                // Eventuale email del clone (email diversa) viene salvata come email_secondaria
-                // sul target se vuota.
-                if (c.email) {
-                    await client.query(
-                        "UPDATE crm_contatti SET email_secondaria = $1 WHERE id = $2 AND (email_secondaria IS NULL OR email_secondaria = '') AND email != $1",
-                        [c.email.toLowerCase(), nw]
-                    );
-                }
-                await client.query('DELETE FROM crm_contatti WHERE id = $1', [oldId]);
-            } else {
-                // Sostituisci il contatto (DELETE vecchio + INSERT con nuovo ID)
-                await client.query('DELETE FROM crm_contatti WHERE id = $1', [oldId]);
-                await client.query(`
-                    INSERT INTO crm_contatti (id, cognome, nome, email, telefono, cellulare, citta, regione, nome_azienda, fonte_sync, data_inserimento, score, mesi_riordino, tipo, mercato)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
-                `, [nw, c.cognome, c.nome, c.email, c.telefono, c.cellulare, c.citta, c.regione, c.nome_azienda, c.fonte_sync, c.data_inserimento, c.score, c.mesi_riordino, c.tipo, c.mercato]);
-            }
+            // STEP 3: rimuovi il clone vecchio (ora senza FK che lo referenziano)
+            await client.query('DELETE FROM crm_contatti WHERE id = $1', [oldId]);
+
             updated++;
         }
 
