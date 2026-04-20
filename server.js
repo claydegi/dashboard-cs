@@ -2650,6 +2650,44 @@ app.get('/api/crm/contatti/dashboard-manual', requireAdmin, async (req, res) => 
     }
 });
 
+// Iscritti webinar con contatto_id POSITIVO (gia' mappato) presi dagli ultimi N giorni.
+// Serve a pull_dashboard_contatti.py per recuperare contatti creati lato Railway
+// che non sono mai transitati in SQLite (es. iscrizioni one-click con contatto positivo
+// ma su email nuova non presente nel CRM locale, o disallineamenti storici).
+app.get('/api/crm/contatti/webinar-missing', requireAdmin, async (req, res) => {
+    const giorni = Math.max(1, Math.min(parseInt(req.query.giorni) || 30, 365));
+    try {
+        const result = await pool.query(`
+            SELECT DISTINCT ON (c.id)
+                c.id, c.cognome, c.nome, c.email, c.cellulare, c.citta, c.regione,
+                c.tipo, c.mercato, c.fonte_sync, c.data_inserimento,
+                r.webinar_tag, r.azione, r.created_at AS registrazione_at
+            FROM crm_webinar_registrazioni r
+            JOIN crm_contatti c ON c.id = r.contatto_id
+            WHERE r.contatto_id > 0
+              AND r.created_at >= NOW() - ($1 || ' days')::interval
+            ORDER BY c.id, r.created_at DESC
+        `, [String(giorni)]);
+
+        if (result.rows.length === 0) return res.json([]);
+
+        const ids = result.rows.map(c => c.id);
+        const prodotti = await pool.query(
+            'SELECT * FROM crm_prodotti WHERE contatto_id = ANY($1::int[])', [ids]
+        );
+        const prodMap = {};
+        for (const p of prodotti.rows) {
+            if (!prodMap[p.contatto_id]) prodMap[p.contatto_id] = [];
+            prodMap[p.contatto_id].push(p);
+        }
+
+        res.json(result.rows.map(c => ({ ...c, prodotti: prodMap[c.id] || [] })));
+    } catch (err) {
+        console.error('[CRM Webinar Missing]', err);
+        res.status(500).json({ error: 'Errore server' });
+    }
+});
+
 // Storico acquisti ricorrenti per contatto
 app.get('/api/crm/contatti/:id/acquisti', requireAdmin, async (req, res) => {
     const id = parseInt(req.params.id);
