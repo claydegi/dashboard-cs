@@ -2626,8 +2626,10 @@ app.get('/api/crm/contatti', requireAdmin, async (req, res) => {
 // IMPORTANTE: deve stare PRIMA di /api/crm/contatti/:id/* per evitare che Express interpreti "dashboard-manual" come :id
 app.get('/api/crm/contatti/dashboard-manual', requireAdmin, async (req, res) => {
     try {
+        // Include contatti creati sia da dashboard manuale che da registrazione webinar
+        // (entrambi hanno id negativo temporaneo, da riassegnare dopo pull in SQLite locale)
         const contatti = await pool.query(
-            "SELECT * FROM crm_contatti WHERE fonte_sync = 'dashboard_manual' AND id < 0"
+            "SELECT * FROM crm_contatti WHERE fonte_sync IN ('dashboard_manual', 'webinar_registrazione') AND id < 0"
         );
         if (contatti.rows.length === 0) return res.json([]);
 
