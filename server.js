@@ -6690,7 +6690,7 @@ app.get('/api/webinar/registrants', requireAdmin, async (req, res) => {
         const result = await pool.query(`
             SELECT DISTINCT ON (LOWER(r.email))
                    r.id, r.nome, r.cognome, r.email, r.citta, r.azione, r.created_at,
-                   r.da_verificare, r.motivo_verifica,
+                   r.da_verificare, r.motivo_verifica, r.zoom_link, r.reminder_inviato,
                    (SELECT regione FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS regione,
                    (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) AS tipo
             FROM crm_webinar_registrazioni r
