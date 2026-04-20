@@ -7065,7 +7065,13 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
         const emailErrori = [];
         for (const r of result.rows) {
             try {
-                const zoomResult = await registerZoomWebinarParticipant(webinarId, r.email, r.nome, r.cognome);
+                // Fallback nome/cognome: Zoom API rifiuta campi vuoti.
+                // Se uno dei due manca, uso l'altro. Se entrambi vuoti, placeholder.
+                const nomeRaw = (r.nome || '').trim();
+                const cognomeRaw = (r.cognome || '').trim();
+                const nomeFallback = nomeRaw || cognomeRaw || 'Dott.';
+                const cognomeFallback = cognomeRaw || nomeRaw || 'Studio';
+                const zoomResult = await registerZoomWebinarParticipant(webinarId, r.email, nomeFallback, cognomeFallback);
                 if (zoomResult && zoomResult.join_url) {
                     await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE id = $2', [zoomResult.join_url, r.id]);
                     fissati++;
