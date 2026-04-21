@@ -6612,7 +6612,7 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
                 webinar_tag,
                 SUM(durata_minuti)::int AS watch_time_minuti
             FROM crm_webinar_partecipanti
-            WHERE webinar_tag IN ('WEBINAR_MALAVASI_PT1', 'WEBINAR_ARCARA_ELEVATE')
+            WHERE webinar_tag IN ('WEBINAR_MALAVASI_PT1', 'WEBINAR_ARCARA_ELEVATE', 'WEBINAR_TARDANI_GUIDATA')
             GROUP BY webinar_tag
         `);
 
@@ -6628,7 +6628,7 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
         const youtubeResult = await pool.query(`
             SELECT webinar_tag, watch_time_ore, views
             FROM webinar_youtube_watchtime
-            WHERE webinar_tag IN ('WEBINAR_MALAVASI_PT1', 'WEBINAR_ARCARA_ELEVATE')
+            WHERE webinar_tag IN ('WEBINAR_MALAVASI_PT1', 'WEBINAR_ARCARA_ELEVATE', 'WEBINAR_TARDANI_GUIDATA')
         `);
 
         const youtubeWatchTime = {};
@@ -6650,6 +6650,11 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
                 zoom_watch_time_ore: zoomWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
                 youtube_watch_time_ore: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.watch_time_ore || 0,
                 youtube_views: youtubeWatchTime['WEBINAR_ARCARA_ELEVATE']?.views || 0
+            },
+            WEBINAR_TARDANI_GUIDATA: {
+                zoom_watch_time_ore: zoomWatchTime['WEBINAR_TARDANI_GUIDATA']?.watch_time_ore || 0,
+                youtube_watch_time_ore: youtubeWatchTime['WEBINAR_TARDANI_GUIDATA']?.watch_time_ore || 0,
+                youtube_views: youtubeWatchTime['WEBINAR_TARDANI_GUIDATA']?.views || 0
             },
             timestamp: new Date().toISOString()
         };
