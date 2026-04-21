@@ -1154,18 +1154,72 @@ async function initDB() {
             )
         `);
 
-        // Inserisci/aggiorna dati iniziali per i due webinar (idempotente)
+        // Seed iniziale (solo se riga non esiste — NON sovrascrivere valori aggiornati via PATCH)
         await client.query(`
             INSERT INTO webinar_youtube_watchtime (webinar_tag, watch_time_ore, views, updated_at)
             VALUES
-                ('WEBINAR_MALAVASI_PT1', 55.03, 198, NOW()),
-                ('WEBINAR_ARCARA_ELEVATE', 53.7, 234, NOW())
-            ON CONFLICT (webinar_tag)
-            DO UPDATE SET
-                watch_time_ore = EXCLUDED.watch_time_ore,
-                views = EXCLUDED.views,
-                updated_at = NOW()
+                ('WEBINAR_MALAVASI_PT1', 0, 0, NOW()),
+                ('WEBINAR_ARCARA_ELEVATE', 0, 0, NOW()),
+                ('WEBINAR_TARDANI_GUIDATA', 0, 0, NOW())
+            ON CONFLICT (webinar_tag) DO NOTHING
         `);
+
+        // Tabelle shop online (ordini JAN34)
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shop_orders (
+                id SERIAL PRIMARY KEY,
+                order_number TEXT UNIQUE NOT NULL,
+                status TEXT NOT NULL DEFAULT 'pending',
+                payment_method TEXT NOT NULL,
+                buyer_company TEXT,
+                buyer_vat TEXT,
+                buyer_cf TEXT,
+                buyer_sdi TEXT,
+                buyer_pec TEXT,
+                buyer_contact_name TEXT,
+                buyer_email TEXT,
+                buyer_phone TEXT,
+                ship_street TEXT,
+                ship_zip TEXT,
+                ship_city TEXT,
+                ship_prov TEXT,
+                bill_street TEXT,
+                bill_zip TEXT,
+                bill_city TEXT,
+                bill_prov TEXT,
+                subtotal_net NUMERIC(10,2) DEFAULT 0,
+                shipping NUMERIC(10,2) DEFAULT 0,
+                vat_amount NUMERIC(10,2) DEFAULT 0,
+                total_gross NUMERIC(10,2) DEFAULT 0,
+                stripe_session_id TEXT,
+                stripe_payment_status TEXT,
+                customer_notes TEXT,
+                internal_notes TEXT,
+                is_test BOOLEAN DEFAULT FALSE,
+                is_deleted BOOLEAN DEFAULT FALSE,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                confirmed_at TIMESTAMPTZ,
+                cancelled_at TIMESTAMPTZ
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(status)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at DESC)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_deleted ON shop_orders(is_deleted)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shop_order_items (
+                id SERIAL PRIMARY KEY,
+                order_id INTEGER NOT NULL REFERENCES shop_orders(id) ON DELETE CASCADE,
+                product_type TEXT NOT NULL,
+                product_code TEXT,
+                product_name TEXT NOT NULL,
+                qty INTEGER NOT NULL DEFAULT 1,
+                unit_price NUMERIC(10,2) NOT NULL DEFAULT 0,
+                vat_rate NUMERIC(4,2) NOT NULL DEFAULT 0.22,
+                is_free_promo BOOLEAN DEFAULT FALSE
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_items_order ON shop_order_items(order_id)`);
 
         console.log('[DB] Tabelle inizializzate');
     } finally {
