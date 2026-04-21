@@ -147,11 +147,12 @@ function switchSection(section) {
     document.getElementById('section-crm').style.display = section === 'crm' ? 'block' : 'none';
     document.getElementById('section-freelancer').style.display = section === 'freelancer' ? 'block' : 'none';
     document.getElementById('section-opportunita').style.display = section === 'opportunita' ? 'block' : 'none';
+    document.getElementById('section-shop-orders').style.display = section === 'shop-orders' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita' || section === 'shop-orders') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {
@@ -177,6 +178,8 @@ function switchSection(section) {
         loadFreelancerApprovals();
     } else if (section === 'opportunita') {
         loadOpportunita();
+    } else if (section === 'shop-orders') {
+        loadShopOrders();
     }
 
     // Aggiorna tipo nel form (solo per sezioni task)
@@ -2063,3 +2066,169 @@ function showToast(message, type = 'success') {
         toast.remove();
     }, 3000);
 }
+
+// ==================== SHOP ORDERS (JAN34) ====================
+
+const SHOP_STATUS_LABELS = {
+    pending: { label: 'In attesa CS', color: '#d97706', bg: '#fef3c7' },
+    pending_payment: { label: 'Attesa pagamento', color: '#d97706', bg: '#fef3c7' },
+    pending_financing: { label: 'Attesa moduli BCC', color: '#1e40af', bg: '#dbeafe' },
+    paid: { label: 'Pagato', color: '#059669', bg: '#d1fae5' },
+    confirmed: { label: 'Confermato', color: '#059669', bg: '#d1fae5' },
+    cancelled: { label: 'Cancellato', color: '#991b1b', bg: '#fee2e2' }
+};
+
+const SHOP_METHOD_LABELS = {
+    stripe_card: '💳 Carta Stripe',
+    stripe_sepa: '🏦 SEPA Stripe',
+    cs_offline: '📄 Finalizza CS',
+    bcc_financing: '💰 Finanziamento BCC',
+    bcc_leasing: '🚗 Noleggio BCC'
+};
+
+function fmtShopEur(n) {
+    return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function fmtShopDate(iso) {
+    if (!iso) return '—';
+    const d = new Date(iso);
+    return d.toLocaleDateString('it-IT', { day: '2-digit', month: '2-digit', year: 'numeric' }) + ' ' +
+        d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+}
+
+async function loadShopOrders() {
+    const container = document.getElementById('shop-orders-list');
+    container.innerHTML = '<p class="loading">Caricamento...</p>';
+
+    const status = document.getElementById('shopOrdersFilterStatus').value;
+    let url = `${API_URL}/shop/orders?key=${ADMIN_KEY}`;
+    if (status === '__archive') {
+        url += '&archive=true';
+    } else if (status) {
+        url += `&status=${status}`;
+    }
+
+    try {
+        const r = await fetch(url);
+        if (!r.ok) throw new Error('Errore caricamento');
+        const data = await r.json();
+        renderShopOrders(data.orders || []);
+        updateShopOrdersBadge(data.orders || []);
+    } catch (err) {
+        container.innerHTML = `<p style="color:#991b1b">Errore: ${err.message}</p>`;
+    }
+}
+
+function updateShopOrdersBadge(orders) {
+    const pending = orders.filter(o => o.status === 'pending' || o.status === 'pending_payment').length;
+    const badge = document.getElementById('shop-orders-badge');
+    if (pending > 0) {
+        badge.textContent = pending;
+        badge.style.display = 'inline-block';
+    } else {
+        badge.style.display = 'none';
+    }
+}
+
+function renderShopOrders(orders) {
+    const container = document.getElementById('shop-orders-list');
+    if (orders.length === 0) {
+        container.innerHTML = '<p style="color:#6b7280;padding:20px;text-align:center">Nessun ordine.</p>';
+        return;
+    }
+
+    container.innerHTML = orders.map(o => {
+        const st = SHOP_STATUS_LABELS[o.status] || { label: o.status, color: '#666', bg: '#eee' };
+        const method = SHOP_METHOD_LABELS[o.payment_method] || o.payment_method;
+        const itemsList = (o.items || []).map(it => `
+            <li>${it.qty}× ${it.product_name}${it.is_free_promo ? ' <span style="color:#d4af6a">(OMAGGIO)</span>' : ''} — ${fmtShopEur(it.qty * it.unit_price)} €</li>
+        `).join('');
+
+        const canConfirm = o.status === 'pending' || o.status === 'pending_payment' || o.status === 'pending_financing' || o.status === 'paid';
+        const canCancel = o.status !== 'cancelled' && o.status !== 'confirmed';
+
+        return `
+        <div class="opportunita-card" style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; ${o.is_test ? 'border-left:4px solid #d4af6a;' : ''}">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
+                <div>
+                    <div style="font-family:monospace; font-weight:700; font-size:16px; color:#1a9e8f">${o.order_number}${o.is_test ? ' <span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;letter-spacing:0.05em">TEST</span>' : ''}</div>
+                    <div style="font-size:13px; color:#6b7280; margin-top:2px">${fmtShopDate(o.created_at)}</div>
+                </div>
+                <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                    <span style="background:${st.bg}; color:${st.color}; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600">${st.label}</span>
+                    <span style="font-size:12px; color:#444; background:#f3f4f6; padding:4px 10px; border-radius:999px">${method}</span>
+                </div>
+            </div>
+
+            <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div>
+                    <div style="font-size:13px; color:#6b7280; margin-bottom:2px">Cliente</div>
+                    <div style="font-weight:600">${o.buyer_company || '—'}</div>
+                    <div style="font-size:13px; color:#444">${o.buyer_contact_name || ''} · ${o.buyer_email || ''}${o.buyer_phone ? ' · ' + o.buyer_phone : ''}</div>
+                    <div style="font-size:12px; color:#6b7280">P.IVA ${o.buyer_vat || '—'}</div>
+                </div>
+                <div style="text-align:right">
+                    <div style="font-size:13px; color:#6b7280">Totale ordine</div>
+                    <div style="font-size:22px; font-weight:800; color:#1a9e8f">${fmtShopEur(o.total_gross)} €</div>
+                    <div style="font-size:11px; color:#6b7280">IVA inclusa · ${(o.items || []).length} art.</div>
+                </div>
+            </div>
+
+            <details style="margin-top:12px">
+                <summary style="cursor:pointer; font-size:13px; color:#1a9e8f; font-weight:600; user-select:none">Dettaglio articoli e note</summary>
+                <div style="padding:12px; background:#f9fafb; border-radius:6px; margin-top:8px">
+                    <ul style="margin:0; padding-left:20px">${itemsList}</ul>
+                    <div style="margin-top:10px; font-size:13px; color:#444">
+                        <div><strong>Subtotale netto:</strong> ${fmtShopEur(o.subtotal_net)} € · <strong>Trasporto:</strong> ${Number(o.shipping) === 0 ? 'GRATIS' : fmtShopEur(o.shipping) + ' €'} · <strong>IVA:</strong> ${fmtShopEur(o.vat_amount)} €</div>
+                    </div>
+                    ${o.customer_notes ? `<div style="margin-top:10px; padding:8px; background:#fff8e1; border-left:3px solid #d4af6a; font-size:13px"><strong>Note cliente:</strong> ${o.customer_notes}</div>` : ''}
+                    ${o.internal_notes ? `<div style="margin-top:6px; padding:8px; background:#eef2ff; border-left:3px solid #6366f1; font-size:13px"><strong>Note interne:</strong> ${o.internal_notes}</div>` : ''}
+                </div>
+            </details>
+
+            <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
+                ${canConfirm ? `<button class="btn btn-primary btn-small" onclick="changeShopOrderStatus(${o.id}, 'confirmed')">✓ Conferma</button>` : ''}
+                ${canCancel ? `<button class="btn btn-danger btn-small" onclick="changeShopOrderStatus(${o.id}, 'cancelled')">Cancella</button>` : ''}
+            </div>
+        </div>
+        `;
+    }).join('');
+}
+
+async function changeShopOrderStatus(id, status) {
+    const labels = { confirmed: 'Confermare', cancelled: 'Cancellare' };
+    if (!confirm(`${labels[status] || 'Aggiornare'} questo ordine?`)) return;
+    try {
+        const r = await fetch(`${API_URL}/shop/orders/${id}/status?key=${ADMIN_KEY}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        showToast('Ordine aggiornato');
+        loadShopOrders();
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+async function deleteShopOrder(id) {
+    if (!confirm('Rimuovere questo ordine dalla lista? (il dato resta salvato nel database)')) return;
+    try {
+        const r = await fetch(`${API_URL}/shop/orders/${id}?key=${ADMIN_KEY}`, { method: 'DELETE' });
+        if (!r.ok) throw new Error('Errore ' + r.status);
+        showToast('Ordine rimosso dalla lista');
+        loadShopOrders();
+    } catch (err) {
+        showToast('Errore: ' + err.message, 'error');
+    }
+}
+
+// Bind filtro + refresh button
+document.addEventListener('DOMContentLoaded', () => {
+    const refreshBtn = document.getElementById('btnRefreshShopOrders');
+    if (refreshBtn) refreshBtn.addEventListener('click', loadShopOrders);
+    const filterSel = document.getElementById('shopOrdersFilterStatus');
+    if (filterSel) filterSel.addEventListener('change', loadShopOrders);
+});

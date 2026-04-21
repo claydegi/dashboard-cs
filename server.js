@@ -28,8 +28,24 @@ const CONFIG = {
     ODOO_URL: process.env.ODOO_URL || 'https://osseotouch.odoo.com',
     ODOO_DB: process.env.ODOO_DB || 'ati-comunicazione-osseotouch-produzione-26370252',
     ODOO_USER: process.env.ODOO_USER || 'admin',
-    ODOO_API_KEY: process.env.ODOO_API_KEY || ''
+    ODOO_API_KEY: process.env.ODOO_API_KEY || '',
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
+    STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+    SHOP_FRONTEND_URL: process.env.SHOP_FRONTEND_URL || 'http://localhost:4331'
 };
+
+// ==================== STRIPE SDK ====================
+let stripe = null;
+if (CONFIG.STRIPE_SECRET_KEY) {
+    try {
+        stripe = require('stripe')(CONFIG.STRIPE_SECRET_KEY);
+        console.log('[Stripe] SDK inizializzato (' + (CONFIG.STRIPE_SECRET_KEY.startsWith('sk_test_') ? 'TEST' : 'LIVE') + ')');
+    } catch (e) {
+        console.error('[Stripe] errore init:', e.message);
+    }
+} else {
+    console.warn('[Stripe] STRIPE_SECRET_KEY non configurata — pagamenti disabilitati');
+}
 
 // ==================== ISTAT LOOKUP: citta -> regione ====================
 let COMUNI_REGIONI = {};
@@ -212,7 +228,15 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
 
 // Middleware
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+        // Cattura raw body per verifica firma webhook Stripe
+        if (req.originalUrl && req.originalUrl.startsWith('/api/shop/stripe-webhook')) {
+            req.rawBody = buf;
+        }
+    }
+}));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== DATABASE POSTGRESQL ====================
@@ -1205,6 +1229,7 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_status ON shop_orders(status)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_created ON shop_orders(created_at DESC)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_deleted ON shop_orders(is_deleted)`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS financing_data JSONB`);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS shop_order_items (
@@ -11050,6 +11075,568 @@ app.post('/api/giacenze-strumenti/sync', requireAdmin, async (req, res) => {
         });
     } catch (err) {
         console.error('[Giacenze STR] Errore sync:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== SHOP ONLINE (JAN34) ====================
+
+const SHOP_FREE_SHIP_SUTURE = 600;
+const SHOP_FREE_SHIP_DEFAULT = 3900;
+
+async function generateShopOrderNumber(client) {
+    const year = new Date().getFullYear();
+    const r = await client.query(
+        `SELECT COUNT(*)::int AS c FROM shop_orders WHERE order_number LIKE $1`,
+        [`OSS-${year}-%`]
+    );
+    const next = (r.rows[0].c || 0) + 1;
+    return `OSS-${year}-${String(next).padStart(4, '0')}`;
+}
+
+function computeShopTotals(items) {
+    const subtotal = items.reduce((s, i) => s + Number(i.qty) * Number(i.price), 0);
+    const onlySuture = items.every(i => i.type === 'suture' || i.type === 'suture-gift');
+    const shipThreshold = onlySuture ? SHOP_FREE_SHIP_SUTURE : SHOP_FREE_SHIP_DEFAULT;
+    const shipping = subtotal > shipThreshold ? 0 : 15;
+    const vat = items.reduce((s, i) => s + Number(i.qty) * Number(i.price) * Number(i.vat ?? 0.22), 0) + shipping * 0.22;
+    const hasPinVat = items.some(i => Number(i.vat ?? 0.22) === 0.04);
+    const total = subtotal + shipping + vat;
+    return { subtotal, shipping, vat, total, hasPinVat };
+}
+
+function shopFmtEur(n) {
+    return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function buildShopCustomerEmailHtml(order) {
+    const itemsHtml = order.items.map(i => {
+        const isGift = Number(i.price) === 0 || i.type === 'suture-gift';
+        return `<tr>
+            <td style="padding:8px;border-bottom:1px solid #eee">${i.name}${isGift ? ' <span style="color:#d4af6a;font-weight:600">(OMAGGIO)</span>' : ''}</td>
+            <td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${i.qty}</td>
+            <td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${shopFmtEur(i.qty * i.price)} €</td>
+        </tr>`;
+    }).join('');
+    return `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;color:#333;margin:0">
+  <div style="max-width:640px;margin:0 auto;background:#fff;padding:30px;border-radius:10px">
+    <h1 style="color:#1a9e8f;margin:0 0 10px">Ordine ricevuto</h1>
+    <p style="font-size:15px">Ciao ${order.customer.contact_name || ''},</p>
+    <p style="font-size:15px">Grazie per il tuo ordine <strong style="color:#1a9e8f">${order.orderNumber}</strong>.</p>
+    <p style="font-size:15px">Il nostro Customer Service ti contatterà <strong>entro 24 ore lavorative</strong> per concordare insieme il metodo di pagamento più adatto (bonifico, RiBa, 30-60, ecc.).</p>
+    <h3 style="color:#1a9e8f;margin-top:30px;border-bottom:2px solid #1a9e8f;padding-bottom:6px">Riepilogo ordine</h3>
+    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:14px">
+      <thead><tr style="background:#f0f0f0"><th style="padding:8px;text-align:left">Articolo</th><th style="padding:8px">Qtà</th><th style="padding:8px;text-align:right">Prezzo</th></tr></thead>
+      <tbody>${itemsHtml}</tbody>
+    </table>
+    <table style="width:100%;font-size:14px;border-top:2px solid #1a9e8f;padding-top:10px">
+      <tr><td style="padding:6px 0">Subtotale netto</td><td style="text-align:right">${shopFmtEur(order.totals.subtotal)} €</td></tr>
+      <tr><td style="padding:6px 0">Trasporto</td><td style="text-align:right">${order.totals.shipping === 0 ? '<span style="color:#1a9e8f;font-weight:700">GRATIS</span>' : shopFmtEur(order.totals.shipping) + ' €'}</td></tr>
+      <tr><td style="padding:6px 0">IVA</td><td style="text-align:right">${shopFmtEur(order.totals.vat)} €</td></tr>
+      <tr><td style="padding:12px 0 0;font-size:17px;font-weight:bold;border-top:1px solid #ccc">Totale</td><td style="text-align:right;padding:12px 0 0;font-size:20px;font-weight:bold;color:#1a9e8f;border-top:1px solid #ccc">${shopFmtEur(order.totals.total)} €</td></tr>
+    </table>
+    <p style="margin-top:30px;font-size:15px">Vuoi parlarci subito? Contatta il Customer Service:</p>
+    <p>
+      <a href="https://wa.me/393277947530?text=${encodeURIComponent('Ciao, ho appena inviato ordine ' + order.orderNumber)}" style="display:inline-block;padding:12px 24px;background:#25d366;color:#fff;text-decoration:none;border-radius:8px;margin-right:10px;font-weight:700">WhatsApp</a>
+      <a href="tel:+390331153586" style="display:inline-block;padding:12px 24px;border:2px solid #1a9e8f;color:#1a9e8f;text-decoration:none;border-radius:8px;font-weight:700">Chiama +39 0331 153586</a>
+    </p>
+    <hr style="border:none;border-top:1px solid #ddd;margin:30px 0 15px">
+    <p style="color:#888;font-size:12px;margin:0">OSSEOTOUCH — Piazza Garibaldi 9, 21013 Gallarate (VA)</p>
+  </div>
+</body></html>`;
+}
+
+function buildShopInternalEmailHtml(order) {
+    const itemsHtml = order.items.map(i => `<li>${i.qty}× ${i.name} — ${shopFmtEur(i.qty * i.price)} €${Number(i.price) === 0 ? ' (OMAGGIO)' : ''}</li>`).join('');
+    const bill = order.billing_address || null;
+    return `<h2 style="color:#1a9e8f">Nuovo ordine shop ${order.orderNumber}</h2>
+<p><strong>Metodo:</strong> ${order.method}</p>
+<p><strong>Cliente:</strong> ${order.customer.company} — ${order.customer.contact_name}</p>
+<p><strong>P.IVA:</strong> ${order.customer.vat}${order.customer.cf ? ' · CF: ' + order.customer.cf : ''}</p>
+<p><strong>SDI/PEC:</strong> ${order.customer.sdi || order.customer.pec || '—'}</p>
+<p><strong>Email:</strong> <a href="mailto:${order.customer.email}">${order.customer.email}</a></p>
+<p><strong>Telefono:</strong> ${order.customer.phone}</p>
+<p><strong>Consegna:</strong> ${order.shipping_address.street}, ${order.shipping_address.zip} ${order.shipping_address.city} (${order.shipping_address.prov})</p>
+${bill ? `<p><strong>Fatturazione:</strong> ${bill.street}, ${bill.zip} ${bill.city} (${bill.prov})</p>` : ''}
+${order.notes ? `<p style="background:#fff8e1;padding:10px;border-left:4px solid #d4af6a"><strong>Note cliente:</strong> ${order.notes}</p>` : ''}
+<h3>Articoli</h3>
+<ul>${itemsHtml}</ul>
+<p style="font-size:18px;margin-top:20px"><strong>Totale:</strong> <span style="color:#1a9e8f;font-weight:800">${shopFmtEur(order.totals.total)} €</span> (IVA incl.)</p>
+<p style="color:#888;font-size:13px;margin-top:20px">Gestisci l'ordine nella Dashboard CS → tab Ordini online.</p>`;
+}
+
+function buildShopBccCustomerEmailHtml(order, methodLabel) {
+    const fin = order.financing || {};
+    const isFfZero = fin.modo === 'ff-zero';
+    const rataStr = isFfZero
+        ? `${shopFmtEur(fin.rata)} €/mese · tasso zero · ${fin.mesi} mesi`
+        : `${shopFmtEur(fin.rata)} € + IVA / ${fin.period === 'trim' ? 'trimestre' : 'mese'} · ${fin.canoni} canoni · V.R. ${fin.vrPct}%`;
+    return `<!DOCTYPE html><html lang="it"><head><meta charset="utf-8"></head><body style="font-family:Arial,sans-serif;background:#f5f5f5;padding:20px;color:#333;margin:0">
+  <div style="max-width:640px;margin:0 auto;background:#fff;padding:30px;border-radius:10px">
+    <h1 style="color:#1a9e8f;margin:0 0 10px">Richiesta ${methodLabel} ricevuta</h1>
+    <p style="font-size:15px">Ciao ${order.customer.contact_name || ''},</p>
+    <p style="font-size:15px">Abbiamo ricevuto la tua richiesta di <strong>${methodLabel}</strong> per l'ordine <strong style="color:#1a9e8f">${order.orderNumber}</strong>.</p>
+    <p style="font-size:15px;padding:12px;background:#e8f7f4;border-left:4px solid #1a9e8f;border-radius:4px"><strong>La tua rata:</strong> ${rataStr}</p>
+    <h3 style="color:#1a9e8f;margin-top:30px;border-bottom:2px solid #1a9e8f;padding-bottom:6px">Prossimi passaggi</h3>
+    <ol style="font-size:15px;line-height:1.7">
+      <li><strong>Scarica i 2 moduli BCC</strong> dalla tua pagina ordine o in allegato alle prossime comunicazioni.</li>
+      <li><strong>Stampali, compilali</strong> e firmali dove indicato. Aggiungi copia documento d'identità e tessera sanitaria.</li>
+      <li><strong>Rispediscili via email a contact@osseotouch.com</strong>.</li>
+      <li>Il Customer Service ti contatterà per finalizzare il contratto con BCC Rent&amp;Lease.</li>
+    </ol>
+    <p style="margin-top:30px">
+      <a href="https://www.osseotouch.com/shop/ordine-finanziamento-inviato/?id=${order.orderNumber}" style="display:inline-block;padding:12px 24px;background:#1a9e8f;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Vai al riepilogo ordine &rarr;</a>
+    </p>
+    <p style="margin-top:25px;font-size:14px">Per parlare subito con noi:</p>
+    <p>
+      <a href="https://wa.me/393277947530" style="display:inline-block;padding:10px 20px;background:#25d366;color:#fff;text-decoration:none;border-radius:6px;margin-right:10px">WhatsApp</a>
+      <a href="tel:+390331153586" style="display:inline-block;padding:10px 20px;border:1px solid #1a9e8f;color:#1a9e8f;text-decoration:none;border-radius:6px">Chiama +39 0331 153586</a>
+    </p>
+    <hr style="border:none;border-top:1px solid #ddd;margin:30px 0 15px">
+    <p style="color:#888;font-size:12px;margin:0">OSSEOTOUCH — Piazza Garibaldi 9, 21013 Gallarate (VA)</p>
+  </div>
+</body></html>`;
+}
+
+function buildShopBccInternalEmailHtml(order, methodLabel) {
+    const fin = order.financing || {};
+    const isFfZero = fin.modo === 'ff-zero';
+    const rataStr = isFfZero
+        ? `${shopFmtEur(fin.rata)} €/mese · tasso zero · ${fin.mesi} mesi · spese ${shopFmtEur(fin.spese)} €`
+        : `${shopFmtEur(fin.rata)} € + IVA / ${fin.period === 'trim' ? 'trimestre' : 'mese'} · ${fin.canoni} canoni · V.R. ${fin.vrPct}% (${shopFmtEur(fin.vr)} €) · spese ${shopFmtEur(fin.spese)} €`;
+    const itemsHtml = order.items.map(i => `<li>${i.qty}× ${i.name} — ${shopFmtEur(i.qty * i.price)} €</li>`).join('');
+    return `<h2 style="color:#1a9e8f">Richiesta ${methodLabel} ${order.orderNumber}</h2>
+<p style="padding:10px;background:#fff8e1;border-left:4px solid #d4af6a;font-size:15px"><strong>Da gestire:</strong> il cliente riceverà i 2 moduli BCC. Attendere invio firmato a contact@osseotouch.com, poi procedere con pratica BCC Rent&amp;Lease.</p>
+<h3>Configurazione finanziamento</h3>
+<ul>
+  <li><strong>Tipo:</strong> ${methodLabel}</li>
+  <li><strong>Rata:</strong> ${rataStr}</li>
+  <li><strong>Totale pagato:</strong> ${shopFmtEur(fin.totalePagato)} €</li>
+</ul>
+<h3>Cliente</h3>
+<p><strong>Azienda:</strong> ${order.customer.company} — ${order.customer.contact_name}</p>
+<p><strong>P.IVA:</strong> ${order.customer.vat}${order.customer.cf ? ' · CF: ' + order.customer.cf : ''}</p>
+<p><strong>SDI/PEC:</strong> ${order.customer.sdi || order.customer.pec || '—'}</p>
+<p><strong>Email:</strong> <a href="mailto:${order.customer.email}">${order.customer.email}</a></p>
+<p><strong>Telefono:</strong> ${order.customer.phone}</p>
+<p><strong>Consegna:</strong> ${order.shipping_address.street}, ${order.shipping_address.zip} ${order.shipping_address.city} (${order.shipping_address.prov})</p>
+<h3>Articoli</h3>
+<ul>${itemsHtml}</ul>
+<p style="color:#888;font-size:13px;margin-top:20px">Gestisci l'ordine nella Dashboard CS → tab Ordini online (status <em>pending_financing</em>).</p>`;
+}
+
+app.post('/api/shop/checkout', async (req, res) => {
+    const { customer, shipping_address, billing_address, items, payment_method, notes } = req.body || {};
+
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Carrello vuoto' });
+    }
+    if (!customer || !customer.company || !customer.vat || !customer.email || !customer.contact_name) {
+        return res.status(400).json({ error: 'Dati cliente incompleti' });
+    }
+    if (!shipping_address || !shipping_address.street || !shipping_address.zip || !shipping_address.city || !shipping_address.prov) {
+        return res.status(400).json({ error: 'Indirizzo consegna incompleto' });
+    }
+    if (!['stripe_card', 'stripe_sepa', 'cs_offline', 'bcc_financing', 'bcc_leasing'].includes(payment_method)) {
+        return res.status(400).json({ error: 'Metodo pagamento non valido' });
+    }
+    const isBcc = payment_method === 'bcc_financing' || payment_method === 'bcc_leasing';
+    const financingChoice = isBcc ? (req.body.financing_choice || null) : null;
+    if (isBcc && !financingChoice) {
+        return res.status(400).json({ error: 'Configurazione finanziamento mancante' });
+    }
+
+    const totals = computeShopTotals(items);
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const orderNumber = await generateShopOrderNumber(client);
+        let status;
+        if (payment_method === 'cs_offline') status = 'pending';
+        else if (isBcc) status = 'pending_financing';
+        else status = 'pending_payment';
+
+        const ins = await client.query(
+            `INSERT INTO shop_orders (
+                order_number, status, payment_method,
+                buyer_company, buyer_vat, buyer_cf, buyer_sdi, buyer_pec,
+                buyer_contact_name, buyer_email, buyer_phone,
+                ship_street, ship_zip, ship_city, ship_prov,
+                bill_street, bill_zip, bill_city, bill_prov,
+                subtotal_net, shipping, vat_amount, total_gross,
+                customer_notes, is_test
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25)
+            RETURNING id`,
+            [
+                orderNumber, status, payment_method,
+                customer.company, customer.vat, customer.cf || null, customer.sdi || null, customer.pec || null,
+                customer.contact_name, customer.email, customer.phone,
+                shipping_address.street, shipping_address.zip, shipping_address.city, (shipping_address.prov || '').toUpperCase(),
+                billing_address?.street || null, billing_address?.zip || null, billing_address?.city || null, billing_address?.prov ? billing_address.prov.toUpperCase() : null,
+                totals.subtotal, totals.shipping, totals.vat, totals.total,
+                notes || null, process.env.NODE_ENV !== 'production'
+            ]
+        );
+        const orderId = ins.rows[0].id;
+
+        for (const item of items) {
+            const isGift = Number(item.price) === 0 || item.type === 'suture-gift';
+            await client.query(
+                `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, item.vat ?? 0.22, isGift]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        const orderForEmail = { orderNumber, method: payment_method, customer, shipping_address, billing_address: billing_address || null, notes: notes || '', items, totals, financing: financingChoice };
+
+        if (payment_method === 'cs_offline') {
+            sendMailgunEmail(customer.email, `Ordine ricevuto ${orderNumber} — OSSEOTOUCH`, buildShopCustomerEmailHtml(orderForEmail), 'shop-order-received').catch(e => console.error('mail cust:', e));
+            sendMailgunEmail('contact@osseotouch.com', `[ORDINE CS] ${orderNumber} — ${customer.company}`, buildShopInternalEmailHtml(orderForEmail), 'shop-order-internal').catch(e => console.error('mail int:', e));
+            return res.json({
+                success: true,
+                orderNumber,
+                redirectUrl: `/shop/ordine-confermato/?id=${orderNumber}`,
+                order: orderForEmail
+            });
+        }
+
+        // ===== BCC FINANCING / LEASING =====
+        if (isBcc) {
+            // Salva financing_data
+            const innerClient = await pool.connect();
+            try {
+                await innerClient.query(
+                    `UPDATE shop_orders SET financing_data = $1 WHERE id = $2`,
+                    [JSON.stringify(financingChoice), orderId]
+                );
+            } finally {
+                innerClient.release();
+            }
+
+            // Email asincrone
+            const methodLabel = payment_method === 'bcc_leasing' ? 'Noleggio operativo' : 'Finanziamento tasso zero';
+            sendMailgunEmail(
+                customer.email,
+                `Richiesta ${methodLabel} ricevuta ${orderNumber} — OSSEOTOUCH`,
+                buildShopBccCustomerEmailHtml(orderForEmail, methodLabel),
+                'shop-bcc-request'
+            ).catch(e => console.error('mail bcc cust:', e));
+
+            sendMailgunEmail(
+                'contact@osseotouch.com',
+                `[BCC ${payment_method.toUpperCase()}] ${orderNumber} — ${customer.company}`,
+                buildShopBccInternalEmailHtml(orderForEmail, methodLabel),
+                'shop-bcc-internal'
+            ).catch(e => console.error('mail bcc int:', e));
+
+            return res.json({
+                success: true,
+                orderNumber,
+                redirectUrl: `/shop/ordine-finanziamento-inviato/?id=${orderNumber}`,
+                order: orderForEmail
+            });
+        }
+
+        // ===== STRIPE CARD / SEPA =====
+        if (!stripe) {
+            return res.status(503).json({ error: 'Stripe non configurato sul server' });
+        }
+
+        // Costruisci line_items Stripe (lordo IVA, valuta EUR, centesimi)
+        // Stripe richiede prezzi in cents (integer). Calcoliamo il prezzo IVA inclusa per riga
+        // Per semplicità un unico tax rate 22% sulla riga; pin 4% è minoritario, lo fondiamo nel totale
+        const lineItems = items
+            .filter(it => Number(it.price) > 0) // le righe OMAGGIO (price=0) non vanno su Stripe
+            .map(it => {
+                const vatRate = Number(it.vat ?? 0.22);
+                const unitPriceGross = Number(it.price) * (1 + vatRate);
+                return {
+                    price_data: {
+                        currency: 'eur',
+                        product_data: { name: it.name },
+                        unit_amount: Math.round(unitPriceGross * 100)
+                    },
+                    quantity: Number(it.qty)
+                };
+            });
+
+        // Aggiungi trasporto come line item se > 0
+        if (totals.shipping > 0) {
+            lineItems.push({
+                price_data: {
+                    currency: 'eur',
+                    product_data: { name: 'Trasporto' },
+                    unit_amount: Math.round(totals.shipping * 1.22 * 100)
+                },
+                quantity: 1
+            });
+        }
+
+        const paymentMethodTypes = payment_method === 'stripe_sepa' ? ['sepa_debit'] : ['card'];
+
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            payment_method_types: paymentMethodTypes,
+            line_items: lineItems,
+            customer_email: customer.email,
+            success_url: `${CONFIG.SHOP_FRONTEND_URL}/shop/ordine-confermato/?id=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${CONFIG.SHOP_FRONTEND_URL}/shop/checkout/?canceled=1`,
+            metadata: {
+                order_number: orderNumber,
+                order_id: String(orderId),
+                buyer_company: customer.company || '',
+                buyer_vat: customer.vat || ''
+            },
+            locale: 'it'
+        });
+
+        // Salva session_id sull'ordine
+        const innerClient = await pool.connect();
+        try {
+            await innerClient.query(
+                `UPDATE shop_orders SET stripe_session_id = $1 WHERE id = $2`,
+                [session.id, orderId]
+            );
+        } finally {
+            innerClient.release();
+        }
+
+        return res.json({
+            success: true,
+            orderNumber,
+            sessionUrl: session.url,
+            order: orderForEmail
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[shop/checkout] error:', err);
+        return res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
+// ----- Stripe webhook (ricevuto alla fine del pagamento) -----
+app.post('/api/shop/stripe-webhook', async (req, res) => {
+    if (!stripe || !CONFIG.STRIPE_WEBHOOK_SECRET) {
+        return res.status(503).send('Stripe webhook non configurato');
+    }
+    const sig = req.headers['stripe-signature'];
+    let event;
+    try {
+        event = stripe.webhooks.constructEvent(req.rawBody, sig, CONFIG.STRIPE_WEBHOOK_SECRET);
+    } catch (err) {
+        console.error('[stripe-webhook] verifica firma fallita:', err.message);
+        return res.status(400).send(`Webhook Error: ${err.message}`);
+    }
+
+    try {
+        if (event.type === 'checkout.session.completed') {
+            const session = event.data.object;
+            const orderNumber = session.metadata?.order_number;
+            if (!orderNumber) {
+                console.warn('[stripe-webhook] event senza order_number in metadata');
+                return res.json({ received: true });
+            }
+
+            const upd = await pool.query(
+                `UPDATE shop_orders SET status = 'paid', stripe_payment_status = $1, confirmed_at = NOW()
+                 WHERE order_number = $2 RETURNING *`,
+                [session.payment_status || 'paid', orderNumber]
+            );
+            if (upd.rows.length > 0) {
+                const order = upd.rows[0];
+                console.log(`[stripe-webhook] ordine ${orderNumber} → paid`);
+
+                // Ricarica items per email
+                const itemsRes = await pool.query(
+                    `SELECT product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo FROM shop_order_items WHERE order_id = $1`,
+                    [order.id]
+                );
+                const orderForEmail = {
+                    orderNumber: order.order_number,
+                    method: order.payment_method,
+                    customer: {
+                        company: order.buyer_company, vat: order.buyer_vat, cf: order.buyer_cf,
+                        sdi: order.buyer_sdi, pec: order.buyer_pec,
+                        contact_name: order.buyer_contact_name, email: order.buyer_email, phone: order.buyer_phone
+                    },
+                    shipping_address: {
+                        street: order.ship_street, zip: order.ship_zip, city: order.ship_city, prov: order.ship_prov
+                    },
+                    billing_address: order.bill_street ? {
+                        street: order.bill_street, zip: order.bill_zip, city: order.bill_city, prov: order.bill_prov
+                    } : null,
+                    notes: order.customer_notes || '',
+                    items: itemsRes.rows.map(it => ({
+                        name: it.product_name, qty: it.qty, price: Number(it.unit_price),
+                        vat: Number(it.vat_rate), type: it.product_type
+                    })),
+                    totals: {
+                        subtotal: Number(order.subtotal_net),
+                        shipping: Number(order.shipping),
+                        vat: Number(order.vat_amount),
+                        total: Number(order.total_gross)
+                    }
+                };
+
+                sendMailgunEmail(order.buyer_email, `Pagamento ricevuto ${orderNumber} — OSSEOTOUCH`, buildShopCustomerEmailHtml(orderForEmail), 'shop-order-paid').catch(e => console.error('mail:', e));
+                sendMailgunEmail('contact@osseotouch.com', `[PAGATO] ${orderNumber} — ${order.buyer_company}`, buildShopInternalEmailHtml(orderForEmail), 'shop-order-paid-internal').catch(e => console.error('mail:', e));
+            }
+        }
+
+        res.json({ received: true });
+    } catch (err) {
+        console.error('[stripe-webhook] errore:', err);
+        res.status(500).send('Error');
+    }
+});
+
+// ----- Endpoint pubblico per thank-you page (legge ordine by orderNumber) -----
+app.get('/api/shop/orders/public/:orderNumber', async (req, res) => {
+    const { orderNumber } = req.params;
+    try {
+        const r = await pool.query(
+            `SELECT order_number, status, payment_method,
+                    buyer_company, buyer_contact_name, buyer_email, buyer_phone, buyer_vat,
+                    ship_street, ship_zip, ship_city, ship_prov,
+                    subtotal_net, shipping, vat_amount, total_gross,
+                    customer_notes, financing_data, created_at
+             FROM shop_orders WHERE order_number = $1`,
+            [orderNumber]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Ordine non trovato' });
+        const o = r.rows[0];
+        const itemsRes = await pool.query(
+            `SELECT product_type, product_name, qty, unit_price, is_free_promo FROM shop_order_items WHERE order_id = (SELECT id FROM shop_orders WHERE order_number = $1)`,
+            [orderNumber]
+        );
+        res.json({
+            orderNumber: o.order_number,
+            method: o.payment_method,
+            status: o.status,
+            customer: {
+                company: o.buyer_company, contact_name: o.buyer_contact_name,
+                email: o.buyer_email, phone: o.buyer_phone, vat: o.buyer_vat
+            },
+            shipping_address: {
+                street: o.ship_street, zip: o.ship_zip, city: o.ship_city, prov: o.ship_prov
+            },
+            notes: o.customer_notes || '',
+            items: itemsRes.rows.map(it => ({
+                name: it.product_name, qty: it.qty, price: Number(it.unit_price),
+                type: it.product_type
+            })),
+            totals: {
+                subtotal: Number(o.subtotal_net),
+                shipping: Number(o.shipping),
+                vat: Number(o.vat_amount),
+                total: Number(o.total_gross),
+                hasPinVat: false
+            },
+            financing: o.financing_data || null
+        });
+    } catch (err) {
+        console.error('[shop/orders public] error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ----- Admin: lista ordini -----
+// Di default mostra solo ordini in divenire (pending, pending_payment, paid).
+// Per vedere archivio (confermati/cancellati) passare ?archive=true
+app.get('/api/shop/orders', requireAdmin, async (req, res) => {
+    try {
+        const { status, archive } = req.query;
+        const conds = [];
+        const args = [];
+        if (status) {
+            args.push(status);
+            conds.push(`status = $${args.length}`);
+        } else if (archive === 'true') {
+            conds.push(`status IN ('confirmed', 'cancelled')`);
+        } else {
+            // Default: ordini attivi (non ancora chiusi)
+            conds.push(`status IN ('pending', 'pending_payment', 'paid', 'pending_financing')`);
+        }
+        const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
+
+        const ordersRes = await pool.query(`
+            SELECT id, order_number, status, payment_method,
+                   buyer_company, buyer_contact_name, buyer_email, buyer_phone,
+                   buyer_vat,
+                   total_gross, subtotal_net, shipping, vat_amount,
+                   customer_notes, internal_notes,
+                   is_test, is_deleted,
+                   created_at, confirmed_at, cancelled_at
+            FROM shop_orders ${where}
+            ORDER BY created_at DESC
+            LIMIT 500
+        `, args);
+
+        // Attacca items
+        const ids = ordersRes.rows.map(o => o.id);
+        let itemsByOrder = {};
+        if (ids.length > 0) {
+            const itemsRes = await pool.query(
+                `SELECT order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo
+                 FROM shop_order_items WHERE order_id = ANY($1) ORDER BY id ASC`,
+                [ids]
+            );
+            itemsByOrder = itemsRes.rows.reduce((acc, r) => {
+                (acc[r.order_id] = acc[r.order_id] || []).push(r);
+                return acc;
+            }, {});
+        }
+        const orders = ordersRes.rows.map(o => ({ ...o, items: itemsByOrder[o.id] || [] }));
+        res.json({ orders });
+    } catch (err) {
+        console.error('[shop/orders list] error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ----- Admin: cambia status (pending ↔ confirmed ↔ cancelled) -----
+app.put('/api/shop/orders/:id/status', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    const { status, internal_notes } = req.body || {};
+    const allowed = ['pending', 'pending_payment', 'pending_financing', 'confirmed', 'paid', 'cancelled'];
+    if (!allowed.includes(status)) {
+        return res.status(400).json({ error: 'Status non valido' });
+    }
+    try {
+        const tsField = status === 'confirmed' || status === 'paid'
+            ? ', confirmed_at = NOW()'
+            : status === 'cancelled' ? ', cancelled_at = NOW()' : '';
+        const r = await pool.query(
+            `UPDATE shop_orders SET status = $1${tsField}${internal_notes !== undefined ? ', internal_notes = $3' : ''}
+             WHERE id = $2 RETURNING *`,
+            internal_notes !== undefined ? [status, id, internal_notes] : [status, id]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Ordine non trovato' });
+        res.json({ success: true, order: r.rows[0] });
+    } catch (err) {
+        console.error('[shop/orders status] error:', err);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ----- Admin: soft-delete (nasconde dall'admin ma mantiene il record) -----
+app.delete('/api/shop/orders/:id', requireAdmin, async (req, res) => {
+    const { id } = req.params;
+    try {
+        const r = await pool.query(
+            `UPDATE shop_orders SET is_deleted = TRUE WHERE id = $1 RETURNING id`,
+            [id]
+        );
+        if (r.rows.length === 0) return res.status(404).json({ error: 'Ordine non trovato' });
+        res.json({ success: true });
+    } catch (err) {
+        console.error('[shop/orders delete] error:', err);
         res.status(500).json({ error: err.message });
     }
 });

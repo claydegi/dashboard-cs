@@ -26,6 +26,7 @@
                     </div>
                 </div>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
+                <a href="#" class="nav-link" data-section="shop-orders">Ordini online <span id="shop-orders-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="freelancer">Freelancer <span id="freelancer-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="opportunita">Opportunità <span id="opportunita-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="crm">CRM</a>
@@ -347,6 +348,27 @@
                     <div id="freelancer-approvals-list">
                         <p class="loading">Caricamento...</p>
                     </div>
+                </div>
+            </section>
+
+            <!-- ==================== ORDINI ONLINE (SHOP JAN34) ==================== -->
+            <section id="section-shop-orders" class="reports-section" style="display: none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <h2 style="margin:0;">Ordini online</h2>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <select id="shopOrdersFilterStatus" style="padding:6px 10px; border-radius:6px; border:1px solid #ccc;">
+                            <option value="">Ordini attivi (tutti)</option>
+                            <option value="pending">In attesa (CS / BCC)</option>
+                            <option value="pending_payment">In attesa pagamento</option>
+                            <option value="paid">Pagato (da spedire)</option>
+                            <option value="__archive">— Archivio (confermati/cancellati)</option>
+                        </select>
+                        <button class="btn btn-primary btn-small" id="btnRefreshShopOrders">Aggiorna</button>
+                    </div>
+                </div>
+
+                <div id="shop-orders-list" class="opportunita-list">
+                    <p class="loading">Caricamento...</p>
                 </div>
             </section>
 
