@@ -98,7 +98,7 @@ const WEBINAR_DATA = {
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Tardani, 20 aprile ore 21:00',
         subject_reminder: 'Dr. Tardani — il tuo link personale per il webinar di stasera',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
-        link_followup: 'https://app.osseotouch.com/webinar-followup',
+        link_followup: 'https://app.osseotouch.com/webinar-tardani-followup',
         subject_invito: 'Webinar — Chirurgia guidata con Magnetic Mallet, 20 aprile ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-tardani-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Tardani',
@@ -7249,6 +7249,91 @@ app.post('/api/webinar/force-zoom-link', requireAdmin, async (req, res) => {
         aggiornati += r.rowCount;
     }
     res.json({ ok: true, aggiornati });
+});
+
+// POST /api/webinar/send-test-followup — invia SINGOLA email follow-up a un indirizzo specifico (per test)
+// Non tocca la tabella registrazioni, non setta followup_inviato.
+app.post('/api/webinar/send-test-followup', requireAdmin, async (req, res) => {
+    const { webinar_tag, email } = req.body;
+    if (!webinar_tag || !email) {
+        return res.status(400).json({ error: 'webinar_tag e email obbligatori' });
+    }
+    if (!WEBINAR_DATA[webinar_tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${webinar_tag}` });
+    }
+
+    const emailClean = String(email).trim().toLowerCase();
+
+    // Check se l'email esiste in crm_contatti (per il tracking)
+    let contattoTrovato = null;
+    try {
+        const r = await pool.query(
+            'SELECT id, nome, cognome FROM crm_contatti WHERE LOWER(email) = $1 LIMIT 1',
+            [emailClean]
+        );
+        contattoTrovato = r.rows[0] || null;
+    } catch (e) {}
+
+    try {
+        await sendWebinarEmail('WEBINAR_FOLLOWUP', webinar_tag, emailClean, null,
+            'WEBINAR_FOLLOWUP_TEST_' + webinar_tag);
+        res.json({
+            ok: true,
+            webinar_tag,
+            email: emailClean,
+            inviata: true,
+            tracking_attivo: !!contattoTrovato,
+            contatto: contattoTrovato ? {
+                id: contattoTrovato.id,
+                nome: contattoTrovato.nome,
+                cognome: contattoTrovato.cognome
+            } : null,
+            link_followup: WEBINAR_DATA[webinar_tag].link_followup +
+                '?e=' + Buffer.from(emailClean).toString('base64'),
+            messaggio: contattoTrovato
+                ? 'Email inviata. Tracking linkato al contatto CRM.'
+                : 'Email inviata. ATTENZIONE: email non in crm_contatti — tracking registrato senza linking contatto.'
+        });
+    } catch (err) {
+        console.error('[Webinar Test Followup]', err);
+        res.status(500).json({ error: 'Errore invio', detail: err.message });
+    }
+});
+
+// GET /api/webinar/tracking-check/:tag — verifica che tutti gli iscritti a un webinar siano in crm_contatti
+app.get('/api/webinar/tracking-check/:tag', requireAdmin, async (req, res) => {
+    const tag = req.params.tag;
+    if (!WEBINAR_DATA[tag]) {
+        return res.status(400).json({ error: `Webinar tag sconosciuto: ${tag}` });
+    }
+    try {
+        const r = await pool.query(`
+            SELECT r.email, r.nome, r.cognome,
+                   (SELECT c.id FROM crm_contatti c WHERE LOWER(c.email) = LOWER(r.email) LIMIT 1) AS contatto_id
+            FROM crm_webinar_registrazioni r
+            WHERE r.webinar_tag = $1
+            ORDER BY r.email
+        `, [tag]);
+
+        const totali = r.rows.length;
+        const tracciabili = r.rows.filter(x => x.contatto_id !== null).length;
+        const non_tracciabili = r.rows.filter(x => x.contatto_id === null);
+
+        res.json({
+            ok: true,
+            webinar_tag: tag,
+            totali,
+            tracciabili,
+            non_tracciabili_count: non_tracciabili.length,
+            coverage_pct: totali > 0 ? Math.round((tracciabili / totali) * 100) : 0,
+            non_tracciabili: non_tracciabili.map(x => ({
+                email: x.email, nome: x.nome, cognome: x.cognome
+            }))
+        });
+    } catch (err) {
+        console.error('[Tracking Check]', err);
+        res.status(500).json({ error: 'Errore server', detail: err.message });
+    }
 });
 
 // POST /api/webinar/send-followup — invia email follow-up a tutti gli iscritti (salta chi ha gia' ricevuto)
