@@ -5594,6 +5594,62 @@ app.get('/webinar-arcara-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-arcara-followup.html'));
 });
 
+app.get('/webinar-tardani-followup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-followup.html'));
+});
+
+// Download PDF appunti webinar con tracking
+const PDF_DOWNLOADS = {
+    'arcara-notes': {
+        file: 'Appunti_Arcara_Sinus_Lift.pdf',
+        campagna: 'ELEVATE_SF_WEBINAR_ARCARA_PDF_DOWNLOAD'
+    },
+    'tardani-notes': {
+        file: 'Appunti_Tardani_Chirurgia_Guidata.pdf',
+        campagna: 'GUIDATA_SF_WEBINAR_TARDANI_PDF_DOWNLOAD'
+    }
+};
+
+app.get('/api/download/:slug', async (req, res) => {
+    const slug = req.params.slug;
+    const info = PDF_DOWNLOADS[slug];
+    if (!info) return res.status(404).send('Not found');
+
+    const filePath = path.join(__dirname, 'public', 'downloads', info.file);
+
+    // Decodifica email da param ?e=base64 e traccia il download (fire-and-forget)
+    try {
+        const eParam = req.query.e;
+        if (eParam) {
+            const email = Buffer.from(String(eParam), 'base64').toString('utf8').trim().toLowerCase();
+            if (email && email.includes('@')) {
+                (async () => {
+                    try {
+                        const r = await pool.query(
+                            'SELECT id FROM crm_contatti WHERE LOWER(email) = LOWER($1) LIMIT 1',
+                            [email]
+                        );
+                        const contattoId = r.rows[0] ? r.rows[0].id : null;
+                        await pool.query(
+                            `INSERT INTO crm_video_tracking
+                             (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
+                             VALUES ($1, $2, $3, 'pdf_download', 0, 0, 100)`,
+                            [contattoId, email, info.campagna]
+                        );
+                        console.log(`[PDF Download] ${info.campagna} - ${email}`);
+                    } catch (e) {
+                        console.error('[PDF Download] tracking error:', e.message);
+                    }
+                })();
+            }
+        }
+    } catch (e) {}
+
+    res.download(filePath, info.file, (err) => {
+        if (err && !res.headersSent) res.status(404).send('File non trovato');
+    });
+});
+
 app.get('/webinar-replay', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-replay.html'));
 });

@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>La Chirurgia Guidata con Magnetic Mallet — OSSEOTOUCH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background: #061220;
+            overflow-x: hidden;
+        }
+
+        .bg-waves {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0; opacity: 0.45;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(6,18,32,0.3) 0%, rgba(6,18,32,0.65) 40%, rgba(6,18,32,0.9) 100%);
+            z-index: 1;
+        }
+        .page-content { position: relative; z-index: 2; }
+
+        .header {
+            padding: 18px 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header img { height: 52px; filter: brightness(0) invert(1); }
+
+        /* Hero */
+        .hero {
+            max-width: 900px;
+            margin: 20px auto 0;
+            padding: 0 40px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 32px; font-weight: 800; line-height: 1.3;
+            margin-bottom: 12px;
+        }
+        .hero h1 .highlight { color: #00b4d8; }
+        .hero p {
+            font-size: 16px; color: #b0bec5; line-height: 1.7;
+        }
+
+        /* Sections container — 2x2 grid layout */
+        .sections {
+            max-width: 1280px;
+            margin: 40px auto 0;
+            padding: 0 40px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 36px;
+            align-items: stretch;
+        }
+
+        /* Video card */
+        .video-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .video-card .card-label { color: #00b4d8; }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            border-radius: 10px;
+        }
+
+        /* Card section */
+        .offer-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 36px 32px;
+            display: flex;
+            gap: 28px;
+            align-items: center;
+            transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+        }
+        .offer-card.clickable {
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+        }
+        .offer-card.clickable:hover {
+            transform: translateY(-3px);
+            border-color: rgba(0, 180, 216, 0.35);
+            box-shadow: 0 10px 40px rgba(0, 180, 216, 0.15);
+        }
+        .offer-card .card-icon {
+            flex-shrink: 0;
+            width: 80px; height: 80px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px;
+        }
+        .offer-card .card-body { flex: 1; }
+        .card-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 6px;
+        }
+        .card-title {
+            font-size: 22px; font-weight: 800; line-height: 1.3;
+            margin-bottom: 8px;
+        }
+        .card-desc {
+            font-size: 15px; color: #b0bec5; line-height: 1.7;
+            margin-bottom: 20px;
+        }
+        .card-details {
+            display: flex; gap: 20px; flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .detail-item {
+            display: flex; align-items: center; gap: 6px;
+            font-size: 14px;
+        }
+        .detail-item .di-icon { font-size: 16px; }
+        .detail-item .di-value { color: #ffffff; font-weight: 600; }
+
+        /* Buttons */
+        .cta-buttons {
+            display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+        }
+
+        .btn-whatsapp {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 14px 24px;
+            background: #25D366; color: #ffffff; border: none;
+            border-radius: 8px; font-size: 14px; font-weight: 700;
+            text-decoration: none; transition: transform 0.2s, box-shadow 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-whatsapp:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(37, 211, 102, 0.35);
+        }
+
+        .btn-email {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 24px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff; border-radius: 8px;
+            font-size: 14px; font-weight: 600;
+            text-decoration: none; transition: transform 0.2s, background 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-email:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.12);
+        }
+
+        .or-text {
+            font-size: 13px; color: #546e7a; font-weight: 500;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 36px 24px 24px;
+            color: #37474f; font-size: 11px;
+        }
+
+        /* Corso card accent */
+        .corso-accent .card-icon { background: rgba(0, 180, 216, 0.12); }
+        .corso-accent .card-label { color: #00b4d8; }
+
+        /* Kit card with image */
+        .kit-image {
+            flex: 0 0 280px;
+            border-radius: 12px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .kit-image img {
+            width: 100%; display: block;
+            border-radius: 12px;
+        }
+
+        /* Responsive */
+        @media (max-width: 960px) {
+            .sections {
+                grid-template-columns: 1fr;
+                max-width: 700px;
+            }
+        }
+        @media (max-width: 700px) {
+            .hero { padding: 0 20px; }
+            .hero h1 { font-size: 24px; }
+            .sections { padding: 0 20px; }
+            .offer-card {
+                flex-direction: column; text-align: center;
+                padding: 28px 22px;
+            }
+            .card-details { justify-content: center; }
+            .cta-buttons { justify-content: center; }
+            .kit-image { flex: none; width: 100%; max-width: 300px; margin: 0 auto; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="page-content">
+
+        <!-- Header -->
+        <div class="header">
+            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+
+        <!-- Hero -->
+        <div class="hero">
+            <h1>LA CHIRURGIA GUIDATA<br>con <span class="highlight">MAGNETIC MALLET</span></h1>
+            <p>
+                Riveda il webinar del Dr. Alessandro Tardani sulla chirurgia guidata con approccio magnetodinamico,
+                iscriviti al corso pratico a Vergiate del 23 maggio e scopra il Kit Dynamic Guided.
+            </p>
+        </div>
+
+        <!-- Sections — 2x2 grid -->
+        <div class="sections">
+
+            <!-- TOP-LEFT: Video del webinar (con tracking watch time) -->
+            <div class="video-card">
+                <div class="card-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;">Rivedi il webinar</div>
+                <div class="card-title" style="font-size:20px;font-weight:800;line-height:1.3;">La Chirurgia Guidata con Magnetic Mallet</div>
+                <div class="video-wrapper">
+                    <div id="ytPlayer"></div>
+                </div>
+                <p style="font-size:14px;color:#b0bec5;line-height:1.6;margin:0;">
+                    Il Dr. Alessandro Tardani illustra il protocollo operativo per la chirurgia guidata: raccolta dati, classificazione delle dime, schema osteotomi Black Ruby adattato e casi clinici con doppio rialzo di seno e approccio flapless.
+                </p>
+            </div>
+
+            <!-- TOP-RIGHT: Corso in presenza (cliccabile) -->
+            <div class="offer-card corso-accent clickable" onclick="window.open('https://www.osseotouch.com/corso-tardani-vergiate-maggio-2026/', '_blank', 'noopener')">
+                <div class="card-icon">&#127891;</div>
+                <div class="card-body">
+                    <div class="card-label">CHIRURGIA GUIDATA LIVE</div>
+                    <div class="card-title">Corso Pratico con il Dr. Tardani</div>
+                    <p class="card-desc">
+                        Giornata teorico-pratica sulla chirurgia guidata con Magnetic Mallet: raccolta dati e diagnosi ossea, progettazione della dima con pin, approccio flapless, rialzo di seno crestale e post-estrattivi.
+                    </p>
+
+                    <div class="card-details">
+                        <div class="detail-item">
+                            <span class="di-icon">&#128197;</span>
+                            <span class="di-value">23 maggio 2026</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="di-icon">&#128205;</span>
+                            <span class="di-value">DMConcept — Vergiate (VA)</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="di-icon">&#9202;</span>
+                            <span class="di-value">9:00 — 18:00</span>
+                        </div>
+                        <div class="detail-item">
+                            <span class="di-icon">&#128176;</span>
+                            <span class="di-value">450 &euro; + IVA</span>
+                        </div>
+                    </div>
+
+                    <div class="cta-buttons">
+                        <a id="wa-corso" href="#" class="btn-whatsapp" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                            WhatsApp
+                        </a>
+                        <a href="mailto:contact@osseotouch.com?subject=Corso%20Chirurgia%20Guidata%20Tardani%2023%20maggio%202026%20-%20Informazioni&body=Buongiorno%2C%20ho%20partecipato%20al%20webinar%20del%20Dr.%20Tardani%20e%20vorrei%20informazioni%20sul%20corso%20pratico%20di%20Vergiate%20del%2023%20maggio%202026." class="btn-email" onclick="event.stopPropagation();">
+                            &#9993;&nbsp; Email
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOTTOM-LEFT: Kit Dynamic Guided (cliccabile) -->
+            <div class="offer-card clickable" onclick="window.open('https://www.osseotouch.com/devices/magnetic-mallet/kit-dynamic-guided/', '_blank', 'noopener')" style="padding: 32px; flex-direction: column; align-items: stretch;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div class="card-label" style="color: #8b5cf6;">STRUMENTARIO PER CHIRURGIA GUIDATA</div>
+                    <div class="card-title" style="font-size: 24px;">Kit Dynamic Guided</div>
+                    <p class="card-desc" style="margin-bottom: 0;">
+                        Lo strumentario dedicato alla chirurgia guidata con Magnetic Mallet. Frese pilota e osteotomi
+                        calibrati per il protocollo con dima, compatibili sia con dime sleeved sia sleeveless.
+                    </p>
+                </div>
+
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <img src="img/kit-dynamic-guided.jpg" alt="Kit Dynamic Guided" style="width: 100%; max-width: 380px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08);">
+                </div>
+
+                <p style="text-align: center; font-size: 15px; color: #b0bec5; line-height: 1.6; margin-bottom: 20px;">
+                    Vuoi saperne di più sul Kit Dynamic Guided?<br>
+                    <strong style="color: #ffffff;">Contattaci per una consulenza personalizzata e scopri come integrarlo nel tuo protocollo.</strong>
+                </p>
+
+                <div class="cta-buttons" style="justify-content: center;">
+                    <a id="wa-kit" href="#" class="btn-whatsapp" target="_blank" rel="noopener" onclick="event.stopPropagation();">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+                        WhatsApp
+                    </a>
+                    <a href="mailto:contact@osseotouch.com?subject=Kit%20Dynamic%20Guided%20-%20Informazioni&body=Buongiorno%2C%20ho%20partecipato%20al%20webinar%20del%20Dr.%20Tardani%20e%20vorrei%20informazioni%20sul%20Kit%20Dynamic%20Guided%20per%20la%20chirurgia%20guidata." class="btn-email" onclick="event.stopPropagation();">
+                        &#9993;&nbsp; Email
+                    </a>
+                </div>
+            </div>
+
+            <!-- BOTTOM-RIGHT: Appunti PDF -->
+            <div class="offer-card" style="padding: 0; overflow: hidden;">
+                <div style="display: flex; gap: 24px; align-items: center; width: 100%; flex-wrap: wrap;">
+                    <!-- Preview copertina PDF -->
+                    <div style="flex: 0 0 280px; padding: 20px;">
+                        <img id="img-download-notes" src="img/appunti-tardani-cover.jpg" alt="Copertina Appunti Tardani" style="width: 100%; border-radius: 12px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); cursor: pointer; transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.02)'" onmouseout="this.style.transform='scale(1)'">
+                    </div>
+                    <!-- Descrizione e CTA -->
+                    <div style="flex: 1; padding: 32px 28px 32px 0; min-width: 300px;">
+                        <div class="card-label" style="color: #00b4d8;">MATERIALE DIDATTICO</div>
+                        <div class="card-title">Appunti di Implantologia Magnetodinamica</div>
+                        <p class="card-desc">
+                            Tutti i concetti chiave del webinar Tardani raccolti in un PDF completo:
+                            classificazione delle dime, schema osteotomi Black Ruby nel protocollo guidato,
+                            valutazione densità ossea, casi clinici con flapless e doppio rialzo di seno.
+                        </p>
+                        <div class="cta-buttons">
+                            <a id="btn-download-notes" href="#" class="btn-whatsapp" style="background: linear-gradient(135deg, #00b4d8, #0077b6);">
+                                &#11015;&nbsp; Scarica il PDF
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Webinar Arcara (extra content) -->
+        <div style="max-width: 1280px; margin: 40px auto 0; padding: 0 40px;">
+            <div class="offer-card" style="flex-direction: column; align-items: stretch;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div class="card-label" style="color: #8b5cf6;">WEBINAR PRECEDENTE</div>
+                    <div class="card-title" style="font-size: 24px;">Ti sei perso il webinar del Dr. Arcara su sinus lift e carico immediato?</div>
+                    <p style="font-size: 16px; color: #b0bec5; line-height: 1.7; margin: 12px 0 0 0;">
+                        Eccolo qui
+                    </p>
+                </div>
+
+                <div style="max-width: 700px; margin: 0 auto; width: 100%;">
+                    <p style="font-size: 15px; color: #b0bec5; line-height: 1.7; margin-bottom: 24px; text-align: center;">
+                        Il Dr. Carlo Arcara illustra il protocollo operativo per il rialzo del seno mascellare con tecnica magnetodinamica, i criteri per il carico immediato e l'utilizzo del Kit Elevate.
+                    </p>
+                    <div class="video-wrapper">
+                        <div id="ytPlayerArcara"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Webinar Malavasi (extra content) -->
+        <div style="max-width: 1280px; margin: 40px auto 0; padding: 0 40px;">
+            <div class="offer-card" style="flex-direction: column; align-items: stretch;">
+                <div style="text-align: center; margin-bottom: 24px;">
+                    <div class="card-label" style="color: #8b5cf6;">WEBINAR PRECEDENTE</div>
+                    <div class="card-title" style="font-size: 24px;">Ti sei perso il webinar del Dr. Malavasi sugli impianti pterigoidei e magnetodinamica?</div>
+                    <p style="font-size: 16px; color: #b0bec5; line-height: 1.7; margin: 12px 0 0 0;">
+                        Eccolo qui
+                    </p>
+                </div>
+
+                <div style="max-width: 700px; margin: 0 auto; width: 100%;">
+                    <p style="font-size: 15px; color: #b0bec5; line-height: 1.7; margin-bottom: 24px; text-align: center;">
+                        Il Dr. Andrea Malavasi illustra la tecnica degli impianti pterigoidei con approccio magnetodinamico mini-invasivo per casi di atrofia mascellare severa.
+                    </p>
+                    <div class="video-wrapper">
+                        <div id="ytPlayerMalavasi"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </div>
+
+    </div>
+
+    <script>
+    (function() {
+        // === WhatsApp links (numero aziendale unico) ===
+        var params = new URLSearchParams(window.location.search);
+        var numero = '393277947530';
+
+        var corsoMsg = encodeURIComponent('Buongiorno, ho partecipato al webinar del Dr. Tardani e vorrei informazioni sul corso pratico di Vergiate del 23 maggio 2026.');
+        var kitMsg = encodeURIComponent('Buongiorno, ho partecipato al webinar del Dr. Tardani e vorrei informazioni sul Kit Dynamic Guided per la chirurgia guidata.');
+
+        var waCorso = document.getElementById('wa-corso');
+        if (waCorso) waCorso.href = 'https://wa.me/' + numero + '?text=' + corsoMsg;
+
+        var waKit = document.getElementById('wa-kit');
+        if (waKit) waKit.href = 'https://wa.me/' + numero + '?text=' + kitMsg;
+
+        // Download PDF with tracking
+        function downloadPDF() {
+            var eParam = params.get('e') || '';
+            window.location.href = '/api/download/tardani-notes?e=' + eParam;
+        }
+
+        var btnDownload = document.getElementById('btn-download-notes');
+        if (btnDownload) {
+            btnDownload.addEventListener('click', function(e) {
+                e.preventDefault();
+                downloadPDF();
+            });
+        }
+
+        var imgDownload = document.getElementById('img-download-notes');
+        if (imgDownload) {
+            imgDownload.addEventListener('click', function() {
+                downloadPDF();
+            });
+        }
+
+        // === Video Tracking (YouTube IFrame API) ===
+        var VIDEO_ID_TARDANI = 'l_uBttTjEDI';
+        var VIDEO_ID_ARCARA = 'N8hC0C9uI1o';
+        var VIDEO_ID_MALAVASI = '5XDL-o6Uekw';
+        var CAMPAGNA_TARDANI = 'GUIDATA_SF_WEBINAR_TARDANI_REC';
+        var CAMPAGNA_ARCARA = 'ELEVATE_SF_WEBINAR_ARCARA_REC_FROM_TARDANI';
+        var CAMPAGNA_MALAVASI = 'PT1_SF_WEBINAR_MALAVASI_REC_FROM_TARDANI';
+        var trackingEmail = null;
+        var ytPlayerTardani = null;
+        var ytPlayerArcara = null;
+        var ytPlayerMalavasi = null;
+        var trackingIntervalTardani = null;
+        var trackingIntervalArcara = null;
+        var trackingIntervalMalavasi = null;
+
+        // Decode email from base64 param
+        try {
+            var eParam = params.get('e');
+            if (eParam) trackingEmail = atob(eParam).trim().toLowerCase();
+        } catch(ex) {}
+
+        // Track followup page open (if email present)
+        if (trackingEmail) {
+            fetch('/api/video-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_TARDANI, evento: 'landing_open',
+                    secondi_visti: 0, durata_totale: 0, percentuale: 0
+                })
+            }).catch(function(){});
+        }
+
+        function inviaVideoEvento(campagna, evento, secondi, durata, pct) {
+            if (!trackingEmail) return;
+            try {
+                fetch('/api/video-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: trackingEmail, campagna: campagna, evento: evento,
+                        secondi_visti: secondi || 0, durata_totale: durata || 0, percentuale: pct || 0
+                    })
+                });
+            } catch(e) {}
+        }
+
+        // Load YouTube IFrame API
+        var ytTag = document.createElement('script');
+        ytTag.src = 'https://www.youtube.com/iframe_api';
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(ytTag, firstScript);
+
+        window.onYouTubeIframeAPIReady = function() {
+            // Player Tardani (primario)
+            ytPlayerTardani = new YT.Player('ytPlayer', {
+                videoId: VIDEO_ID_TARDANI,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': function(e) { onYTStateChange(e, 'tardani'); } }
+            });
+
+            // Player Arcara (webinar precedente)
+            ytPlayerArcara = new YT.Player('ytPlayerArcara', {
+                videoId: VIDEO_ID_ARCARA,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': function(e) { onYTStateChange(e, 'arcara'); } }
+            });
+
+            // Player Malavasi (webinar precedente)
+            ytPlayerMalavasi = new YT.Player('ytPlayerMalavasi', {
+                videoId: VIDEO_ID_MALAVASI,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': function(e) { onYTStateChange(e, 'malavasi'); } }
+            });
+        };
+
+        function getPlayerCtx(playerType) {
+            if (playerType === 'tardani') return { player: ytPlayerTardani, campagna: CAMPAGNA_TARDANI, interval: trackingIntervalTardani };
+            if (playerType === 'arcara') return { player: ytPlayerArcara, campagna: CAMPAGNA_ARCARA, interval: trackingIntervalArcara };
+            return { player: ytPlayerMalavasi, campagna: CAMPAGNA_MALAVASI, interval: trackingIntervalMalavasi };
+        }
+
+        function onYTStateChange(event, playerType) {
+            var ctx = getPlayerCtx(playerType);
+            var player = ctx.player;
+            var campagna = ctx.campagna;
+            var interval = ctx.interval;
+
+            if (!player || !player.getCurrentTime) return;
+            var secondi = Math.floor(player.getCurrentTime());
+            var durata = Math.floor(player.getDuration());
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaVideoEvento(campagna, 'play', secondi, durata, pct);
+                if (!interval) {
+                    var newInterval = setInterval(function() {
+                        if (player && player.getPlayerState && player.getPlayerState() === YT.PlayerState.PLAYING) {
+                            var s = Math.floor(player.getCurrentTime());
+                            var d = Math.floor(player.getDuration());
+                            var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                            inviaVideoEvento(campagna, 'progress', s, d, p);
+                        }
+                    }, 5000);
+                    if (playerType === 'tardani') trackingIntervalTardani = newInterval;
+                    else if (playerType === 'arcara') trackingIntervalArcara = newInterval;
+                    else trackingIntervalMalavasi = newInterval;
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                inviaVideoEvento(campagna, 'pause', secondi, durata, pct);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                inviaVideoEvento(campagna, 'ended', durata, durata, 100);
+                if (interval) {
+                    clearInterval(interval);
+                    if (playerType === 'tardani') trackingIntervalTardani = null;
+                    else if (playerType === 'arcara') trackingIntervalArcara = null;
+                    else trackingIntervalMalavasi = null;
+                }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (ytPlayerTardani && ytPlayerTardani.getCurrentTime) {
+                var s = Math.floor(ytPlayerTardani.getCurrentTime());
+                var d = Math.floor(ytPlayerTardani.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_TARDANI, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+            if (ytPlayerArcara && ytPlayerArcara.getCurrentTime) {
+                var s = Math.floor(ytPlayerArcara.getCurrentTime());
+                var d = Math.floor(ytPlayerArcara.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_ARCARA, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+            if (ytPlayerMalavasi && ytPlayerMalavasi.getCurrentTime) {
+                var s = Math.floor(ytPlayerMalavasi.getCurrentTime());
+                var d = Math.floor(ytPlayerMalavasi.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_MALAVASI, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
