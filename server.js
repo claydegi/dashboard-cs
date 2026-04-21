@@ -11641,6 +11641,47 @@ app.delete('/api/shop/orders/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// ==================== TEMP: wipe test orders (RIMUOVERE DOPO L'USO) ====================
+app.post('/api/shop/admin/wipe-test-orders-TMP', async (req, res) => {
+    const EXPECTED_TOKEN = '06c2ee775ff4ad9b60d1c9defafe4222';
+    const { token, order_numbers } = req.body || {};
+    if (token !== EXPECTED_TOKEN) return res.status(403).json({ error: 'forbidden' });
+    if (!Array.isArray(order_numbers) || order_numbers.length === 0 || order_numbers.length > 20) {
+        return res.status(400).json({ error: 'order_numbers must be array of 1..20 items' });
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const sel = await client.query(
+            `SELECT order_number, buyer_contact_name, total_gross, status, created_at
+             FROM shop_orders WHERE order_number = ANY($1) ORDER BY order_number`,
+            [order_numbers]
+        );
+        const delItems = await client.query(
+            `DELETE FROM shop_order_items WHERE order_id IN
+             (SELECT id FROM shop_orders WHERE order_number = ANY($1))`,
+            [order_numbers]
+        );
+        const del = await client.query(
+            `DELETE FROM shop_orders WHERE order_number = ANY($1)`,
+            [order_numbers]
+        );
+        await client.query('COMMIT');
+        res.json({
+            success: true,
+            preview: sel.rows,
+            items_deleted: delItems.rowCount,
+            orders_deleted: del.rowCount
+        });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[wipe-test-orders] error:', err);
+        res.status(500).json({ error: err.message });
+    } finally {
+        client.release();
+    }
+});
+
 // ==================== AVVIO SERVER ====================
 
 async function start() {
