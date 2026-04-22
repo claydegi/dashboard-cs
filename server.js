@@ -220,7 +220,7 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
     if (templateName === 'WEBINAR_CONFERMA') subject = data.subject_conferma;
     else if (templateName === 'WEBINAR_FOLLOWUP') subject = data.subject_followup;
     else if (templateName === 'WEBINAR_INVITO') subject = data.subject_invito;
-    else if (templateName === 'WEBINAR_REPLAY_ACCESSO') subject = data.subject_replay_accesso;
+    else if (templateName.startsWith('WEBINAR_REPLAY_ACCESSO')) subject = data.subject_replay_accesso;
     else subject = data.subject_reminder;
 
     await sendMailgunEmail(to, subject, html, tag);
@@ -5598,6 +5598,10 @@ app.get('/webinar-tardani-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-followup.html'));
 });
 
+app.get('/webinar-tardani-registrazione', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-registrazione.html'));
+});
+
 // Download PDF appunti webinar con tracking
 const PDF_DOWNLOADS = {
     'arcara-notes': {
@@ -6295,6 +6299,156 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
     }
 });
 
+// POST /api/webinar-tardani/access — Accesso registrazione webinar Tardani (PUBBLICA, no auth)
+// Form: nome, cognome, email, cellulare, città, ha_mm (tutti obbligatori)
+// Flusso: salva contatto → registrazione (stesso tag del live WEBINAR_TARDANI_GUIDATA) → redirect a followup landing
+app.post('/api/webinar-tardani/access', async (req, res) => {
+    const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
+
+    if (!nome || !cognome || !email || !cellulare || !citta || !ha_mm) {
+        return res.status(400).json({ error: 'Nome, cognome, email, cellulare, città e Magnetic Mallet sono obbligatori' });
+    }
+
+    const emailClean = email.trim().toLowerCase();
+    const nomeClean = nome.trim();
+    const cognomeClean = cognome.trim();
+    const cellulareClean = cellulare.trim().replace(/\s+/g, '');
+    const cittaClean = citta.trim().toUpperCase();
+    const dichiaraMM = (ha_mm === 'si');
+
+    const WEBINAR_TAG = 'WEBINAR_TARDANI_GUIDATA';
+    const FONTE = 'webinar_registrazione';
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 1. Anti-duplicato
+        const giaRegistrato = await client.query(
+            'SELECT id FROM crm_webinar_registrazioni WHERE webinar_tag = $1 AND LOWER(email) = $2',
+            [WEBINAR_TAG, emailClean]
+        );
+        if (giaRegistrato.rows.length > 0) {
+            await client.query('COMMIT');
+            return res.json({ ok: true, azione: 'gia_registrato', messaggio: 'Accesso confermato' });
+        }
+
+        // 2. Cerca contatto esistente
+        const existing = await client.query(
+            'SELECT id, tipo, cellulare, citta FROM crm_contatti WHERE LOWER(email) = $1',
+            [emailClean]
+        );
+
+        let contattoId;
+        let azione = 'accesso_recording';
+        const oggi = new Date().toISOString().split('T')[0];
+
+        if (existing.rows.length > 0) {
+            const contatto = existing.rows[0];
+            contattoId = contatto.id;
+            const tipo = contatto.tipo || 'lead';
+
+            if (cellulareClean && !contatto.cellulare) {
+                await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]);
+            }
+            if (!contatto.citta && cittaClean) {
+                const regioneLookup = lookupRegione(cittaClean);
+                await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, regioneLookup, contattoId]);
+            }
+
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+                const haMMnelDB = await client.query(
+                    "SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'",
+                    [contattoId]
+                );
+                if (haMMnelDB.rows.length === 0) {
+                    await client.query(
+                        "INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, 'MM', $2, $3)",
+                        [contattoId, oggi, FONTE]
+                    );
+                }
+                azione = 'accesso_recording_promosso';
+            }
+        } else {
+            // Nuovo contatto con ID negativo (pattern dashboard)
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            const newId = Math.min(minId.rows[0].min_id, 0) - 1;
+            contattoId = newId;
+
+            const regioneLookup = lookupRegione(cittaClean);
+            const tipoIniziale = dichiaraMM ? 'account' : 'lead';
+
+            await client.query(
+                `INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, tipo, data_inserimento, fonte_sync, score, mercato)
+                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, 0, 'ITALY')`,
+                [newId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regioneLookup, tipoIniziale, oggi, FONTE]
+            );
+
+            // Log per sync push_crm_dashboard.py
+            await client.query(
+                "INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)",
+                [newId, JSON.stringify({
+                    cognome: cognomeClean, nome: nomeClean, email: emailClean,
+                    cellulare: cellulareClean, citta: cittaClean, regione: regioneLookup,
+                    tipo: tipoIniziale, mercato: 'ITALY',
+                    prodotti: dichiaraMM ? ['MM'] : [],
+                    fonte: FONTE
+                })]
+            );
+
+            if (dichiaraMM) {
+                await client.query(
+                    "INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, 'MM', $2, $3)",
+                    [newId, oggi, FONTE]
+                );
+                azione = 'nuovo_account_recording';
+            } else {
+                azione = 'nuovo_lead_recording';
+            }
+        }
+
+        // 3. Salva registrazione
+        await client.query(
+            `INSERT INTO crm_webinar_registrazioni
+             (webinar_tag, contatto_id, email, nome, cognome, citta, ha_mm, azione)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [WEBINAR_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, ha_mm, azione]
+        );
+
+        // 4. Score +30 per accesso recording (linea GUIDATA per account, GENERICO per lead)
+        const tipoFinale = await client.query('SELECT tipo FROM crm_contatti WHERE id = $1', [contattoId]);
+        const lineaScore = (tipoFinale.rows[0].tipo === 'account') ? 'GUIDATA' : 'GENERICO';
+        await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, 'accesso_webinar_recording', 30, $3)`,
+            [contattoId, lineaScore, oggi]
+        );
+
+        await client.query('COMMIT');
+        console.log(`[Webinar Tardani REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId}, azione=${azione})`);
+
+        // 5. Invio email con link alla registrazione (fire-and-forget)
+        sendWebinarEmail('WEBINAR_REPLAY_ACCESSO_TARDANI', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+            .then(async () => {
+                try {
+                    await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE LOWER(email) = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
+                    console.log(`[Webinar Tardani REC] Email recording inviata a ${emailClean}`);
+                } catch (e) { console.error(`[Webinar Tardani REC] Errore update followup_inviato:`, e.message); }
+            })
+            .catch(err => console.error(`[Webinar Tardani REC] Errore invio email recording a ${emailClean}:`, err.message));
+
+        res.json({ ok: true, azione: 'accesso_confermato', messaggio: 'Accesso alla registrazione confermato' });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error(`[Webinar Tardani REC] Errore accesso:`, err);
+        res.status(500).json({ error: 'Errore durante la registrazione. Riprova tra qualche istante.' });
+    } finally {
+        client.release();
+    }
+});
+
 // DELETE /api/webinar-arcara/cleanup-test — Cancella registrazioni test con tag _REC (TEMPORANEO)
 app.delete('/api/webinar-arcara/cleanup-test', requireAdmin, async (req, res) => {
     const client = await pool.connect();
@@ -6707,9 +6861,9 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
             SELECT
                 r.webinar_tag,
                 COUNT(DISTINCT LOWER(r.email))::int AS totale,
-                COUNT(DISTINCT CASE WHEN r.azione IN ('nuovo_account', 'nuovo_lead') THEN LOWER(r.email) END)::int AS nuovi,
-                COUNT(DISTINCT CASE WHEN r.azione = 'nuovo_lead' THEN LOWER(r.email) END)::int AS nuovi_lead,
-                COUNT(DISTINCT CASE WHEN r.azione = 'nuovo_account' THEN LOWER(r.email) END)::int AS nuovi_account,
+                COUNT(DISTINCT CASE WHEN r.azione IN ('nuovo_account', 'nuovo_lead', 'nuovo_account_recording', 'nuovo_lead_recording') THEN LOWER(r.email) END)::int AS nuovi,
+                COUNT(DISTINCT CASE WHEN r.azione IN ('nuovo_lead', 'nuovo_lead_recording') THEN LOWER(r.email) END)::int AS nuovi_lead,
+                COUNT(DISTINCT CASE WHEN r.azione IN ('nuovo_account', 'nuovo_account_recording') THEN LOWER(r.email) END)::int AS nuovi_account,
                 COUNT(DISTINCT CASE WHEN
                     (SELECT tipo FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1) = 'lead' THEN LOWER(r.email) END)::int AS lead,
                 COUNT(DISTINCT CASE WHEN

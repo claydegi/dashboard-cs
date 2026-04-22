@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webinar Dr. Tardani — Chirurgia Guidata con Magnetic Mallet</title>
+    <meta name="description" content="Accedi alla registrazione del webinar del Dr. Alessandro Tardani: Chirurgia Guidata con Magnetic Mallet. Ora disponibile online.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Meta Pixel -->
+    <script>
+      !function(f,b,e,v,n,t,s)
+      {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+      n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+      if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+      n.queue=[];t=b.createElement(e);t.async=!0;
+      t.src=v;s=b.getElementsByTagName(e)[0];
+      s.parentNode.insertBefore(t,s)}(window, document,'script',
+      'https://connect.facebook.net/en_US/fbevents.js');
+      fbq('init', '1120409049346037');
+      fbq('track', 'PageView');
+    </script>
+    <noscript><img height="1" width="1" style="display:none"
+      src="https://www.facebook.com/tr?id=1120409049346037&ev=PageView&noscript=1"/></noscript>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html, body { font-family: 'Inter', 'Segoe UI', Arial, sans-serif; }
+        body {
+            background: #061220;
+            color: #e8edf2;
+            min-height: 100vh;
+            line-height: 1.6;
+        }
+        .bg-overlay {
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(ellipse at top, rgba(139, 92, 246, 0.12), transparent 55%),
+                        radial-gradient(ellipse at bottom right, rgba(26, 158, 143, 0.10), transparent 60%);
+            z-index: 0;
+            pointer-events: none;
+        }
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 24px 60px;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            padding: 20px 0 40px;
+        }
+        .header img {
+            max-width: 200px;
+            height: auto;
+        }
+
+        /* Speaker Section */
+        .speaker-section {
+            background: linear-gradient(135deg, rgba(17, 22, 32, 0.8), rgba(10, 15, 25, 0.8));
+            border: 1px solid rgba(139, 92, 246, 0.2);
+            border-radius: 16px;
+            padding: 36px;
+            margin-bottom: 32px;
+            backdrop-filter: blur(10px);
+        }
+        .speaker-card {
+            display: flex;
+            gap: 28px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .speaker-photo img {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #8b5cf6;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.3);
+        }
+        .speaker-text { flex: 1; min-width: 280px; }
+        .speaker-text h1 {
+            font-size: 30px;
+            font-weight: 700;
+            line-height: 1.25;
+            margin-bottom: 8px;
+        }
+        .speaker-text h1 .highlight {
+            color: #8b5cf6;
+        }
+        .webinar-subtitle {
+            font-size: 18px;
+            color: #b0bec5;
+            margin-bottom: 12px;
+        }
+        .badge-online {
+            display: inline-block;
+            background: rgba(139, 92, 246, 0.15);
+            color: #a78bfa;
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 12px;
+        }
+        .speaker-bio {
+            font-size: 14px;
+            color: #94a3b8;
+            line-height: 1.6;
+        }
+
+        /* Learn Section */
+        .learn-section { margin-bottom: 36px; }
+        .learn-title {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 24px;
+        }
+        .learn-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+        }
+        .learn-item {
+            background: rgba(17, 22, 32, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 12px;
+            padding: 22px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .learn-icon {
+            flex-shrink: 0;
+            width: 44px; height: 44px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 22px;
+            background: rgba(139, 92, 246, 0.15);
+        }
+        .learn-item h3 {
+            font-size: 16px;
+            font-weight: 600;
+            margin-bottom: 6px;
+            color: #ffffff;
+        }
+        .learn-item p {
+            font-size: 14px;
+            color: #94a3b8;
+        }
+
+        /* Form */
+        .form-container {
+            background: linear-gradient(135deg, rgba(17, 22, 32, 0.9), rgba(10, 15, 25, 0.9));
+            border: 1px solid rgba(139, 92, 246, 0.25);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 720px;
+            margin: 0 auto 36px;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+        }
+        .form-title {
+            font-size: 26px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 6px;
+        }
+        .form-subtitle {
+            font-size: 15px;
+            color: #94a3b8;
+            text-align: center;
+            margin-bottom: 26px;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 6px;
+        }
+        .required { color: #f87171; }
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            background: rgba(6, 18, 32, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            padding: 12px 14px;
+            color: #e8edf2;
+            font-size: 15px;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #8b5cf6;
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+        }
+        .form-group input::placeholder { color: #64748b; }
+        .btn-submit {
+            width: 100%;
+            background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+            color: #ffffff;
+            border: none;
+            border-radius: 10px;
+            padding: 18px 32px;
+            font-size: 17px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.15s, box-shadow 0.15s, opacity 0.15s;
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.35);
+        }
+        .btn-submit:hover:not(:disabled) {
+            transform: translateY(-1px);
+            box-shadow: 0 12px 32px rgba(139, 92, 246, 0.45);
+        }
+        .btn-submit:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .error-message {
+            display: none;
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            color: #fca5a5;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-bottom: 18px;
+        }
+        .success-message {
+            display: none;
+            text-align: center;
+            padding: 30px 20px;
+        }
+        .success-message .check-icon {
+            font-size: 56px;
+            margin-bottom: 12px;
+        }
+        .success-message h2 {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #8b5cf6;
+        }
+        .success-message p { color: #94a3b8; font-size: 15px; }
+
+        .privacy-note {
+            font-size: 12px;
+            color: #64748b;
+            text-align: center;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        /* Descrizione */
+        .description-section {
+            max-width: 820px;
+            margin: 0 auto 36px;
+            padding: 0 8px;
+        }
+        .description-text {
+            font-size: 15px;
+            color: #b0bec5;
+            line-height: 1.8;
+            text-align: center;
+        }
+
+        /* Footer */
+        .footer {
+            text-align: center;
+            padding: 24px 0 8px;
+            color: #475569;
+            font-size: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .form-row { grid-template-columns: 1fr; }
+            .form-container { padding: 28px 20px; }
+            .speaker-section { padding: 24px; }
+            .speaker-card { gap: 20px; }
+            .speaker-text h1 { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+    <div class="bg-overlay"></div>
+
+    <div class="container">
+
+        <!-- Header -->
+        <header class="header">
+            <img src="/img/logo-dark-bg.png" alt="Osseotouch" width="200" height="52">
+        </header>
+
+        <!-- Speaker -->
+        <section class="speaker-section">
+            <div class="speaker-card">
+                <div class="speaker-photo">
+                    <img src="/img/dr-tardani.jpg" alt="Dr. Alessandro Tardani" width="120" height="120">
+                </div>
+                <div class="speaker-text">
+                    <span class="badge-online">&#128187;&nbsp; Ora disponibile online</span>
+                    <h1>
+                        <span class="highlight">Dr. Alessandro Tardani</span><br>
+                        La chirurgia guidata con Magnetic Mallet
+                    </h1>
+                    <p class="webinar-subtitle">Protocollo operativo, dima, osteotomi e casi clinici</p>
+                    <p class="speaker-bio">
+                        Specialista in implantologia e chirurgia guidata. Referente clinico nazionale
+                        per l'integrazione della chirurgia guidata con il protocollo magnetodinamico.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Cosa imparerai -->
+        <section class="learn-section">
+            <h2 class="learn-title">Magnetodinamica + chirurgia guidata: cosa cambia</h2>
+            <div class="learn-grid">
+                <div class="learn-item">
+                    <div class="learn-icon">&#127919;</div>
+                    <div>
+                        <h3>Precisione preservata: dima + vibrazione controllata</h3>
+                        <p>La guidata riduce la discrepanza dal <strong>7-15&deg; a mano libera</strong> a <strong>3-5&deg;</strong>. L'impulso magnetodinamico &egrave; calibrato e compatibile con l'uso in dima: nessun movimento laterale incontrollato, la precisione si mantiene.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon">&#129504;</div>
+                    <div>
+                        <h3>Osseocondensazione al posto della fresatura</h3>
+                        <p>La fresa rotante asporta osso. Gli osteotomi Magnetic Mallet <strong>lo compattano lateralmente</strong>, aumentando densit&agrave; peri-implantare e stabilit&agrave; primaria. Decisivo nei casi D3/D4 dove la fresa tradizionale fa perdere stabilit&agrave;.</p>
+                    </div>
+                </div>
+                <div class="learn-item">
+                    <div class="learn-icon">&#128105;&#8205;&#9877;&#65039;</div>
+                    <div>
+                        <h3>Mini-rialzi di seno contestuali + flapless</h3>
+                        <p>Solo l'integrazione dima + osteotomi MM permette il rialzo di seno <strong>nella stessa seduta guidata</strong>, in modalit&agrave; flapless. Compressione apicale controllata, membrana preservata, post-operatorio ridotto.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Form -->
+        <section>
+            <div class="form-container">
+                <h2 class="form-title">Accedi alla Registrazione</h2>
+                <p class="form-subtitle">Compila il modulo per accedere subito al webinar completo</p>
+
+                <div class="error-message" id="errorMsg"></div>
+
+                <form id="webinarForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="nome">Nome <span class="required">*</span></label>
+                            <input type="text" id="nome" name="nome" placeholder="Il tuo nome" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cognome">Cognome <span class="required">*</span></label>
+                            <input type="text" id="cognome" name="cognome" placeholder="Il tuo cognome" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" placeholder="La tua email professionale" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="cellulare">Cellulare <span class="required">*</span></label>
+                        <input type="tel" id="cellulare" name="cellulare" placeholder="Es. 339 1234567" required>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="citta">Citt&agrave; <span class="required">*</span></label>
+                            <input type="text" id="citta" name="citta" placeholder="La tua citt&agrave;" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="ha_mm">Hai il Magnetic Mallet? <span class="required">*</span></label>
+                            <select id="ha_mm" name="ha_mm" required>
+                                <option value="" disabled selected>Seleziona...</option>
+                                <option value="si">S&igrave;</option>
+                                <option value="no">No</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn-submit" id="btnSubmit">Accedi alla registrazione</button>
+
+                    <p class="privacy-note">
+                        Proseguendo accetti di ricevere comunicazioni relative a questo webinar e ai prodotti OSSEOTOUCH.
+                        I tuoi dati saranno trattati nel rispetto del GDPR.
+                    </p>
+                </form>
+
+                <div class="success-message" id="successMsg">
+                    <div class="check-icon">&#9989;</div>
+                    <h2>Accesso confermato!</h2>
+                    <p>Ti stiamo reindirizzando alla registrazione del webinar...</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Descrizione -->
+        <section class="description-section">
+            <p class="description-text">
+                La chirurgia guidata con il Magnetic Mallet unisce la precisione della pianificazione digitale alla
+                delicatezza dell'impulso magnetodinamico: niente vibrazioni rotazionali, meno stress sull'osso,
+                maggior controllo nei casi complessi. Il Dr. Tardani mostra il suo protocollo completo su casi reali.
+            </p>
+        </section>
+
+        <footer class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </footer>
+
+    </div>
+
+    <script>
+    (function() {
+        const API_BASE = 'https://app.osseotouch.com';
+        const form = document.getElementById('webinarForm');
+        const errorMsg = document.getElementById('errorMsg');
+        const successMsg = document.getElementById('successMsg');
+        const btnSubmit = document.getElementById('btnSubmit');
+
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            errorMsg.style.display = 'none';
+            btnSubmit.disabled = true;
+            btnSubmit.textContent = 'Invio in corso...';
+
+            const data = {
+                nome: document.getElementById('nome').value.trim(),
+                cognome: document.getElementById('cognome').value.trim(),
+                email: document.getElementById('email').value.trim().toLowerCase(),
+                cellulare: document.getElementById('cellulare').value.trim(),
+                citta: document.getElementById('citta').value.trim().toUpperCase(),
+                ha_mm: document.getElementById('ha_mm').value
+            };
+
+            if (!data.nome || !data.cognome || !data.email || !data.cellulare || !data.citta || !data.ha_mm) {
+                errorMsg.textContent = 'Compila tutti i campi obbligatori.';
+                errorMsg.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Accedi alla registrazione';
+                return;
+            }
+
+            try {
+                const resp = await fetch(API_BASE + '/api/webinar-tardani/access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await resp.json();
+
+                if (resp.ok) {
+                    // Meta Pixel
+                    if (typeof fbq === 'function') {
+                        fbq('track', 'Lead', {
+                            content_name: 'Webinar Tardani Registrazione',
+                            content_category: 'webinar_recording_access'
+                        });
+                    }
+
+                    form.style.display = 'none';
+                    successMsg.style.display = 'block';
+
+                    const emailBase64 = btoa(data.email);
+                    setTimeout(function() {
+                        window.location.href = API_BASE + '/webinar-tardani-followup?e=' + emailBase64;
+                    }, 800);
+                } else {
+                    errorMsg.textContent = result.error || 'Errore durante la registrazione. Riprova.';
+                    errorMsg.style.display = 'block';
+                    btnSubmit.disabled = false;
+                    btnSubmit.textContent = 'Accedi alla registrazione';
+                }
+            } catch (err) {
+                errorMsg.textContent = 'Errore di connessione. Riprova tra qualche istante.';
+                errorMsg.style.display = 'block';
+                btnSubmit.disabled = false;
+                btnSubmit.textContent = 'Accedi alla registrazione';
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
