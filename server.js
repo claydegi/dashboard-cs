@@ -7037,6 +7037,30 @@ app.get('/api/webinar/registrants/latest', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/crm/score-manuali/delete — rimuove righe da crm_score_manuali (per cleanup test)
+app.post('/api/crm/score-manuali/delete', requireAdmin, async (req, res) => {
+    const { email, tipo_attivita, data_evento } = req.body;
+    if (!email || !tipo_attivita) {
+        return res.status(400).json({ error: 'email e tipo_attivita obbligatori' });
+    }
+    try {
+        const params = [email.toLowerCase().trim(), tipo_attivita];
+        let sql = `DELETE FROM crm_score_manuali
+                   WHERE contatto_id = (SELECT id FROM crm_contatti WHERE LOWER(email) = $1 LIMIT 1)
+                     AND tipo_attivita = $2`;
+        if (data_evento) {
+            sql += ' AND data_evento = $3';
+            params.push(data_evento);
+        }
+        const result = await pool.query(sql, params);
+        console.log(`[Score Manuali Delete] ${email} / ${tipo_attivita}: rimosse ${result.rowCount} righe`);
+        res.json({ ok: true, rimosse: result.rowCount });
+    } catch (err) {
+        console.error('[Score Manuali Delete]', err);
+        res.status(500).json({ error: 'Errore server', detail: err.message });
+    }
+});
+
 // POST /api/webinar/registrants/delete — rimuove una registrazione webinar per email
 app.post('/api/webinar/registrants/delete', requireAdmin, async (req, res) => {
     const email = (req.body.email || '').toLowerCase().trim();
