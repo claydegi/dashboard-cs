@@ -129,8 +129,8 @@ function formatMeseAnnoIt(dateStr) {
 // sono quelli del customer service OSSEOTOUCH (non di Kim o Detto).
 // Cellulari Kim/Detto da popolare dall'imprenditore (per ora placeholder → bottone WA nascosto).
 const REFERENTE_META = {
-    kim:   { nome: 'Kim Agnello',   email: 'kagnello@osseotouch.com', cellulare: '',              iniziali: 'KA' },
-    detto: { nome: 'Massimo Detto', email: 'mdetto@osseotouch.com',   cellulare: '',              iniziali: 'MD' },
+    kim:   { nome: 'Kim Agnello',   email: 'kagnello@osseotouch.com', cellulare: '+39 338 7351260', iniziali: 'KA' },
+    detto: { nome: 'Massimo Detto', email: 'mdetto@osseotouch.com',   cellulare: '+39 334 9049883', iniziali: 'MD' },
     admin: { nome: 'Customer Service OSSEOTOUCH', email: 'contact@osseotouch.com', cellulare: '+39 327 794 7530', iniziali: 'CS' },
 };
 

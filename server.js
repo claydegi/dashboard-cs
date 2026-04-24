@@ -141,15 +141,15 @@ const WEBINAR_DATA = {
  * @param {string} html - body HTML
  * @param {string} tag - tag Mailgun per tracking
  */
-async function sendMailgunEmail(to, subject, html, tag) {
+async function sendMailgunEmail(to, subject, html, tag, fromOverride) {
     if (!CONFIG.MAILGUN_API_KEY) {
         console.warn('[Mailgun] API key non configurata — email non inviata');
-        return;
+        return { ok: false, error: 'MAILGUN_API_KEY non configurata' };
     }
     try {
         const url = `${CONFIG.MAILGUN_BASE_URL}/${CONFIG.MAILGUN_DOMAIN}/messages`;
         const formData = new URLSearchParams();
-        formData.append('from', CONFIG.MAILGUN_FROM);
+        formData.append('from', fromOverride || CONFIG.MAILGUN_FROM);
         formData.append('to', to);
         formData.append('subject', subject);
         formData.append('html', html);
@@ -168,12 +168,15 @@ async function sendMailgunEmail(to, subject, html, tag) {
 
         if (response.ok) {
             console.log(`[Mailgun] Email inviata a ${to} (tag: ${tag})`);
+            return { ok: true };
         } else {
             const text = await response.text();
             console.error(`[Mailgun] Errore ${response.status}: ${text.substring(0, 200)}`);
+            return { ok: false, error: `HTTP ${response.status}: ${text.substring(0, 200)}` };
         }
     } catch (err) {
         console.error(`[Mailgun] Errore invio a ${to}:`, err.message);
+        return { ok: false, error: err.message };
     }
 }
 
@@ -10746,6 +10749,87 @@ app.post('/api/proposte/:id/riattiva', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/proposte/:id/send-email — invia email al cliente via Mailgun
+// con mittente = mittente_email della proposta (kagnello / mdetto / contact)
+// Template HTML OSSEOTOUCH + link portale. Log evento 'email_inviata'.
+app.post('/api/proposte/:id/send-email', requireAdmin, async (req, res) => {
+    try {
+        const propostaId = parseInt(req.params.id, 10);
+        const proposta = await sutureProposalBuilder.getProposta(propostaId, pool);
+        if (!proposta) return res.status(404).json({ error: 'Proposta non trovata' });
+
+        const clienteEmail = proposta.email;
+        if (!clienteEmail) return res.status(400).json({ error: 'Cliente senza email registrata' });
+
+        // Token portale (lazy-create)
+        const token = await sutureProposalBuilder.getOrCreatePortale(proposta.cliente_id, pool);
+        const portaleUrl = `https://myosseotouch.com/portale/${token}`;
+
+        const nomeCliente = proposta.nome_azienda
+            || [proposta.cognome, proposta.nome].filter(Boolean).join(' ').trim()
+            || 'Gentile Cliente';
+        const saluto = proposta.cognome ? `Gentile Dr. ${proposta.cognome}` : `Gentile ${nomeCliente}`;
+
+        const mittenteEmail = proposta.mittente_email;
+        const mittenteNome = mittenteEmail === 'kagnello@osseotouch.com' ? 'Kim Agnello'
+            : mittenteEmail === 'mdetto@osseotouch.com' ? 'Massimo Detto'
+            : 'Customer Service OSSEOTOUCH';
+        const fromHeader = `${mittenteNome} <${mittenteEmail}>`;
+
+        const messaggio = proposta.messaggio_personale
+            ? `<p style="background:#fbf6ea;padding:14px 18px;border-left:3px solid #1a9e8f;font-style:italic;color:#14243b;">${proposta.messaggio_personale.replace(/\n/g, '<br>')}</p>`
+            : '';
+
+        const html = `<!doctype html>
+<html><body style="font-family:system-ui,-apple-system,sans-serif;max-width:620px;margin:0 auto;padding:24px;background:#fbf6ea;color:#0a1628;">
+  <div style="background:#fffdf7;padding:32px;border-radius:2px;border-top:3px solid #1a9e8f;">
+    <div style="font-family:monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#1a9e8f;margin-bottom:8px;">OSSEOTOUCH · Proposta suture</div>
+    <h1 style="font-family:Georgia,serif;font-weight:400;font-size:28px;margin:0 0 16px;">${saluto},</h1>
+    ${messaggio}
+    <p style="font-size:15px;line-height:1.6;">
+      ho preparato per lei una proposta di riordino suture. Può visualizzarla,
+      modificarla e confermare l'ordine direttamente dal suo portale cliente:
+    </p>
+    <p style="text-align:center;margin:28px 0;">
+      <a href="${portaleUrl}" style="display:inline-block;background:#1a9e8f;color:#fff;text-decoration:none;padding:14px 28px;font-family:Georgia,serif;font-size:17px;border-radius:2px;">Apri il tuo portale →</a>
+    </p>
+    <p style="font-size:13px;color:#6f7580;">Il link è personale e permanente. Può aprirlo quando vuole.</p>
+    <hr style="border:none;border-top:1px solid rgba(10,22,40,0.1);margin:28px 0;">
+    <p style="font-size:13px;color:#6f7580;">
+      Resto a disposizione per qualsiasi chiarimento.<br>
+      Cordiali saluti,<br>
+      <strong style="color:#0a1628;">${mittenteNome}</strong><br>
+      <a href="mailto:${mittenteEmail}" style="color:#0f6d63;">${mittenteEmail}</a>
+    </p>
+  </div>
+  <p style="text-align:center;font-size:11px;color:#6f7580;margin-top:20px;">OSSEOTOUCH · contact@osseotouch.com · +39 327 794 7530</p>
+</body></html>`;
+
+        const result = await sendMailgunEmail(
+            clienteEmail,
+            'Proposta riordino suture · OSSEOTOUCH',
+            html,
+            'suture-proposta',
+            fromHeader
+        );
+
+        if (!result.ok) {
+            return res.status(502).json({ error: 'Invio email fallito: ' + (result.error || 'unknown') });
+        }
+
+        await pool.query(
+            `INSERT INTO proposta_eventi (proposta_id, evento, meta_json)
+             VALUES ($1, 'email_inviata', $2::jsonb)`,
+            [propostaId, JSON.stringify({ to: clienteEmail, from: mittenteEmail })]
+        );
+
+        res.json({ ok: true, sent_to: clienteEmail, from: mittenteEmail, portale_url: portaleUrl });
+    } catch (err) {
+        console.error('[SUTURE] send-email:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/proposte/:id/conferma-manuale
 // Body: { canale: 'whatsapp|telefono|email|altro', note, chi }
 app.post('/api/proposte/:id/conferma-manuale', requireAdmin, async (req, res) => {
@@ -10970,7 +11054,7 @@ app.post('/api/carrelli', async (req, res) => {
     }
 });
 
-// GET /api/carrelli/:token — shop legge draft all'arrivo, marca used_at
+// GET /api/carrelli/:token — shop legge draft all'arrivo, include shipping_address Odoo
 app.get('/api/carrelli/:token', async (req, res) => {
     try {
         const { rows } = await pool.query(
@@ -10985,7 +11069,49 @@ app.get('/api/carrelli/:token', async (req, res) => {
         if (new Date(cart.expires_at) < new Date()) {
             return res.status(410).json({ error: 'Carrello scaduto', expires_at: cart.expires_at });
         }
-        res.json({ ok: true, carrello: cart });
+
+        // Lookup indirizzo Odoo via email del cliente (brief sez. 12: pre-compila checkout)
+        let shipping_address = null;
+        let customer = null;
+        if (cart.cliente_id) {
+            const { rows: ccRows } = await pool.query(
+                `SELECT email, cognome, nome, nome_azienda, telefono, cellulare
+                 FROM crm_contatti WHERE id = $1`,
+                [cart.cliente_id]
+            );
+            if (ccRows.length) {
+                customer = ccRows[0];
+                if (ccRows[0].email && CONFIG.ODOO_API_KEY) {
+                    try {
+                        const uid = await odooAuthenticate();
+                        const partners = await odooExecute(
+                            uid, 'res.partner', 'search_read',
+                            [[['email', '=', ccRows[0].email]]],
+                            { fields: ['id', 'street', 'zip', 'city', 'state_id'], limit: 1 }
+                        );
+                        if (partners && partners.length) {
+                            const p = partners[0];
+                            // state_id è Many2one [id, 'Milano (MI)'] — estraggo sigla 2 lettere
+                            let prov = '';
+                            if (Array.isArray(p.state_id) && p.state_id[1]) {
+                                const m = String(p.state_id[1]).match(/\(([A-Z]{2})\)/);
+                                if (m) prov = m[1];
+                            }
+                            shipping_address = {
+                                street: p.street || '',
+                                zip: p.zip || '',
+                                city: p.city || '',
+                                prov,
+                            };
+                        }
+                    } catch (e) {
+                        console.warn('[SUTURE] Indirizzo Odoo lookup fallito:', e.message);
+                    }
+                }
+            }
+        }
+
+        res.json({ ok: true, carrello: cart, shipping_address, customer });
     } catch (err) {
         console.error('[SUTURE] GET /api/carrelli/:token:', err.message);
         res.status(500).json({ error: err.message });

@@ -348,7 +348,7 @@
             try {
                 const r = await api('/api/proposte', { method: 'POST', body: JSON.stringify(payload) });
                 backdrop.remove();
-                mostraModalLinkGenerato(clienteNome, r.token_portale, payload.mittente_email);
+                mostraModalLinkGenerato(clienteNome, r.token_portale, payload.mittente_email, r.id);
             } catch (err) {
                 alert('Errore salvataggio: ' + err.message);
             }
@@ -356,12 +356,8 @@
     }
 
     // ==================== MODAL LINK GENERATO ====================
-    function mostraModalLinkGenerato(clienteNome, token, mittenteEmail) {
+    function mostraModalLinkGenerato(clienteNome, token, mittenteEmail, propostaId) {
         const portaleUrl = `https://myosseotouch.com/portale/${token}`;
-        const oggetto = encodeURIComponent('Proposta riordino suture · OSSEOTOUCH');
-        const saluto = `Gentile Dr. ${clienteNome.split(' ').slice(-1)[0] || ''},`;
-        const body = encodeURIComponent(`${saluto}\n\nho preparato per lei una proposta di riordino suture che trova al link qui sotto:\n\n${portaleUrl}\n\nPuò visualizzarla, modificarla e confermare l'ordine direttamente dal portale.\n\nResto a disposizione,\n${mittenteEmail}`);
-        const mailto = `mailto:?subject=${oggetto}&body=${body}`;
         const waText = `Le invio la proposta riordino suture: ${portaleUrl}`;
 
         const backdrop = document.createElement('div');
@@ -383,9 +379,10 @@
               </div>
               <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:0 0 8px">Invia al cliente</h3>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
-                <a href="${mailto}" style="padding:14px;background:#0a1628;color:#fff;text-decoration:none;border-radius:2px;text-align:center;font-weight:600;font-size:13px">✉️ Invia email<br><span style="font-size:10px;opacity:0.7;font-family:monospace;letter-spacing:0.08em">da ${esc(mittenteEmail)}</span></a>
+                <button type="button" id="suture-email-btn" style="padding:14px;background:#0a1628;color:#fff;border:none;border-radius:2px;text-align:center;font-weight:600;font-size:13px;cursor:pointer">✉️ Invia email Mailgun<br><span style="font-size:10px;opacity:0.7;font-family:monospace;letter-spacing:0.08em">da ${esc(mittenteEmail)}</span></button>
                 <button type="button" id="suture-wa-btn" style="padding:14px;background:#22c55e;color:#fff;border:none;border-radius:2px;font-weight:600;font-size:13px;cursor:pointer">💬 Copia per WhatsApp<br><span style="font-size:10px;opacity:0.85;font-family:monospace;letter-spacing:0.08em">lo incolli nella chat</span></button>
               </div>
+              <div id="suture-email-status" style="margin-top:10px;font-size:12px;color:#6f7580;text-align:center"></div>
             </div>
             <div style="padding:14px 28px;display:flex;justify-content:flex-end;gap:10px;background:#f5ecd8">
               <a href="${portaleUrl}?mode=rep" target="_blank" style="padding:10px 18px;background:transparent;border:1px solid rgba(10,22,40,0.2);border-radius:2px;text-decoration:none;color:#0a1628;font-weight:600;font-size:13px">Apri anteprima →</a>
@@ -398,6 +395,23 @@
             inp.select(); document.execCommand('copy');
             e.target.textContent = '✓ Copiato';
             setTimeout(() => { e.target.textContent = '📋 Copia'; }, 1500);
+        });
+        backdrop.querySelector('#suture-email-btn').addEventListener('click', async (e) => {
+            const btn = e.currentTarget;
+            const status = backdrop.querySelector('#suture-email-status');
+            btn.disabled = true;
+            status.textContent = 'Invio in corso…';
+            try {
+                const r = await api(`/api/proposte/${propostaId}/send-email`, { method: 'POST' });
+                btn.style.background = '#16a34a';
+                btn.innerHTML = '✓ Email inviata';
+                status.textContent = 'Inviata a ' + (r.sent_to || 'cliente') + ' da ' + (r.from || mittenteEmail);
+            } catch (err) {
+                btn.disabled = false;
+                btn.style.background = '#b91c1c';
+                btn.innerHTML = '⚠ Errore';
+                status.textContent = 'Errore: ' + err.message;
+            }
         });
         backdrop.querySelector('#suture-wa-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(waText).then(() => alert('Testo WhatsApp copiato negli appunti.'));
