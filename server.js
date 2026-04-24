@@ -10956,6 +10956,50 @@ app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/suture/debug-assegnazione/:cliente_id — diagnostica assegnazione sales rep
+// Ritorna tutti gli indicatori usati da resolveSalesRepForCliente per capire
+// perche' il portale mostra un referente invece di un altro.
+app.get('/api/suture/debug-assegnazione/:cliente_id', requireAdmin, async (req, res) => {
+    try {
+        const cliente_id = parseInt(req.params.cliente_id, 10);
+        if (!cliente_id) return res.status(400).json({ error: 'cliente_id non valido' });
+        const { rows: cc } = await pool.query(
+            `SELECT id, cognome, nome, nome_azienda, regione, citta, email
+             FROM crm_contatti WHERE id = $1`,
+            [cliente_id]
+        );
+        if (!cc.length) return res.status(404).json({ error: 'Cliente non trovato' });
+        const cliente = cc[0];
+        const { rows: psr } = await pool.query(
+            `SELECT sales_rep, invoice_user_odoo_name, ultima_fattura_suture_date, last_refresh
+             FROM partner_sales_rep WHERE contatto_id = $1`,
+            [cliente_id]
+        );
+        const regNorm = sutureTargetFinder.normalizeRegion(cliente.regione);
+        const kimRegs = sutureTargetFinder.getRegionsForRep('kim');
+        const dettoRegs = sutureTargetFinder.getRegionsForRep('detto');
+        let daRegione = 'admin';
+        if (kimRegs.includes(regNorm)) daRegione = 'kim';
+        else if (dettoRegs.includes(regNorm)) daRegione = 'detto';
+
+        const finale = psr.length ? psr[0].sales_rep : daRegione;
+        res.json({
+            cliente,
+            da_excel: psr[0] || null,
+            da_regione: {
+                regione_raw: cliente.regione,
+                regione_normalizzata: regNorm,
+                calcolo: daRegione,
+            },
+            assegnazione_finale: finale,
+            priorita_applicata: psr.length ? 'excel (cache partner_sales_rep)' : 'regione (fallback #1)',
+        });
+    } catch (err) {
+        console.error('[SUTURE] debug-assegnazione:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/suture/portale-cliente/:cliente_id/revoca — SOLO admin revoca il portale
 // attivo di un cliente (brief sez. 13: revoca accentrata, su richiesta del rep).
 app.post('/api/suture/portale-cliente/:cliente_id/revoca', requireAdmin, async (req, res) => {
