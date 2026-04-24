@@ -226,31 +226,92 @@ async function refreshPartnerSalesRepCache(pool, odooClient) {
         userByMoveId.set(m.id, Array.isArray(uv) ? uv[1] : null);
     }
 
-    // 5) Pre-filtra partner_id che esistono in crm_contatti.
-    //    SalesForceFree odoo_sync.py importa solo partner con regione attiva + altri filtri,
-    //    quindi non tutti i partner Odoo (soprattutto demo/test/estero) hanno corrispondenza
-    //    in crm_contatti. Senza questo filtro, UPSERT fallisce con FK violation.
-    //    Lezione 2026-04-24: primo run cache ha esposto questa assunzione errata.
+    // 5) Leggi res.partner da Odoo (id, name, email) per i partner_id raccolti.
+    //    partner_id Odoo NON coincide con crm_contatti.id (che e' un PK locale SQLite->Postgres
+    //    generato da SalesForceFree). Il matching corretto e' via email (UNIQUE in schema
+    //    SalesForceFree) o, come fallback, nome normalizzato (nome_azienda / cognome + nome).
+    //    Lezione 2026-04-24: secondo run cache ha esposto questa assunzione (47/47 skippati
+    //    con FK fix, tutti dentisti italiani legittimi ma con id Odoo != id CRM).
     const partnerIds = Array.from(byPartner.keys());
-    const { rows: existingRows } = await pool.query(
-        `SELECT id FROM crm_contatti WHERE id = ANY($1::int[])`,
-        [partnerIds]
+    const odooPartners = await odooClient.execute(
+        uid, 'res.partner', 'read',
+        [partnerIds, ['id', 'name', 'email']],
+        {}
     );
-    const validIds = new Set(existingRows.map(r => r.id));
+    const partnerById = new Map();
+    for (const p of odooPartners) partnerById.set(p.id, p);
 
-    // 6) UPSERT in partner_sales_rep solo per partner mappati
+    // 6) Pre-carica indici di matching da crm_contatti.
+    //    Scan completo una volta; le query successive sono O(1) via Map.
+    const { rows: crmRows } = await pool.query(
+        `SELECT id, email, nome_azienda, cognome, nome FROM crm_contatti WHERE tipo = 'account' OR tipo IS NULL`
+    );
+    const emailIndex = new Map();
+    const nameIndex = new Map();
+    for (const r of crmRows) {
+        if (r.email) {
+            const ek = String(r.email).toLowerCase().trim();
+            if (ek && !emailIndex.has(ek)) emailIndex.set(ek, r.id);
+        }
+        const keys = [];
+        if (r.nome_azienda) keys.push(normalizeNameKey(r.nome_azienda));
+        if (r.cognome) {
+            if (r.nome) {
+                keys.push(normalizeNameKey(`${r.cognome} ${r.nome}`));
+                keys.push(normalizeNameKey(`${r.nome} ${r.cognome}`));
+            }
+            keys.push(normalizeNameKey(r.cognome));
+        }
+        for (const k of keys) {
+            if (k && !nameIndex.has(k)) nameIndex.set(k, r.id);
+        }
+    }
+
+    // 7) Matching partner Odoo -> contatto_id locale + UPSERT
     let processed = 0;
     let updated = 0;
-    let skipped_non_crm = 0;
+    let matched_by_email = 0;
+    let matched_by_name = 0;
+    let skipped_no_match = 0;
     const skipped_samples = [];
     for (const [partnerId, info] of byPartner) {
-        if (!validIds.has(partnerId)) {
-            skipped_non_crm++;
+        const partner = partnerById.get(partnerId);
+        const partnerName = (partner && partner.name) || info.partner_name || null;
+        const partnerEmail = (partner && partner.email) || null;
+
+        let contattoId = null;
+        let matchedBy = null;
+
+        if (partnerEmail) {
+            const ek = String(partnerEmail).toLowerCase().trim();
+            if (ek && emailIndex.has(ek)) {
+                contattoId = emailIndex.get(ek);
+                matchedBy = 'email';
+            }
+        }
+        if (!contattoId && partnerName) {
+            const nk = normalizeNameKey(partnerName);
+            if (nk && nameIndex.has(nk)) {
+                contattoId = nameIndex.get(nk);
+                matchedBy = 'name';
+            }
+        }
+
+        if (!contattoId) {
+            skipped_no_match++;
             if (skipped_samples.length < 5) {
-                skipped_samples.push({ partner_id: partnerId, partner_name: info.partner_name });
+                skipped_samples.push({
+                    partner_id: partnerId,
+                    partner_name: partnerName,
+                    partner_email: partnerEmail,
+                });
             }
             continue;
         }
+
+        if (matchedBy === 'email') matched_by_email++;
+        else matched_by_name++;
+
         const odooUserName = userByMoveId.get(info.move_id) || null;
         const rep = mapOdooUserToRep(odooUserName);
         processed++;
@@ -265,7 +326,7 @@ async function refreshPartnerSalesRepCache(pool, odooClient) {
              WHERE partner_sales_rep.sales_rep IS DISTINCT FROM EXCLUDED.sales_rep
                 OR partner_sales_rep.ultima_fattura_suture_date IS DISTINCT FROM EXCLUDED.ultima_fattura_suture_date
              RETURNING contatto_id`,
-            [partnerId, rep, odooUserName, info.date || null]
+            [contattoId, rep, odooUserName, info.date || null]
         );
         if (res.rowCount > 0) updated++;
     }
@@ -273,11 +334,25 @@ async function refreshPartnerSalesRepCache(pool, odooClient) {
     return {
         processed,
         updated,
-        skipped_non_crm,
+        matched_by_email,
+        matched_by_name,
+        skipped_no_match,
         skipped_samples,
         partners_with_suture: byPartner.size,
         last_refresh: new Date().toISOString(),
     };
+}
+
+// Normalizzazione chiave nome per matching fuzzy: lowercase, rimuovi punteggiatura,
+// collapse whitespace, trim. Ispirata a build_name_keys del mockup Python.
+function normalizeNameKey(s) {
+    if (!s) return '';
+    return String(s)
+        .toLowerCase()
+        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')  // strip diacritics
+        .replace(/[^a-z0-9 ]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
 }
 
 module.exports = {
