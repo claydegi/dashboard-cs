@@ -10,8 +10,10 @@ const PORT = process.env.PORT || 3000;
 
 // Configurazione
 const CONFIG = {
-    ADMIN_KEY: process.env.ADMIN_KEY || 'chiave-segreta-admin-2024',
-    REPORTS_API_KEY: process.env.REPORTS_API_KEY || process.env.ADMIN_KEY || 'chiave-segreta-admin-2024',
+    // ADMIN_KEY: obbligatoria via env var Railway. Nessun fallback hardcoded
+    // (brief SUTURE/PIANO_FASE1.md punto C, rotazione chiave 2026-04-24)
+    ADMIN_KEY: process.env.ADMIN_KEY,
+    REPORTS_API_KEY: process.env.REPORTS_API_KEY || process.env.ADMIN_KEY,
     TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '7975162439:AAGB95NY4fAVdhNdgBY5X5QObHDNKHNkNFw',
     TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '-5130672016',
     OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI',
