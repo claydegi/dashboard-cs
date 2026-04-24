@@ -176,13 +176,15 @@ async function getClientsForRep(rep, pool) {
                 c._assigned_source = 'excel';
                 c._assigned_excel_raw = ov.invoice_user_odoo_name || null;
             } else {
-                // Cliente NON in Excel cache: fallback prudente ad 'admin'
-                // (non inferiamo da regione: la regione puo' suggerire Kim/Detto
-                //  ma il cliente reale potrebbe essere DIREZIONALE che Excel non
-                //  ha matchato. Default admin = customer service gestisce).
-                // La regione resta visualizzata come info, ma non come assegnazione.
-                c._assigned_to = 'admin';
-                c._assigned_source = 'default_no_excel';
+                // Cliente non in Excel cache: fallback regione (regola #1)
+                // Coerente con resolveSalesRepForCliente del portale cliente.
+                // I casi specifici sbagliati (es. direzionale in regione Kim)
+                // si risolvono completando il matching Excel (TODO B).
+                const regNorm = normalizeRegion(c.regione);
+                if (kimRegs.has(regNorm)) c._assigned_to = 'kim';
+                else if (dettoRegs.has(regNorm)) c._assigned_to = 'detto';
+                else c._assigned_to = 'admin';
+                c._assigned_source = 'regione';
                 c._assigned_excel_raw = null;
             }
         }
@@ -292,10 +294,14 @@ async function syncSalesRepOverridesFromPayload(pool, clients) {
             contattoId = nameIndex.get(nk);
             matched_by_name++;
         } else {
-            // Fallback fuzzy: substring match se key >= 6 char
-            if (nk.length >= 6) {
+            // Fallback fuzzy: substring match bidirezionale con soglia 4 char.
+            // Abbassata da 6 a 4 per recuperare clienti come "Xotta" (5 char),
+            // "D'Angelosante" (13, ok) che prima non matchavano.
+            // Allineamento al mockup Python _build_test_kim.py che usava
+            // `len(nk) >= 6` ma con sorgente CRM (keys cognome+nome etc).
+            if (nk.length >= 4) {
                 for (const [indexKey, id] of nameIndex) {
-                    if (indexKey.length >= 6 && (indexKey.includes(nk) || nk.includes(indexKey))) {
+                    if (indexKey.length >= 4 && (indexKey.includes(nk) || nk.includes(indexKey))) {
                         contattoId = id;
                         matched_by_name_fuzzy++;
                         break;

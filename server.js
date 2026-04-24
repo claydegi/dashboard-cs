@@ -10956,6 +10956,97 @@ app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/suture/audit-assegnazioni — report completo assegnazioni per tutti i
+// clienti suture, evidenzia discrepanze tra Excel (cache) e regione (regola #1).
+// Categorie incoerenza:
+//   EXCEL_KIM_REGIONE_DETTO, EXCEL_KIM_REGIONE_ADMIN
+//   EXCEL_DETTO_REGIONE_KIM, EXCEL_DETTO_REGIONE_ADMIN
+//   EXCEL_ADMIN_REGIONE_KIM, EXCEL_ADMIN_REGIONE_DETTO
+//   NO_EXCEL_REGIONE_X    (cliente non matchato Excel, fallback regione)
+//   SENZA_REGIONE          (regione vuota nel CRM)
+// Obiettivo: capire quanti clienti hanno classificazione ambigua e perche'.
+app.get('/api/suture/audit-assegnazioni', requireAdmin, async (req, res) => {
+    try {
+        const { rows: clients } = await pool.query(
+            `SELECT DISTINCT c.id, c.cognome, c.nome, c.nome_azienda, c.email, c.regione,
+                    psr.sales_rep AS excel_rep, psr.invoice_user_odoo_name AS excel_raw
+             FROM crm_contatti c
+             JOIN crm_prodotti p ON p.contatto_id = c.id
+             LEFT JOIN partner_sales_rep psr ON psr.contatto_id = c.id
+             WHERE p.prodotto = 'SUTURE'
+               AND (c.tipo = 'account' OR c.tipo IS NULL)
+             ORDER BY c.cognome NULLS LAST, c.nome NULLS LAST`
+        );
+
+        const kimRegs = new Set(sutureTargetFinder.getRegionsForRep('kim'));
+        const dettoRegs = new Set(sutureTargetFinder.getRegionsForRep('detto'));
+
+        function regToRep(reg) {
+            const n = sutureTargetFinder.normalizeRegion(reg);
+            if (!n) return null;
+            if (kimRegs.has(n)) return 'kim';
+            if (dettoRegs.has(n)) return 'detto';
+            return 'admin';
+        }
+
+        const stats = {
+            totale_clienti_suture: clients.length,
+            con_excel: 0,
+            senza_excel: 0,
+            senza_regione: 0,
+            excel_per_rep: { kim: 0, detto: 0, admin: 0 },
+            regione_per_rep: { kim: 0, detto: 0, admin: 0, nessuna: 0 },
+        };
+        const incoerenze = [];
+        const noExcelMaRegione = [];
+
+        for (const c of clients) {
+            const regRep = regToRep(c.regione);
+            if (!c.regione) stats.senza_regione++;
+            if (regRep) stats.regione_per_rep[regRep]++;
+            else stats.regione_per_rep.nessuna++;
+
+            if (c.excel_rep) {
+                stats.con_excel++;
+                stats.excel_per_rep[c.excel_rep] = (stats.excel_per_rep[c.excel_rep] || 0) + 1;
+                if (regRep && regRep !== c.excel_rep) {
+                    incoerenze.push({
+                        id: c.id,
+                        nome: c.nome_azienda || `${c.cognome || ''} ${c.nome || ''}`.trim(),
+                        regione: c.regione,
+                        excel_rep: c.excel_rep,
+                        excel_raw: c.excel_raw,
+                        regione_rep_calcolato: regRep,
+                        tipo: `EXCEL_${c.excel_rep.toUpperCase()}_REGIONE_${regRep.toUpperCase()}`,
+                    });
+                }
+            } else {
+                stats.senza_excel++;
+                noExcelMaRegione.push({
+                    id: c.id,
+                    nome: c.nome_azienda || `${c.cognome || ''} ${c.nome || ''}`.trim(),
+                    email: c.email,
+                    regione: c.regione,
+                    regione_rep_calcolato: regRep || 'admin (no regione)',
+                });
+            }
+        }
+
+        res.json({
+            generated_at: new Date().toISOString(),
+            stats,
+            incoerenze_count: incoerenze.length,
+            incoerenze_per_tipo: incoerenze.reduce((acc, i) => { acc[i.tipo] = (acc[i.tipo] || 0) + 1; return acc; }, {}),
+            incoerenze_dettaglio: incoerenze,
+            no_excel_count: noExcelMaRegione.length,
+            no_excel_sample: noExcelMaRegione.slice(0, 30),  // primi 30 per debug
+        });
+    } catch (err) {
+        console.error('[SUTURE] audit-assegnazioni:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/suture/debug-assegnazione/:cliente_id — diagnostica assegnazione sales rep
 // Ritorna tutti gli indicatori usati da resolveSalesRepForCliente per capire
 // perche' il portale mostra un referente invece di un altro.
