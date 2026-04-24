@@ -10640,7 +10640,7 @@ app.get('/portale/:token', async (req, res, next) => {
     if (!isPortaleHost(req)) return next();
     try {
         const data = await suturePortalRenderer.getPortaleData(
-            req.params.token, pool, sutureProposalBuilder
+            req.params.token, pool, sutureProposalBuilder, sutureTargetFinder
         );
         if (!data) {
             res.status(404).type('html').send(`<!doctype html>

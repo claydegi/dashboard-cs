@@ -271,7 +271,41 @@ function renderReferente(referente) {
     </aside>`;
 }
 
-async function getPortaleData(token, pool, proposalBuilder) {
+/**
+ * Determina il sales_rep assegnato al cliente secondo priorita' imprenditore (2026-04-24):
+ *   1. Excel analisi_vendite (cache partner_sales_rep) — SEMPRE PIU' POTENTE
+ *      ("lì c'è un'assegnazione costante e corretta")
+ *   2. Regione CRM (regola #1 sales_rep_regions.json) — fallback
+ *   3. admin — ultima spiaggia
+ * Ritorna 'kim' | 'detto' | 'admin'.
+ *
+ * NOTE: le proposte NON determinano il referente. Anche se Kim ha creato una
+ * proposta, l'assegnazione reale e' quella Excel (o la regione se Excel manca).
+ * Caso limite noto: cliente fuori-regione di Kim non matchato in Excel (nei 9/154
+ * mancanti dal matching attuale) verra' attribuito alla regione CRM, che puo'
+ * essere Detto o admin. Fix futuro: affinamento matching (TODO B piano).
+ */
+async function resolveSalesRepForCliente(cliente, pool, targetFinder) {
+    if (!cliente) return 'admin';
+
+    // 1. Excel (partner_sales_rep) — priorita' massima
+    const { rows } = await pool.query(
+        `SELECT sales_rep FROM partner_sales_rep WHERE contatto_id = $1`,
+        [cliente.id]
+    );
+    if (rows.length) return rows[0].sales_rep;
+
+    // 2. Regione CRM
+    if (!targetFinder || !cliente.regione) return 'admin';
+    const regNorm = targetFinder.normalizeRegion(cliente.regione);
+    const kimRegs = new Set(targetFinder.getRegionsForRep('kim'));
+    const dettoRegs = new Set(targetFinder.getRegionsForRep('detto'));
+    if (kimRegs.has(regNorm)) return 'kim';
+    if (dettoRegs.has(regNorm)) return 'detto';
+    return 'admin';
+}
+
+async function getPortaleData(token, pool, proposalBuilder, targetFinder) {
     const info = await resolveTokenToCliente(token, pool);
     if (!info) return null;
 
@@ -285,12 +319,14 @@ async function getPortaleData(token, pool, proposalBuilder) {
     const proposte = proposalBuilder
         ? await proposalBuilder.listProposte({ cliente_id: info.cliente_id }, pool)
         : [];
+    const salesRepCliente = await resolveSalesRepForCliente(cliente, pool, targetFinder);  // Excel > regione
 
     return {
         token,
         cliente,
         storico,
         proposte,
+        sales_rep_cliente: salesRepCliente,
         data_creazione_portale: info.data_creazione,
     };
 }
@@ -308,7 +344,8 @@ function renderPortaleHTML(data, mode) {
         || [cliente.cognome, cliente.nome].filter(Boolean).join(' ').trim()
         || 'Cliente';
 
-    const salesRepKey = attive[0]?.sales_rep || proposte[0]?.sales_rep || 'admin';
+    // Referente = sales_rep assegnato al cliente (Excel > regione), NON dalla proposta
+    const salesRepKey = data.sales_rep_cliente || 'admin';
     const referente = REFERENTE_META[salesRepKey] || REFERENTE_META.admin;
 
     return `<!doctype html>
