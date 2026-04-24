@@ -26,6 +26,7 @@
                     </div>
                 </div>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
+                <a href="#" class="nav-link" data-section="proposte-suture">Proposte</a>
                 <a href="#" class="nav-link" data-section="shop-orders">Ordini online <span id="shop-orders-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="freelancer">Freelancer <span id="freelancer-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="opportunita">Opportunità <span id="opportunita-badge" class="nav-badge" style="display:none;">0</span></a>
@@ -292,6 +293,18 @@
                 </div>
             </section>
 
+            <!-- ==================== PROPOSTE SUTURE (agente SUTURE - lato vendita) ==================== -->
+            <section id="section-proposte-suture" class="reports-section" style="display: none;">
+                <h2 style="margin-bottom:16px;">Clienti Suture (vista trasversale admin)</h2>
+                <div id="suture-clienti-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+                <h2 style="margin:32px 0 16px;">Proposte Suture (tutti i rep)</h2>
+                <div id="suture-proposte-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
             <!-- ==================== FREELANCER ==================== -->
             <section id="section-freelancer" class="reports-section" style="display: none;">
                 <!-- Sub-tabs -->
@@ -445,5 +458,7 @@
     </div>
 
     <script src="admin.js"></script>
+    <script>const AGENTE = 'admin';</script>
+    <script src="suture-agente.js"></script>
 </body>
 </html>
