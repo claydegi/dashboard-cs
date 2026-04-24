@@ -75,9 +75,27 @@
     }
 
     // ==================== RENDER CLIENTI (raggruppati per regione, stile mockup) ====================
+    const IS_ADMIN = REP === 'admin';
+
+    function badgeAssignedTo(c) {
+        if (!c._assigned_to) return '';
+        const styleMap = {
+            kim:   'background:rgba(26,158,143,0.14);color:#0f6d63;border:1px solid rgba(26,158,143,0.4)',
+            detto: 'background:rgba(168,85,247,0.14);color:#6b21a8;border:1px solid rgba(168,85,247,0.4)',
+            admin: 'background:rgba(194,119,11,0.14);color:#8a5600;border:1px solid rgba(194,119,11,0.4)',
+        };
+        const label = { kim: 'KIM', detto: 'DETTO', admin: 'DIREZIONALE' }[c._assigned_to] || c._assigned_to.toUpperCase();
+        const src = c._assigned_source === 'excel' ? ' · excel' : ' · regione';
+        const style = styleMap[c._assigned_to] || styleMap.admin;
+        return `<span style="${style};padding:3px 10px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;font-weight:600;white-space:nowrap">${label}<span style="font-weight:400;opacity:0.7">${src}</span></span>`;
+    }
+
     function renderRigaCliente(c) {
         const nome = c.nome_azienda || [c.cognome, c.nome].filter(Boolean).join(' ').trim() || '(senza nome)';
         const miniReg = c._via_rule2 ? `<div class="mini-reg">${esc(c.regione || '—')}</div>` : '';
+        const assignedCell = IS_ADMIN
+            ? `<td class="cell-assegnato">${badgeAssignedTo(c)}</td>`
+            : '';
         return `
           <tr data-cliente-id="${c.id}">
             <td class="cell-nome">
@@ -86,6 +104,7 @@
               ${miniReg}
             </td>
             <td class="cell-city">${esc(c.citta || '—')}</td>
+            ${assignedCell}
             <td class="cell-action">
               <button class="act-btn" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}')">Nuova proposta</button>
             </td>
@@ -94,6 +113,7 @@
 
     function renderRegionCard(regione, clienti, isFuori) {
         const cls = isFuori ? 'region-card region-card-fuori' : 'region-card';
+        const assignedHeader = IS_ADMIN ? '<th>Assegnato a</th>' : '';
         return `
           <section class="${cls}">
             <div class="region-head">
@@ -101,7 +121,7 @@
               <div class="region-count">${clienti.length} client${clienti.length === 1 ? 'e' : 'i'}</div>
             </div>
             <table class="tbl">
-              <thead><tr><th>Cliente</th><th>Città</th><th class="txt-right">Azione</th></tr></thead>
+              <thead><tr><th>Cliente</th><th>Città</th>${assignedHeader}<th class="txt-right">Azione</th></tr></thead>
               <tbody>${clienti.map(renderRigaCliente).join('')}</tbody>
             </table>
           </section>`;

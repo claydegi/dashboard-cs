@@ -71,14 +71,8 @@ function getRegionsForRep(rep) {
     if (!repData) throw new Error(`Unknown sales rep: ${rep}`);
 
     if (repData.regioni_default) {
-        const covered = new Set();
-        for (const [k, v] of Object.entries(config.rep)) {
-            if (k === key || v.regioni_default) continue;
-            (v.regioni || []).forEach(r => covered.add(normalizeRegion(r)));
-        }
-        return config.regioni_italiane_tutte
-            .map(normalizeRegion)
-            .filter(r => !covered.has(r));
+        // Admin: vista completa parco clienti (brief sez. 4) → TUTTE le 20 regioni italiane
+        return config.regioni_italiane_tutte.map(normalizeRegion);
     }
     return (repData.regioni || []).map(normalizeRegion);
 }
@@ -133,6 +127,8 @@ async function getRule2Overrides(rep, pool) {
 
 /**
  * Aggregazione finale: UNION di #1 + #2, distinti per id, con flag _via_rule2.
+ * Per admin (vista completa): aggiunge anche `_assigned_to` (kim/detto/admin)
+ * basato sulla cache partner_sales_rep (Excel, più forte) o sulla regione.
  */
 async function getClientsForRep(rep, pool) {
     const r1 = await getRule1Clients(rep, pool);
@@ -146,6 +142,39 @@ async function getClientsForRep(rep, pool) {
             seen.add(c.id);
         }
     }
+
+    // Vista admin: arricchisce con etichetta assegnazione effettiva per ogni cliente
+    if (String(rep).toLowerCase() === 'admin' && union.length) {
+        const ids = union.map(c => c.id);
+        const { rows: overrides } = await pool.query(
+            `SELECT contatto_id, sales_rep, invoice_user_odoo_name
+             FROM partner_sales_rep
+             WHERE contatto_id = ANY($1::int[])`,
+            [ids]
+        );
+        const overrideMap = new Map(overrides.map(o => [o.contatto_id, o]));
+        const kimRegs = new Set(getRegionsForRep('kim'));
+        const dettoRegs = new Set(getRegionsForRep('detto'));
+
+        for (const c of union) {
+            const ov = overrideMap.get(c.id);
+            if (ov) {
+                // Regola #2 (più forte): sales rep dall'Excel analisi_vendite
+                c._assigned_to = ov.sales_rep;          // 'kim' | 'detto' | 'admin'
+                c._assigned_source = 'excel';
+                c._assigned_excel_raw = ov.invoice_user_odoo_name || null;
+            } else {
+                // Regola #1: dalla regione
+                const regNorm = normalizeRegion(c.regione);
+                if (kimRegs.has(regNorm)) c._assigned_to = 'kim';
+                else if (dettoRegs.has(regNorm)) c._assigned_to = 'detto';
+                else c._assigned_to = 'admin';
+                c._assigned_source = 'regione';
+                c._assigned_excel_raw = null;
+            }
+        }
+    }
+
     return union;
 }
 
