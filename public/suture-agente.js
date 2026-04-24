@@ -74,58 +74,85 @@
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
     }
 
-    // ==================== RENDER CLIENTI ====================
+    // ==================== RENDER CLIENTI (raggruppati per regione, stile mockup) ====================
+    function renderRigaCliente(c) {
+        const nome = c.nome_azienda || [c.cognome, c.nome].filter(Boolean).join(' ').trim() || '(senza nome)';
+        const miniReg = c._via_rule2 ? `<div class="mini-reg">${esc(c.regione || '—')}</div>` : '';
+        return `
+          <tr data-cliente-id="${c.id}">
+            <td class="cell-nome">
+              <div class="name">${esc(nome)}</div>
+              <div class="email">${esc(c.email || '')}</div>
+              ${miniReg}
+            </td>
+            <td class="cell-city">${esc(c.citta || '—')}</td>
+            <td class="cell-action">
+              <button class="act-btn" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}')">Nuova proposta</button>
+            </td>
+          </tr>`;
+    }
+
+    function renderRegionCard(regione, clienti, isFuori) {
+        const cls = isFuori ? 'region-card region-card-fuori' : 'region-card';
+        return `
+          <section class="${cls}">
+            <div class="region-head">
+              <div class="region-title">${esc(regione)}</div>
+              <div class="region-count">${clienti.length} client${clienti.length === 1 ? 'e' : 'i'}</div>
+            </div>
+            <table class="tbl">
+              <thead><tr><th>Cliente</th><th>Città</th><th class="txt-right">Azione</th></tr></thead>
+              <tbody>${clienti.map(renderRigaCliente).join('')}</tbody>
+            </table>
+          </section>`;
+    }
+
     async function loadClienti() {
         const container = document.getElementById('suture-clienti-container');
         if (!container) return;
-        container.innerHTML = '<p class="loading">Caricamento clienti suture…</p>';
+        container.innerHTML = '<p class="empty">Caricamento clienti suture…</p>';
         try {
             const r = await api(`/api/suture/clienti-rep/${REP}`);
             const clienti = r.clienti || [];
+
+            // Update stat cards
+            const sTot = document.getElementById('stat-total');
+            const sR1 = document.getElementById('stat-r1');
+            const sR2 = document.getElementById('stat-r2');
+            if (sTot) sTot.textContent = clienti.length;
+            if (sR1) sR1.textContent = clienti.length - (r.count_rule2 || 0);
+            if (sR2) sR2.textContent = r.count_rule2 || 0;
+
             if (!clienti.length) {
-                container.innerHTML = '<p class="loading">Nessun cliente suture nel tuo portafoglio.</p>';
+                container.innerHTML = '<p class="empty">Nessun cliente suture nel tuo portafoglio.</p>';
                 return;
             }
-            container.innerHTML = `
-                <div class="suture-stats" style="display:flex;gap:20px;margin-bottom:16px;font-family:monospace;font-size:12px;color:#6f7580">
-                  <span>Totale: <strong>${clienti.length}</strong></span>
-                  <span>Per regione: <strong>${clienti.length - (r.count_rule2 || 0)}</strong></span>
-                  <span>Fuori regione (Excel): <strong>${r.count_rule2 || 0}</strong></span>
-                </div>
-                <div class="suture-table-wrap" style="background:#fffdf7;border:1px solid rgba(10,22,40,0.15);border-radius:2px;overflow-x:auto">
-                  <table class="suture-tbl" style="width:100%;border-collapse:collapse;font-size:13px">
-                    <thead>
-                      <tr style="background:#f5ecd8">
-                        <th style="text-align:left;padding:12px 16px;font-weight:500">Cliente</th>
-                        <th style="text-align:left;padding:12px 16px;font-weight:500">Città · Regione</th>
-                        <th style="text-align:left;padding:12px 16px;font-weight:500">Assegnazione</th>
-                        <th style="text-align:left;padding:12px 16px;font-weight:500">Azione</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      ${clienti.map(c => {
-                          const nome = c.nome_azienda || [c.cognome, c.nome].filter(Boolean).join(' ').trim() || '(senza nome)';
-                          const badge = c._via_rule2
-                              ? '<span style="background:rgba(194,119,11,0.15);color:#8a5600;padding:2px 8px;border-radius:999px;font-size:10px;font-family:monospace;letter-spacing:0.1em">EXCEL #2</span>'
-                              : '<span style="background:rgba(26,158,143,0.12);color:#0f6d63;padding:2px 8px;border-radius:999px;font-size:10px;font-family:monospace;letter-spacing:0.1em">REGIONE #1</span>';
-                          return `
-                            <tr style="border-top:1px solid rgba(10,22,40,0.08)">
-                              <td style="padding:14px 16px">
-                                <strong>${esc(nome)}</strong>
-                                <div style="font-family:monospace;font-size:10px;color:#6f7580;margin-top:2px">${esc(c.email || '')}</div>
-                              </td>
-                              <td style="padding:14px 16px">${esc(c.citta || '—')} · ${esc(c.regione || '—')}</td>
-                              <td style="padding:14px 16px">${badge}</td>
-                              <td style="padding:14px 16px">
-                                <button class="btn-suture-primary" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g,'&#39;')}')" style="background:#1a9e8f;color:#fff;border:none;padding:8px 14px;border-radius:2px;cursor:pointer;font-weight:600;font-size:12px">Nuova proposta</button>
-                              </td>
-                            </tr>`;
-                      }).join('')}
-                    </tbody>
-                  </table>
-                </div>`;
+
+            // Raggruppa per regione: rule #1 prima (regioni del rep), poi card "Fuori regione · Excel"
+            const byRegione = new Map();
+            const fuoriRegione = [];
+            for (const c of clienti) {
+                if (c._via_rule2) {
+                    fuoriRegione.push(c);
+                } else {
+                    const reg = (c.regione || 'SENZA REGIONE').toString().toUpperCase();
+                    if (!byRegione.has(reg)) byRegione.set(reg, []);
+                    byRegione.get(reg).push(c);
+                }
+            }
+
+            const cards = [];
+            // Ordine regioni: alfabetico (o per count desc)
+            const regioniOrdinate = Array.from(byRegione.keys()).sort();
+            for (const reg of regioniOrdinate) {
+                cards.push(renderRegionCard(reg, byRegione.get(reg), false));
+            }
+            if (fuoriRegione.length) {
+                cards.push(renderRegionCard('Fuori regione · Excel analisi_vendite', fuoriRegione, true));
+            }
+            container.innerHTML = cards.join('');
         } catch (err) {
-            container.innerHTML = `<p style="color:#b91c1c">Errore caricamento: ${esc(err.message)}</p>`;
+            container.innerHTML = `<p class="empty" style="color:#b91c1c">Errore caricamento: ${esc(err.message)}</p>`;
         }
     }
 

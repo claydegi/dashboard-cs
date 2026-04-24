@@ -148,11 +148,13 @@ function switchSection(section) {
     document.getElementById('section-freelancer').style.display = section === 'freelancer' ? 'block' : 'none';
     document.getElementById('section-opportunita').style.display = section === 'opportunita' ? 'block' : 'none';
     document.getElementById('section-shop-orders').style.display = section === 'shop-orders' ? 'block' : 'none';
+    const propSutureEl = document.getElementById('section-proposte-suture');
+    if (propSutureEl) propSutureEl.style.display = section === 'proposte-suture' ? 'block' : 'none';
 
     // Nascondi form e filtri per le sezioni report
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita' || section === 'shop-orders') {
+    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita' || section === 'shop-orders' || section === 'proposte-suture') {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {

@@ -1,53 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="it">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Suture - OSSEOTOUCH</title>
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Suture · OSSEOTOUCH</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,300..900,30..100;1,9..144,300..900,30..100&family=Instrument+Sans:ital,wght@0,400..700;1,400..700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --mezzanotte:#0a1628;--mezzanotte-soft:#14243b;--osseolio:#1a9e8f;--osseolio-deep:#0f6d63;
+      --osseolio-soft:rgba(26,158,143,0.08);--avorio:#fbf6ea;--avorio-warm:#f5ecd8;
+      --line:rgba(10,22,40,0.09);--line-strong:rgba(10,22,40,0.22);--muted:#6f7580;--whatsapp:#22c55e;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;font-family:'Instrument Sans',sans-serif;background:var(--avorio);color:var(--mezzanotte);font-size:14px;line-height:1.5;position:relative;min-height:100vh}
+    body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:0;background-image:
+      radial-gradient(900px circle at 8% -5%,rgba(26,158,143,0.22),transparent 55%),
+      radial-gradient(700px circle at 105% 30%,rgba(26,158,143,0.14),transparent 60%),
+      radial-gradient(900px circle at 50% 110%,rgba(15,109,99,0.1),transparent 55%)}
+    .wrap{max-width:1280px;margin:0 auto;padding:32px;position:relative;z-index:1}
+    .header{display:flex;align-items:center;justify-content:space-between;gap:24px;padding:28px 0 24px;border-bottom:1px solid var(--line)}
+    .header .brand{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.24em;text-transform:uppercase;color:var(--muted)}
+    .header .brand strong{color:var(--mezzanotte);font-weight:500;margin-right:14px}
+    .header .back{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.1em;color:var(--osseolio-deep);text-decoration:none;text-transform:uppercase}
+    .header .back:hover{text-decoration:underline}
+    .hero{padding:56px 0 32px;text-align:center}
+    .hero .eyebrow{font-family:'JetBrains Mono',monospace;font-size:11px;text-transform:uppercase;letter-spacing:0.28em;color:var(--osseolio);margin-bottom:14px;display:inline-flex;align-items:center;gap:12px;justify-content:center}
+    .hero .eyebrow::before,.hero .eyebrow::after{content:'';width:32px;height:1px;background:var(--osseolio)}
+    .hero h1{font-family:'Fraunces',serif;font-variation-settings:'opsz' 144,'SOFT' 30;font-weight:350;font-size:clamp(48px,7vw,88px);line-height:0.92;letter-spacing:-0.035em;margin:0}
+    .hero h1 em{font-style:italic;font-weight:300;color:var(--osseolio-deep);font-variation-settings:'opsz' 144,'SOFT' 80}
+    .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin:24px 0 48px}
+    .stat{background:#fffdf7;border:1px solid var(--line-strong);border-radius:2px;padding:20px 22px}
+    .stat .lbl{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.22em;text-transform:uppercase;color:var(--muted)}
+    .stat .val{font-family:'Fraunces',serif;font-variation-settings:'opsz' 96,'SOFT' 30;font-size:44px;font-weight:350;letter-spacing:-0.03em;margin-top:4px;line-height:1}
+    .section-title{font-family:'Fraunces',serif;font-variation-settings:'opsz' 48;font-weight:400;font-size:32px;letter-spacing:-0.02em;margin:48px 0 20px}
+    .region-card{background:#fffdf7;border:1px solid var(--line-strong);border-radius:2px;margin-bottom:32px;position:relative}
+    .region-card::before{content:'';position:absolute;top:-1px;left:-1px;right:-1px;height:3px;background:linear-gradient(90deg,var(--osseolio) 0%,var(--osseolio-deep) 100%)}
+    .region-card-fuori::before{background:linear-gradient(90deg,#c2770b 0%,#8a5600 100%)}
+    .region-head{padding:24px 32px 18px;display:flex;align-items:baseline;justify-content:space-between;gap:16px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+    .region-title{font-family:'Fraunces',serif;font-variation-settings:'opsz' 48,'SOFT' 40;font-weight:400;font-size:28px;letter-spacing:-0.025em;text-transform:capitalize}
+    .region-count{font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:var(--muted)}
+    .tbl{width:100%;border-collapse:collapse}
+    .tbl th{text-align:left;font-family:'JetBrains Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.22em;color:var(--muted);padding:14px 32px;border-bottom:1px solid var(--line);font-weight:400}
+    .tbl th.txt-right{text-align:right}
+    .tbl td{padding:18px 32px;border-bottom:1px solid var(--line);vertical-align:top;font-size:14px}
+    .tbl tbody tr:last-child td{border-bottom:none}
+    .tbl tr:hover td{background:rgba(26,158,143,0.04)}
+    .cell-nome .name{font-family:'Fraunces',serif;font-variation-settings:'opsz' 24,'SOFT' 30;font-weight:500;font-size:17px;letter-spacing:-0.012em;line-height:1.2}
+    .cell-nome .email{font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--muted);margin-top:4px;letter-spacing:0.02em}
+    .cell-nome .mini-reg{display:inline-block;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:#8a5600;background:rgba(194,119,11,0.12);padding:3px 8px;border-radius:999px}
+    .cell-city{color:var(--mezzanotte-soft);text-transform:capitalize}
+    .cell-action{text-align:right;white-space:nowrap}
+    .act-btn{background:var(--osseolio);color:white;border:none;padding:8px 14px;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:12px;letter-spacing:0.01em;border-radius:2px;cursor:pointer;transition:background 0.15s,transform 0.15s}
+    .act-btn:hover{background:var(--osseolio-deep);transform:translateY(-1px)}
+    .act-btn.secondary{background:#0a1628}
+    .act-btn.secondary:hover{background:var(--mezzanotte-soft)}
+    .act-link{display:block;margin-top:6px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.08em;color:var(--osseolio-deep);text-decoration:none}
+    .act-link:hover{text-decoration:underline}
+    .badge-stato{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-family:'JetBrains Mono',monospace;letter-spacing:0.08em}
+    .badge-pending{background:#fef9c3;color:#854d0e}
+    .badge-rimandata{background:#e0e7ff;color:#3730a3}
+    .badge-confermata{background:#dcfce7;color:#166534}
+    .badge-manuale{background:#f3e8ff;color:#6b21a8}
+    .badge-rule1{background:rgba(26,158,143,0.12);color:var(--osseolio-deep);padding:3px 8px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em}
+    .badge-rule2{background:rgba(194,119,11,0.15);color:#8a5600;padding:3px 8px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em}
+    .empty{padding:40px;text-align:center;color:var(--muted);font-family:'Fraunces',serif;font-style:italic;font-size:16px}
+    footer{margin-top:60px;color:var(--muted);font-size:12px;line-height:1.8;padding-top:20px;border-top:1px solid var(--line)}
+    /* Modal composer (stile mockup) */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(10,22,40,0.65);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}
+    .modal-backdrop.open{display:flex}
+    .modal-box{background:#fffdf7;border-radius:2px;max-width:640px;width:100%;box-shadow:0 30px 60px -20px rgba(10,22,40,0.5);position:relative;overflow:hidden}
+    .modal-box::before{content:'';display:block;height:3px;background:linear-gradient(90deg,var(--osseolio) 0%,var(--osseolio-deep) 100%)}
+    .modal-head{padding:24px 32px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:16px}
+    .modal-head .eyebrow{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:var(--osseolio)}
+    .modal-head h2{font-family:'Fraunces',serif;font-variation-settings:'opsz' 48,'SOFT' 40;font-weight:400;font-size:26px;margin:6px 0 0;letter-spacing:-0.02em}
+    .modal-head .close-x{background:transparent;border:none;color:var(--muted);font-size:24px;cursor:pointer}
+    .modal-body{padding:24px 32px;max-height:70vh;overflow-y:auto}
+    .modal-body h3{font-family:'Fraunces',serif;font-variation-settings:'opsz' 24,'SOFT' 40;font-weight:500;font-size:16px;margin:20px 0 10px}
+    .modal-body h3:first-child{margin-top:0}
+    .modal-body .hint{font-size:11px;color:var(--muted);margin-top:4px}
+    .modal-foot{padding:16px 32px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--line);background:var(--avorio-warm)}
+    .btn-cancel{background:transparent;border:1px solid var(--line-strong);padding:10px 20px;font-family:'Instrument Sans',sans-serif;font-weight:600;font-size:13px;border-radius:2px;cursor:pointer}
+    .btn-save{background:var(--osseolio);color:white;border:none;padding:10px 22px;font-family:'Instrument Sans',sans-serif;font-weight:700;font-size:13px;border-radius:2px;cursor:pointer}
+    .btn-save:hover{background:var(--osseolio-deep)}
+  </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1 id="suture-page-title">Suture</h1>
-            <p class="report-motto">Clienti e proposte suture del tuo portafoglio</p>
-            <p style="margin-top:12px;"><a id="suture-back-link" href="#" style="color:#6f7580;font-size:13px;">&larr; Torna alla dashboard</a></p>
-        </header>
+  <div class="wrap">
+    <header class="header">
+      <div class="brand"><strong>OSSEOTOUCH</strong><span id="suture-brand-sub">Dashboard Suture</span></div>
+      <a class="back" id="suture-back-link" href="#">← Torna alla dashboard</a>
+    </header>
 
-        <main>
-            <section class="reports-section">
-                <h2>Clienti Suture</h2>
-                <div id="suture-clienti-container">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
+    <section class="hero">
+      <div class="eyebrow" id="suture-eyebrow">Elenco clienti · Dati reali</div>
+      <h1>Clienti <em>suture</em> <span id="suture-hero-rep"></span></h1>
+    </section>
 
-            <section class="reports-section">
-                <h2>Proposte Suture</h2>
-                <div id="suture-proposte-container">
-                    <p class="loading">Caricamento...</p>
-                </div>
-            </section>
-        </main>
+    <div class="stats" id="suture-stats">
+      <div class="stat"><div class="lbl">Totale clienti</div><div class="val" id="stat-total">—</div></div>
+      <div class="stat"><div class="lbl">Regione (regola #1)</div><div class="val" id="stat-r1">—</div></div>
+      <div class="stat"><div class="lbl">Fuori regione (Excel #2)</div><div class="val" id="stat-r2">—</div></div>
     </div>
 
-    <script>
-        // La pagina e' condivisa fra Kim e Massimo. ?from=kim|massimo sceglie il rep.
-        const params = new URLSearchParams(window.location.search);
-        const FROM = (params.get('from') || 'admin').toLowerCase();
-        const AGENTE = FROM; // suture-agente.js applica REPMAP interno (massimo -> detto)
+    <div id="suture-clienti-container">
+      <p class="empty">Caricamento…</p>
+    </div>
 
-        // Titolo + back link dinamici
-        const TITLE_MAP = { kim: 'Suture · Kim', massimo: 'Suture · Massimo', admin: 'Suture · Admin' };
-        document.getElementById('suture-page-title').textContent = TITLE_MAP[FROM] || 'Suture';
-        const BACK_MAP = {
-            kim: 'dashboard-kim.html',
-            massimo: 'dashboard-massimo.html',
-            admin: 'admin',
-        };
-        const back = document.getElementById('suture-back-link');
-        back.href = (BACK_MAP[FROM] || 'admin') + '?key=' + encodeURIComponent(params.get('key') || '');
-    </script>
-    <script src="suture-agente.js"></script>
+    <h2 class="section-title">Proposte</h2>
+    <div id="suture-proposte-container">
+      <p class="empty">Caricamento…</p>
+    </div>
+
+    <footer>
+      Fonte clienti: <code>crm_contatti ⋈ crm_prodotti</code> (regola #1 regione) + <code>partner_sales_rep</code> (regola #2 Excel analisi_vendite)<br>
+      Proposte: tabella <code>proposte</code> filtrata per sales_rep
+    </footer>
+  </div>
+
+  <script>
+    const params = new URLSearchParams(window.location.search);
+    const FROM = (params.get('from') || 'admin').toLowerCase();
+    const AGENTE = FROM;
+    const NOME_REP = { kim: 'di Kim', massimo: 'di Massimo', admin: '(admin)' };
+    const BACK_MAP = { kim: 'dashboard-kim.html', massimo: 'dashboard-massimo.html', admin: 'admin' };
+    document.getElementById('suture-hero-rep').textContent = NOME_REP[FROM] || '';
+    document.getElementById('suture-brand-sub').textContent = 'Suture · ' + (FROM.charAt(0).toUpperCase() + FROM.slice(1));
+    document.getElementById('suture-back-link').href = (BACK_MAP[FROM] || 'admin') + '?key=' + encodeURIComponent(params.get('key') || '');
+  </script>
+  <script src="suture-agente.js"></script>
 </body>
 </html>
