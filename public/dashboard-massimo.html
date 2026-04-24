@@ -36,6 +36,20 @@
             </section>
 
             <section class="reports-section">
+                <h2>Clienti Suture</h2>
+                <div id="suture-clienti-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <section class="reports-section">
+                <h2>Proposte Suture</h2>
+                <div id="suture-proposte-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <section class="reports-section">
                 <h2>Strumenti</h2>
                 <div class="report-cards-grid">
                     <div class="report-card" style="border-left-color: #8b5cf6; cursor: pointer;" onclick="window.location.href='pianificazione-mktg.html?key=' + new URLSearchParams(window.location.search).get('key') + '&from=massimo'">
@@ -58,5 +72,6 @@
         const AGENTE = 'massimo';
     </script>
     <script src="dashboard-agente.js"></script>
+    <script src="suture-agente.js"></script>
 </body>
 </html>
