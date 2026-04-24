@@ -10606,6 +10606,109 @@ const sutureTargetFinder = require('./scripts/suture/target_finder.js');
 const sutureProposalBuilder = require('./scripts/suture/proposal_builder.js');
 const suturePortalRenderer = require('./scripts/suture/portal_renderer.js');
 
+// ==================== PORTALE CLIENTE (myosseotouch.com) ====================
+// Host detection: serve il portale SOLO quando il request arriva via myosseotouch.com
+// (dominio dedicato customer-facing, CNAME Railway, noindex). Su altri domini
+// (dashboard-cs-production.up.railway.app, app.osseotouch.com) il path /portale/*
+// risulta inerte e cade sul 404 standard.
+function isPortaleHost(req) {
+    const host = String(req.hostname || req.get('host') || '').toLowerCase().split(':')[0];
+    if (host === 'myosseotouch.com' || host === 'www.myosseotouch.com') return true;
+    // Bypass di sviluppo: ?_portale_preview=1 permette anteprima sul dominio Railway
+    // Utile per test senza DNS. Rimuovere prima del go-live oppure gate con flag env.
+    if (req.query && req.query._portale_preview === '1') return true;
+    return false;
+}
+
+// robots.txt: Disallow totale su myosseotouch.com
+app.get('/robots.txt', (req, res, next) => {
+    if (isPortaleHost(req)) {
+        res.type('text/plain').send('User-agent: *\nDisallow: /\n');
+        return;
+    }
+    next();
+});
+
+// Route portale: /portale/:token
+// Serve un HTML base (3.2 sostituira' con mockup completo)
+app.get('/portale/:token', async (req, res, next) => {
+    if (!isPortaleHost(req)) return next();
+    try {
+        const info = await suturePortalRenderer.resolveTokenToCliente(req.params.token, pool);
+        if (!info) {
+            res.status(404).type('html').send(`<!doctype html>
+<html lang="it"><head><meta charset="utf-8">
+<meta name="robots" content="noindex,nofollow">
+<title>Portale non trovato · OSSEOTOUCH</title>
+<style>body{font-family:system-ui,sans-serif;max-width:640px;margin:40px auto;padding:24px;color:#0a1628}</style>
+</head><body>
+<h1>Portale non trovato</h1>
+<p>Il link che hai aperto non è più attivo o è stato revocato.</p>
+<p>Per assistenza: <a href="mailto:contact@osseotouch.com">contact@osseotouch.com</a></p>
+</body></html>`);
+            return;
+        }
+
+        const { rows: clienti } = await pool.query(
+            `SELECT id, cognome, nome, nome_azienda, email, telefono, cellulare, citta, regione
+             FROM crm_contatti WHERE id = $1`,
+            [info.cliente_id]
+        );
+        const cliente = clienti[0] || {};
+        const nomeVisibile = cliente.nome_azienda
+            || [cliente.cognome, cliente.nome].filter(Boolean).join(' ').trim()
+            || 'Cliente';
+
+        const storico = await suturePortalRenderer.getStoricoSutureCliente(info.cliente_id, pool);
+        const proposte = await sutureProposalBuilder.listProposte({ cliente_id: info.cliente_id }, pool);
+
+        // Placeholder HTML minimal — sub-task 3.2 sostituira' con template completo
+        // basato su SUTURE/_test-locale/portale-guzzo.html
+        res.type('html').send(`<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Portale cliente · OSSEOTOUCH</title>
+<style>
+body{font-family:system-ui,-apple-system,sans-serif;max-width:960px;margin:0 auto;padding:32px;background:#fbf6ea;color:#0a1628}
+h1{font-family:Georgia,serif;font-weight:400;font-size:48px;letter-spacing:-0.02em}
+.card{background:#fffdf7;border:1px solid rgba(10,22,40,0.15);border-radius:2px;padding:20px 24px;margin:16px 0}
+.muted{color:#6f7580;font-size:13px}
+.eyebrow{font-family:ui-monospace,monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#1a9e8f}
+.placeholder{background:#f5ecd8;padding:16px;border-radius:2px;font-family:ui-monospace,monospace;font-size:12px;color:#6f7580}
+</style>
+</head>
+<body>
+<div class="eyebrow">Benvenuto nel tuo portale</div>
+<h1>${nomeVisibile}</h1>
+<div class="card">
+  <div class="eyebrow">Dati cliente</div>
+  <p><strong>Email:</strong> ${cliente.email || '—'}<br>
+  <strong>Citta:</strong> ${cliente.citta || '—'} · ${cliente.regione || '—'}<br>
+  <strong>Portale creato:</strong> ${info.data_creazione ? new Date(info.data_creazione).toLocaleDateString('it-IT') : '—'}</p>
+</div>
+<div class="card">
+  <div class="eyebrow">Proposte attive</div>
+  <p>${proposte.length} proposte in archivio</p>
+</div>
+<div class="card">
+  <div class="eyebrow">Storico acquisti suture</div>
+  <p>${storico.acquisti.length} acquisti dal 2026${storico.ultimo_pre_2026_label ? ` · ultimo pre-2026: ${storico.ultimo_pre_2026_label}` : ''}</p>
+</div>
+<div class="placeholder">
+Placeholder portale — sub-task 3.2 sostituira' con template completo (mockup SUTURE/_test-locale/portale-guzzo.html).<br>
+Token: ${req.params.token}
+</div>
+</body>
+</html>`);
+    } catch (err) {
+        console.error('[SUTURE] portale route:', err.message);
+        res.status(500).type('html').send(`<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>Errore</title></head><body><h1>Errore temporaneo</h1><p>Riprova tra qualche minuto o contatta <a href="mailto:contact@osseotouch.com">contact@osseotouch.com</a></p></body></html>`);
+    }
+});
+
 // ==================== PROPOSTE SUTURE (CRUD + azioni) ====================
 
 // GET /api/proposte — lista filtrata (sales_rep / stato / cliente_id)
