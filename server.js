@@ -10603,6 +10603,236 @@ app.get('/api/suture/ordini-clienti-completo', requireAdmin, async (req, res) =>
 // Riferimento: SUTURE/BRIEF_IMPLEMENTAZIONE.md · SUTURE/PIANO_FASE1.md Blocco 1 (test accettazione)
 const sutureTargetFinder = require('./scripts/suture/target_finder.js');
 
+const sutureProposalBuilder = require('./scripts/suture/proposal_builder.js');
+const suturePortalRenderer = require('./scripts/suture/portal_renderer.js');
+
+// ==================== PROPOSTE SUTURE (CRUD + azioni) ====================
+
+// GET /api/proposte — lista filtrata (sales_rep / stato / cliente_id)
+app.get('/api/proposte', requireAdmin, async (req, res) => {
+    try {
+        const rows = await sutureProposalBuilder.listProposte(
+            { sales_rep: req.query.sales_rep, stato: req.query.stato, cliente_id: req.query.cliente_id },
+            pool
+        );
+        res.json({ ok: true, count: rows.length, proposte: rows });
+    } catch (err) {
+        console.error('[SUTURE] GET /api/proposte:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/proposte/:id — singola proposta con righe
+app.get('/api/proposte/:id', requireAdmin, async (req, res) => {
+    try {
+        const p = await sutureProposalBuilder.getProposta(req.params.id, pool);
+        if (!p) return res.status(404).json({ error: 'Proposta non trovata' });
+        res.json({ ok: true, proposta: p });
+    } catch (err) {
+        console.error('[SUTURE] GET /api/proposte/:id:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/proposte — crea nuova proposta + righe + portale (transazionale)
+app.post('/api/proposte', requireAdmin, async (req, res) => {
+    try {
+        const result = await sutureProposalBuilder.createProposta(req.body, pool);
+        res.status(201).json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] POST /api/proposte:', err.message);
+        res.status(err.status || 500).json({ error: err.message, validation_errors: err.validation_errors });
+    }
+});
+
+// PATCH /api/proposte/:id — modifica (patch parziale, include opzionale prodotti)
+app.patch('/api/proposte/:id', requireAdmin, async (req, res) => {
+    try {
+        const result = await sutureProposalBuilder.updateProposta(parseInt(req.params.id, 10), req.body, pool);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] PATCH /api/proposte/:id:', err.message);
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+// DELETE /api/proposte/:id
+app.delete('/api/proposte/:id', requireAdmin, async (req, res) => {
+    try {
+        const result = await sutureProposalBuilder.deleteProposta(parseInt(req.params.id, 10), pool);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] DELETE /api/proposte/:id:', err.message);
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+// POST /api/proposte/:id/rimanda — rimanda a today + N (default 30)
+app.post('/api/proposte/:id/rimanda', requireAdmin, async (req, res) => {
+    try {
+        const days = parseInt(req.body?.days, 10) || 30;
+        const result = await sutureProposalBuilder.rimandaProposta(parseInt(req.params.id, 10), pool, days);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] rimanda:', err.message);
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+// POST /api/proposte/:id/riattiva
+app.post('/api/proposte/:id/riattiva', requireAdmin, async (req, res) => {
+    try {
+        const result = await sutureProposalBuilder.riattivaProposta(parseInt(req.params.id, 10), pool);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] riattiva:', err.message);
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+// POST /api/proposte/:id/conferma-manuale
+// Body: { canale: 'whatsapp|telefono|email|altro', note, chi }
+app.post('/api/proposte/:id/conferma-manuale', requireAdmin, async (req, res) => {
+    try {
+        const result = await sutureProposalBuilder.confermaManualeProposta(
+            parseInt(req.params.id, 10), req.body || {}, pool
+        );
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] conferma-manuale:', err.message);
+        res.status(err.status || 500).json({ error: err.message });
+    }
+});
+
+// ==================== PORTALI CLIENTE + STORICO ====================
+
+// GET /api/portali/:token — dati base portale (Blocco 3 arricchira' con proposte+storico+referente)
+app.get('/api/portali/:token', async (req, res) => {
+    try {
+        const info = await suturePortalRenderer.resolveTokenToCliente(req.params.token, pool);
+        if (!info) return res.status(404).json({ error: 'Portale non trovato o revocato' });
+
+        const { rows: cliente } = await pool.query(
+            `SELECT id, cognome, nome, nome_azienda, email, telefono, cellulare, citta, regione
+             FROM crm_contatti WHERE id = $1`,
+            [info.cliente_id]
+        );
+        const storico = await suturePortalRenderer.getStoricoSutureCliente(info.cliente_id, pool);
+        const proposte = await sutureProposalBuilder.listProposte({ cliente_id: info.cliente_id }, pool);
+
+        res.json({
+            ok: true,
+            token: req.params.token,
+            cliente: cliente[0] || null,
+            storico,
+            proposte,
+            data_creazione_portale: info.data_creazione,
+        });
+    } catch (err) {
+        console.error('[SUTURE] GET /api/portali/:token:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// POST /api/portali/:token/revoca — SOLO admin
+app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            `UPDATE portali_cliente
+             SET attivo = FALSE, revocato_at = NOW(), revocato_da = $2
+             WHERE token = $1 AND attivo = TRUE
+             RETURNING cliente_id`,
+            [req.params.token, req.body?.revocato_da || 'admin']
+        );
+        if (!result.rowCount) return res.status(404).json({ error: 'Portale non trovato o gia revocato' });
+        res.json({ ok: true, revocato: true, cliente_id: result.rows[0].cliente_id });
+    } catch (err) {
+        console.error('[SUTURE] revoca:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/suture/storico/:cliente_id — storico acquisti suture 2026+ filtrato '000'
+app.get('/api/suture/storico/:cliente_id', requireAdmin, async (req, res) => {
+    try {
+        const cliente_id = parseInt(req.params.cliente_id, 10);
+        if (!cliente_id) return res.status(400).json({ error: 'cliente_id non valido' });
+        const storico = await suturePortalRenderer.getStoricoSutureCliente(cliente_id, pool);
+        res.json({ ok: true, cliente_id, ...storico });
+    } catch (err) {
+        console.error('[SUTURE] GET /api/suture/storico:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ==================== CARRELLI DRAFT (ponte checkout — Punto 3) ====================
+
+// POST /api/carrelli — cliente clicca "Conferma e procedi" nel portale → salva draft
+// Body: { proposta_id, cliente_id, items: [{cod, nome, prezzo, qty}], sconto_pct, omaggio_3plus1 }
+// TTL 24h. Ritorna token usabile come ?cart=<token> su osseotouch.com/shop/checkout
+app.post('/api/carrelli', async (req, res) => {
+    try {
+        const { proposta_id, cliente_id, items, sconto_pct, omaggio_3plus1 } = req.body || {};
+        if (!Array.isArray(items) || !items.length) {
+            return res.status(400).json({ error: 'items array richiesto' });
+        }
+        // Totale calcolato server-side (NON fidarsi del client)
+        let totale = 0;
+        for (const it of items) {
+            const prezzo = parseFloat(it.prezzo) || 0;
+            const qty = parseInt(it.qty, 10) || 0;
+            totale += prezzo * qty;
+        }
+        const scontoPct = Math.max(0, Math.min(20, parseFloat(sconto_pct) || 0));
+        const totaleScontato = totale * (1 - scontoPct / 100);
+
+        const { rows } = await pool.query(
+            `INSERT INTO carrelli_draft (proposta_id, cliente_id, items_json, sconto_pct, omaggio_3plus1, totale, expires_at)
+             VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW() + INTERVAL '24 hours')
+             RETURNING token, expires_at`,
+            [
+                proposta_id || null,
+                cliente_id || null,
+                JSON.stringify(items),
+                scontoPct,
+                !!omaggio_3plus1,
+                totaleScontato.toFixed(2),
+            ]
+        );
+        res.status(201).json({
+            ok: true,
+            token: rows[0].token,
+            expires_at: rows[0].expires_at,
+            totale: parseFloat(totaleScontato.toFixed(2)),
+        });
+    } catch (err) {
+        console.error('[SUTURE] POST /api/carrelli:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/carrelli/:token — shop legge draft all'arrivo, marca used_at
+app.get('/api/carrelli/:token', async (req, res) => {
+    try {
+        const { rows } = await pool.query(
+            `SELECT token, proposta_id, cliente_id, items_json, sconto_pct, omaggio_3plus1,
+                    totale, created_at, expires_at, used_at
+             FROM carrelli_draft
+             WHERE token = $1`,
+            [req.params.token]
+        );
+        if (!rows.length) return res.status(404).json({ error: 'Carrello non trovato' });
+        const cart = rows[0];
+        if (new Date(cart.expires_at) < new Date()) {
+            return res.status(410).json({ error: 'Carrello scaduto', expires_at: cart.expires_at });
+        }
+        res.json({ ok: true, carrello: cart });
+    } catch (err) {
+        console.error('[SUTURE] GET /api/carrelli/:token:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/suture/sync-sales-rep-overrides — Popola cache partner_sales_rep da Excel analisi_vendite.
 // Chiamato dallo script Python locale analisi_vendite/build_sales_rep_overrides.py
 // (lanciato manualmente o da Task Scheduler Windows).
