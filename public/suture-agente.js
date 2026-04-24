@@ -111,7 +111,7 @@
             <td class="cell-city">${esc(c.citta || '—')}</td>
             ${assignedCell}
             <td class="cell-action">
-              <button class="act-btn" data-action="nuova-proposta" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}">Nuova proposta</button>
+              <button class="act-btn" data-action="nuova-proposta" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}" data-cliente-assigned="${c._assigned_to || ''}">Nuova proposta</button>
               <a class="act-link" href="#" data-action="apri-portale-cliente" data-cliente-id="${c.id}">👁 Come cliente</a>
               <a class="act-link" href="#" data-action="apri-portale-rep" data-cliente-id="${c.id}">✎ Come rep</a>
               ${IS_ADMIN ? `<a class="act-link" href="#" style="color:#b91c1c" data-action="revoca-portale" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}">⛔ Revoca portale</a>` : ''}
@@ -126,9 +126,10 @@
         const action = el.dataset.action;
         const clienteId = parseInt(el.dataset.clienteId, 10);
         const clienteNome = el.dataset.clienteNome || '';
+        const clienteAssigned = el.dataset.clienteAssigned || '';
         if (!clienteId) return;
         ev.preventDefault();
-        if (action === 'nuova-proposta') openComposer(clienteId, clienteNome);
+        if (action === 'nuova-proposta') openComposer(clienteId, clienteNome, clienteAssigned);
         else if (action === 'apri-portale-cliente') apriPortale(clienteId, 'cliente');
         else if (action === 'apri-portale-rep') apriPortale(clienteId, 'rep');
         else if (action === 'revoca-portale') revocaPortale(clienteId, clienteNome);
@@ -264,8 +265,14 @@
     }
 
     // ==================== MODAL COMPOSER ====================
-    function openComposer(clienteId, clienteNome) {
-        const mittenti = MITTENTI[REP] || MITTENTI.admin;
+    // clienteAssignedTo: 'kim'|'detto'|'admin' (solo per vista admin, determina
+    //                    sales_rep della proposta + mittente default). Per Kim/Detto
+    //                    user loggato, resta sempre REP (loro stessi).
+    function openComposer(clienteId, clienteNome, clienteAssignedTo) {
+        // Per admin: usa l'assegnazione del cliente (Excel > regione). Per Kim/Detto: se stessi.
+        const repProposta = IS_ADMIN && clienteAssignedTo ? clienteAssignedTo : REP;
+        const mittenti = MITTENTI[repProposta] || MITTENTI.admin;
+        const mittenteDefault = mittenti[0];
         const backdrop = document.createElement('div');
         backdrop.className = 'suture-modal-backdrop';
         backdrop.style.cssText = 'position:fixed;inset:0;background:rgba(10,22,40,0.65);z-index:10000;display:flex;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto';
@@ -311,10 +318,11 @@
               <label style="display:block;padding:10px;border:1px solid rgba(10,22,40,0.1);border-radius:2px;cursor:pointer">
                 <input type="radio" name="suture-mod" value="manuale"> ✋ <strong>Manuale</strong> — alla scadenza il sistema ti avvisa
               </label>
-              <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:16px 0 6px">Mittente email</h3>
+                <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:16px 0 6px">Mittente email</h3>
               <select id="suture-mittente" style="width:100%;padding:10px;border:1px solid rgba(10,22,40,0.1);background:#f5ecd8;border-radius:2px">
-                ${mittenti.map(m => `<option value="${m}">${esc(m)}</option>`).join('')}
+                ${mittenti.map(m => `<option value="${m}" ${m === mittenteDefault ? 'selected' : ''}>${esc(m)}</option>`).join('')}
               </select>
+              ${IS_ADMIN ? `<div style="font-size:11px;color:#6f7580;margin-top:4px">Assegnazione cliente: <strong>${esc(clienteAssignedTo || 'admin').toUpperCase()}</strong> (pre-selezionato il mittente corretto)</div>` : ''}
               <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:16px 0 6px">Messaggio personale (opzionale)</h3>
               <textarea id="suture-msg" placeholder="Es. Gentile Dr. Rossi, in vista del prossimo mese ho preparato la riproposta…" style="width:100%;min-height:80px;padding:10px;border:1px solid rgba(10,22,40,0.1);background:#f5ecd8;border-radius:2px;font-family:inherit;font-size:14px;resize:vertical"></textarea>
             </div>
@@ -375,7 +383,7 @@
             if (!prodotti.length) { alert('Aggiungi almeno un prodotto con qty > 0.'); return; }
             const payload = {
                 cliente_id: clienteId,
-                sales_rep: REP,
+                sales_rep: repProposta,
                 mittente_email: backdrop.querySelector('#suture-mittente').value,
                 prodotti,
                 sconto_pct: parseInt(backdrop.querySelector('#suture-sconto').value, 10),
