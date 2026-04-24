@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Suture - OSSEOTOUCH</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1 id="suture-page-title">Suture</h1>
+            <p class="report-motto">Clienti e proposte suture del tuo portafoglio</p>
+            <p style="margin-top:12px;"><a id="suture-back-link" href="#" style="color:#6f7580;font-size:13px;">&larr; Torna alla dashboard</a></p>
+        </header>
+
+        <main>
+            <section class="reports-section">
+                <h2>Clienti Suture</h2>
+                <div id="suture-clienti-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+
+            <section class="reports-section">
+                <h2>Proposte Suture</h2>
+                <div id="suture-proposte-container">
+                    <p class="loading">Caricamento...</p>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        // La pagina e' condivisa fra Kim e Massimo. ?from=kim|massimo sceglie il rep.
+        const params = new URLSearchParams(window.location.search);
+        const FROM = (params.get('from') || 'admin').toLowerCase();
+        const AGENTE = FROM; // suture-agente.js applica REPMAP interno (massimo -> detto)
+
+        // Titolo + back link dinamici
+        const TITLE_MAP = { kim: 'Suture · Kim', massimo: 'Suture · Massimo', admin: 'Suture · Admin' };
+        document.getElementById('suture-page-title').textContent = TITLE_MAP[FROM] || 'Suture';
+        const BACK_MAP = {
+            kim: 'dashboard-kim.html',
+            massimo: 'dashboard-massimo.html',
+            admin: 'admin',
+        };
+        const back = document.getElementById('suture-back-link');
+        back.href = (BACK_MAP[FROM] || 'admin') + '?key=' + encodeURIComponent(params.get('key') || '');
+    </script>
+    <script src="suture-agente.js"></script>
+</body>
+</html>
