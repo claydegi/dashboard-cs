@@ -67,6 +67,13 @@
     .badge-rule1{background:rgba(26,158,143,0.12);color:var(--osseolio-deep);padding:3px 8px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em}
     .badge-rule2{background:rgba(194,119,11,0.15);color:#8a5600;padding:3px 8px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em}
     .empty{padding:40px;text-align:center;color:var(--muted);font-family:'Fraunces',serif;font-style:italic;font-size:16px}
+    /* Righe "opportunita'": cliente senza proposta attiva -> lampeggio soft ambra (brief sez. 10) */
+    @keyframes row-opp-pulse {
+      0%, 100% { background: rgba(194, 119, 11, 0.05); }
+      50%      { background: rgba(194, 119, 11, 0.22); }
+    }
+    .tbl tr.row-old td { animation: row-opp-pulse 2.6s ease-in-out infinite; }
+    .tbl tr.row-old:hover td { animation-play-state: paused; background: rgba(194, 119, 11, 0.24); }
     footer{margin-top:60px;color:var(--muted);font-size:12px;line-height:1.8;padding-top:20px;border-top:1px solid var(--line)}
     /* Modal composer (stile mockup) */
     .modal-backdrop{position:fixed;inset:0;background:rgba(10,22,40,0.65);z-index:100;display:none;align-items:flex-start;justify-content:center;padding:40px 20px;overflow-y:auto}

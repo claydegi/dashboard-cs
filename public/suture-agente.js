@@ -25,7 +25,9 @@
     const MITTENTI = {
         kim: ['kagnello@osseotouch.com'],
         detto: ['mdetto@osseotouch.com'],
-        admin: ['kagnello@osseotouch.com', 'mdetto@osseotouch.com', 'contact@osseotouch.com'],
+        // Per admin: contact@ primo (default CS), poi altri disponibili.
+        // Admin puo' selezionare manualmente kagnello/mdetto se il caso lo richiede.
+        admin: ['contact@osseotouch.com', 'kagnello@osseotouch.com', 'mdetto@osseotouch.com'],
     };
 
     const CATALOGO = [
@@ -101,8 +103,12 @@
         // rompono il JS inline anche dopo HTML escape (il browser decodifica le
         // entity HTML prima del parser JS).
         const nomeAttr = esc(nome);
+        // Opportunita' (lampeggio ambra, brief sez. 10): cliente senza proposta
+        // attiva pending. Si ferma quando esiste proposta attiva.
+        const isOpportunita = !c.has_active_proposal;
+        const rowClass = isOpportunita ? ' class="row-old"' : '';
         return `
-          <tr data-cliente-id="${c.id}">
+          <tr${rowClass} data-cliente-id="${c.id}">
             <td class="cell-nome">
               <div class="name">${nomeAttr}</div>
               <div class="email">${esc(c.email || '')}</div>

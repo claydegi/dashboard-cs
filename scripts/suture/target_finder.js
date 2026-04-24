@@ -86,7 +86,13 @@ async function getRule1Clients(rep, pool) {
     if (!regions.length) return [];
     const { rows } = await pool.query(
         `SELECT DISTINCT c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
-                c.citta, c.regione, c.nome_azienda
+                c.citta, c.regione, c.nome_azienda,
+                EXISTS (
+                    SELECT 1 FROM proposte pr
+                    WHERE pr.cliente_id = c.id
+                      AND pr.stato = 'pending'
+                      AND (pr.rimandata_al IS NULL OR pr.rimandata_al <= CURRENT_DATE)
+                ) AS has_active_proposal
          FROM crm_contatti c
          JOIN crm_prodotti p ON p.contatto_id = c.id
          WHERE p.prodotto = 'SUTURE'
@@ -111,7 +117,13 @@ async function getRule2Overrides(rep, pool) {
         `SELECT DISTINCT c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
                 c.citta, c.regione, c.nome_azienda,
                 psr.invoice_user_odoo_name AS excel_sales_rep_raw,
-                psr.ultima_fattura_suture_date
+                psr.ultima_fattura_suture_date,
+                EXISTS (
+                    SELECT 1 FROM proposte pr
+                    WHERE pr.cliente_id = c.id
+                      AND pr.stato = 'pending'
+                      AND (pr.rimandata_al IS NULL OR pr.rimandata_al <= CURRENT_DATE)
+                ) AS has_active_proposal
          FROM crm_contatti c
          JOIN partner_sales_rep psr ON psr.contatto_id = c.id
          JOIN crm_prodotti p ON p.contatto_id = c.id
@@ -159,17 +171,18 @@ async function getClientsForRep(rep, pool) {
         for (const c of union) {
             const ov = overrideMap.get(c.id);
             if (ov) {
-                // Regola #2 (più forte): sales rep dall'Excel analisi_vendite
+                // Excel analisi_vendite (piu' forte): assegnazione certa
                 c._assigned_to = ov.sales_rep;          // 'kim' | 'detto' | 'admin'
                 c._assigned_source = 'excel';
                 c._assigned_excel_raw = ov.invoice_user_odoo_name || null;
             } else {
-                // Regola #1: dalla regione
-                const regNorm = normalizeRegion(c.regione);
-                if (kimRegs.has(regNorm)) c._assigned_to = 'kim';
-                else if (dettoRegs.has(regNorm)) c._assigned_to = 'detto';
-                else c._assigned_to = 'admin';
-                c._assigned_source = 'regione';
+                // Cliente NON in Excel cache: fallback prudente ad 'admin'
+                // (non inferiamo da regione: la regione puo' suggerire Kim/Detto
+                //  ma il cliente reale potrebbe essere DIREZIONALE che Excel non
+                //  ha matchato. Default admin = customer service gestisce).
+                // La regione resta visualizzata come info, ma non come assegnazione.
+                c._assigned_to = 'admin';
+                c._assigned_source = 'default_no_excel';
                 c._assigned_excel_raw = null;
             }
         }
