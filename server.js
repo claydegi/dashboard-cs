@@ -10806,6 +10806,26 @@ app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     }
 });
 
+// GET /api/suture/portale-cliente/:cliente_id — ritorna (o crea on-demand) il token portale per quel cliente.
+// Usato dalle dashboard Kim/Massimo/admin per aprire la pagina portale del cliente con "Apri portale".
+app.get('/api/suture/portale-cliente/:cliente_id', requireAdmin, async (req, res) => {
+    try {
+        const cliente_id = parseInt(req.params.cliente_id, 10);
+        if (!cliente_id) return res.status(400).json({ error: 'cliente_id non valido' });
+        const token = await sutureProposalBuilder.getOrCreatePortale(cliente_id, pool);
+        res.json({
+            ok: true,
+            cliente_id,
+            token,
+            url: `https://myosseotouch.com/portale/${token}`,
+            url_rep: `https://myosseotouch.com/portale/${token}?mode=rep`,
+        });
+    } catch (err) {
+        console.error('[SUTURE] portale-cliente:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/suture/storico/:cliente_id — storico acquisti suture 2026+ filtrato '000'
 app.get('/api/suture/storico/:cliente_id', requireAdmin, async (req, res) => {
     try {

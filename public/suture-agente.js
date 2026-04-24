@@ -107,6 +107,7 @@
             ${assignedCell}
             <td class="cell-action">
               <button class="act-btn" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}')">Nuova proposta</button>
+              <a class="act-link" href="#" onclick="window.SUTURE.apriPortale(${c.id});return false;">👁 Apri portale</a>
             </td>
           </tr>`;
     }
@@ -228,7 +229,7 @@
                               <td style="padding:14px 16px">
                                 ${isRimandata ? `<button onclick="window.SUTURE.riattiva(${p.id})" style="background:#16a34a;color:#fff;border:none;padding:6px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">Riattiva ora</button>` : ''}
                                 ${p.stato === 'pending' ? `<button onclick="window.SUTURE.apriConfermaManuale(${p.id})" style="background:#0a1628;color:#fff;border:none;padding:6px 10px;border-radius:2px;cursor:pointer;font-size:11px;margin-right:4px">Conferma manuale</button>` : ''}
-                                <a href="javascript:void(0)" onclick="window.SUTURE.apriLinkPortale(${p.cliente_id})" style="color:#0f6d63;font-size:11px">👁 Vedi portale</a>
+                                <a href="javascript:void(0)" onclick="window.SUTURE.apriPortale(${p.cliente_id})" style="color:#0f6d63;font-size:11px">👁 Vedi portale</a>
                               </td>
                             </tr>`;
                       }).join('')}
@@ -454,27 +455,22 @@
         } catch (err) { alert('Errore: ' + err.message); }
     }
 
-    async function apriLinkPortale(clienteId) {
+    async function apriPortale(clienteId) {
         try {
-            const r = await api(`/api/proposte?cliente_id=${clienteId}`);
-            const p = (r.proposte || [])[0];
-            if (!p) return alert('Nessuna proposta trovata per questo cliente.');
-            const { rows: tok } = { rows: [] };
-            // Il token lo recuperiamo dalla proposta stessa tramite portal
-            const portR = await api(`/api/proposte/${p.id}`);
-            // Hackish: portale_token non esposto dall'endpoint, estraggo via client_id → portali via SQL endpoint?
-            // Alternativa rapida: apro /portale/ con cliente_id query (dev)
-            // Per ora: fetch su /api/portali/... non funziona senza token. Apro direttamente l'endpoint
-            // che dà il token.
-            alert('Apertura portale in sviluppo — usa il link dalla modal "Link generato" dopo la creazione.');
-        } catch (err) { alert('Errore: ' + err.message); }
+            const r = await api(`/api/suture/portale-cliente/${clienteId}`);
+            const urlRep = r.url_rep || r.url;
+            if (!urlRep) return alert('Impossibile ottenere il link del portale.');
+            window.open(urlRep, '_blank', 'noopener');
+        } catch (err) {
+            alert('Errore apertura portale: ' + err.message);
+        }
     }
 
     window.SUTURE = {
         openComposer,
         apriConfermaManuale,
         riattiva,
-        apriLinkPortale,
+        apriPortale,
         refresh: () => { loadClienti(); loadProposte(); },
     };
 
