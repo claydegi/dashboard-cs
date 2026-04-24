@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "updated_at": "2026-04-24",
+  "source": "SUTURE/BRIEF_IMPLEMENTAZIONE.md sez. 7 — Assegnazione cliente -> sales rep",
+  "note": "Single source of truth per la regola #1 (assegnazione per regione). La regola #2 (override fuori-regione basata su Sales Rep negli ordini Excel) e' gestita dal modulo target_finder.js. Aggregazione finale = regola #1 UNION regola #2.",
+  "rep": {
+    "kim": {
+      "nome": "Kim Agnello",
+      "email": "kagnello@osseotouch.com",
+      "regioni": [
+        "Liguria",
+        "Piemonte",
+        "Campania",
+        "Lazio",
+        "Valle d'Aosta",
+        "Emilia-Romagna"
+      ]
+    },
+    "detto": {
+      "nome": "Massimo Detto",
+      "email": "mdetto@osseotouch.com",
+      "regioni": [
+        "Lombardia"
+      ]
+    },
+    "admin": {
+      "nome": "Admin (imprenditore)",
+      "email": "contact@osseotouch.com",
+      "regioni_default": true,
+      "note": "Gestisce tutte le regioni italiane non coperte da Kim o Detto (13 regioni residue)."
+    }
+  },
+  "regioni_italiane_tutte": [
+    "Abruzzo",
+    "Basilicata",
+    "Calabria",
+    "Campania",
+    "Emilia-Romagna",
+    "Friuli Venezia Giulia",
+    "Lazio",
+    "Liguria",
+    "Lombardia",
+    "Marche",
+    "Molise",
+    "Piemonte",
+    "Puglia",
+    "Sardegna",
+    "Sicilia",
+    "Toscana",
+    "Trentino-Alto Adige",
+    "Umbria",
+    "Valle d'Aosta",
+    "Veneto"
+  ],
+  "matching": {
+    "case_insensitive": true,
+    "strip_accents": true,
+    "aliases": {
+      "Emilia Romagna": "Emilia-Romagna",
+      "Valle dAosta": "Valle d'Aosta",
+      "Valle d Aosta": "Valle d'Aosta",
+      "Trentino Alto Adige": "Trentino-Alto Adige",
+      "Friuli-Venezia Giulia": "Friuli Venezia Giulia"
+    }
+  }
+}

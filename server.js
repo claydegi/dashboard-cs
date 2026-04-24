@@ -1246,6 +1246,103 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_items_order ON shop_order_items(order_id)`);
 
+        // ==================== SUTURE VENDITA (agente SUTURE — portale cliente + proposte) ====================
+        // Distinto dal Controllo Suture VITREX (tabelle suture_stock/suture_sync_meta/suture_ordini_clienti sopra).
+        // Riferimento: SUTURE/BRIEF_IMPLEMENTAZIONE.md sez. 8 · SUTURE/PIANO_FASE1.md Blocco 1.1
+        await client.query(`CREATE EXTENSION IF NOT EXISTS pgcrypto`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS proposte (
+                id BIGSERIAL PRIMARY KEY,
+                cliente_id INTEGER NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                sales_rep TEXT NOT NULL,
+                stato TEXT NOT NULL DEFAULT 'pending',
+                sconto_pct NUMERIC(4,2) DEFAULT 0,
+                omaggio_3plus1 BOOLEAN DEFAULT FALSE,
+                cadenza_gg INTEGER DEFAULT 60,
+                modalita TEXT DEFAULT 'automatica',
+                mittente_email TEXT NOT NULL,
+                messaggio_personale TEXT,
+                data_creazione TIMESTAMPTZ DEFAULT NOW(),
+                data_modifica TIMESTAMPTZ DEFAULT NOW(),
+                rimandata_al DATE,
+                canale_conferma TEXT,
+                note_conferma_manuale TEXT,
+                tipo_prodotto TEXT DEFAULT 'suture'
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposte_cliente ON proposte(cliente_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposte_sales_rep ON proposte(sales_rep)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposte_stato ON proposte(stato)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposte_rimandata ON proposte(rimandata_al) WHERE rimandata_al IS NOT NULL`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS proposta_righe (
+                id BIGSERIAL PRIMARY KEY,
+                proposta_id BIGINT NOT NULL REFERENCES proposte(id) ON DELETE CASCADE,
+                prodotto_cod TEXT NOT NULL,
+                prodotto_nome TEXT NOT NULL,
+                prezzo_unit NUMERIC(10,2) NOT NULL DEFAULT 0,
+                qty INTEGER NOT NULL DEFAULT 1,
+                origine TEXT DEFAULT 'rep'
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposta_righe_proposta ON proposta_righe(proposta_id)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS proposta_eventi (
+                id BIGSERIAL PRIMARY KEY,
+                proposta_id BIGINT NOT NULL REFERENCES proposte(id) ON DELETE CASCADE,
+                evento TEXT NOT NULL,
+                meta_json JSONB DEFAULT '{}',
+                ts TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_proposta_eventi_proposta ON proposta_eventi(proposta_id, ts DESC)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS portali_cliente (
+                token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                cliente_id INTEGER NOT NULL UNIQUE REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                attivo BOOLEAN DEFAULT TRUE,
+                data_creazione TIMESTAMPTZ DEFAULT NOW(),
+                revocato_at TIMESTAMPTZ,
+                revocato_da TEXT
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_portali_cliente_cliente ON portali_cliente(cliente_id)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS carrelli_draft (
+                token UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                proposta_id BIGINT REFERENCES proposte(id) ON DELETE CASCADE,
+                cliente_id INTEGER REFERENCES crm_contatti(id),
+                items_json JSONB NOT NULL DEFAULT '[]',
+                sconto_pct NUMERIC(4,2) DEFAULT 0,
+                omaggio_3plus1 BOOLEAN DEFAULT FALSE,
+                totale NUMERIC(10,2) DEFAULT 0,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                expires_at TIMESTAMPTZ NOT NULL,
+                used_at TIMESTAMPTZ
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_carrelli_draft_proposta ON carrelli_draft(proposta_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_carrelli_draft_expires ON carrelli_draft(expires_at) WHERE used_at IS NULL`);
+
+        // Cache per regola #2 (override fuori-regione basato su invoice_user_id Odoo).
+        // Popolata on-demand via endpoint admin /api/suture/refresh-sales-rep-cache (Blocco 2)
+        // oppure come step finale di syncSutureFromOdoo().
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS partner_sales_rep (
+                contatto_id INTEGER PRIMARY KEY REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                sales_rep TEXT NOT NULL,
+                invoice_user_odoo_name TEXT,
+                ultima_fattura_suture_date DATE,
+                last_refresh TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_partner_sales_rep_rep ON partner_sales_rep(sales_rep)`);
+
         console.log('[DB] Tabelle inizializzate');
     } finally {
         client.release();
@@ -10497,6 +10594,49 @@ app.get('/api/suture/ordini-clienti-completo', requireAdmin, async (req, res) =>
     } catch (err) {
         console.error('[Suture] Errore lista ordini clienti:', err.message);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== SUTURE VENDITA (agente SUTURE — portale cliente + proposte) ====================
+// Distinto dal Controllo Suture VITREX sopra (lato approvvigionamento).
+// Moduli: DASHBOARD CS/scripts/suture/*.js
+// Riferimento: SUTURE/BRIEF_IMPLEMENTAZIONE.md · SUTURE/PIANO_FASE1.md Blocco 1 (test accettazione)
+const sutureTargetFinder = require('./scripts/suture/target_finder.js');
+
+// POST /api/suture/refresh-sales-rep-cache — Popola/aggiorna cache partner_sales_rep leggendo Odoo
+app.post('/api/suture/refresh-sales-rep-cache', requireAdmin, async (req, res) => {
+    try {
+        const odooClient = {
+            authenticate: () => odooAuthenticate(),
+            execute: (uid, model, method, args, kwargs) => odooExecute(uid, model, method, args, kwargs),
+        };
+        const result = await sutureTargetFinder.refreshPartnerSalesRepCache(pool, odooClient);
+        res.json({ ok: true, ...result });
+    } catch (err) {
+        console.error('[SUTURE] refresh-sales-rep-cache:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// GET /api/suture/clienti-rep/:rep — Lista clienti visibili al sales rep (regola #1 UNION #2)
+// Test accettazione Fase 1 MVP: count('kim') deve essere 154 (131 regola #1 + 23 regola #2)
+app.get('/api/suture/clienti-rep/:rep', requireAdmin, async (req, res) => {
+    try {
+        const rep = String(req.params.rep || '').toLowerCase();
+        if (!['kim', 'detto', 'admin'].includes(rep)) {
+            return res.status(400).json({ error: `rep non valido: ${rep}. Accetto kim|detto|admin` });
+        }
+        const clienti = await sutureTargetFinder.getClientsForRep(rep, pool);
+        res.json({
+            ok: true,
+            rep,
+            count: clienti.length,
+            count_rule2: clienti.filter(c => c._via_rule2).length,
+            clienti,
+        });
+    } catch (err) {
+        console.error('[SUTURE] clienti-rep:', err.message);
+        res.status(500).json({ error: err.message });
     }
 });
 
