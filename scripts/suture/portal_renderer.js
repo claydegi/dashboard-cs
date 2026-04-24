@@ -125,10 +125,13 @@ function formatMeseAnnoIt(dateStr) {
 
 // Metadata referente per sales_rep (email + cellulare WhatsApp + avatar iniziali).
 // Numeri cellulari da popolare dall'imprenditore (per ora placeholder vuoti -> bottone WhatsApp nascosto).
+// Config referente per sales_rep. Per admin (clienti DIREZIONALE) il WhatsApp + email
+// sono quelli del customer service OSSEOTOUCH (non di Kim o Detto).
+// Cellulari Kim/Detto da popolare dall'imprenditore (per ora placeholder → bottone WA nascosto).
 const REFERENTE_META = {
-    kim:   { nome: 'Kim Agnello',   email: 'kagnello@osseotouch.com', cellulare: '', iniziali: 'KA' },
-    detto: { nome: 'Massimo Detto', email: 'mdetto@osseotouch.com',   cellulare: '', iniziali: 'MD' },
-    admin: { nome: 'Customer Service', email: 'contact@osseotouch.com', cellulare: '', iniziali: 'OS' },
+    kim:   { nome: 'Kim Agnello',   email: 'kagnello@osseotouch.com', cellulare: '',              iniziali: 'KA' },
+    detto: { nome: 'Massimo Detto', email: 'mdetto@osseotouch.com',   cellulare: '',              iniziali: 'MD' },
+    admin: { nome: 'Customer Service OSSEOTOUCH', email: 'contact@osseotouch.com', cellulare: '+39 327 794 7530', iniziali: 'CS' },
 };
 
 function escapeHtml(s) {
@@ -409,10 +412,17 @@ body{margin:0;font-family:'Instrument Sans',system-ui,sans-serif;background:var(
   </div>
 </div>
 <script>
-function confermaProposta(id) {
+const PORTALE_TOKEN = ${JSON.stringify(data.token)};
+async function confermaProposta(id) {
   if (!confirm('Procedere con l\\'ordine di questa proposta?\\nVerrai reindirizzato al checkout su osseotouch.com/shop.')) return;
-  // TODO (sub-task 5.1): POST /api/carrelli -> redirect a osseotouch.com/shop/checkout?cart=<token>
-  alert('Checkout in sviluppo (Blocco 5). Proposta #' + id);
+  try {
+    const r = await fetch('/api/portali/' + PORTALE_TOKEN + '/conferma/' + id, { method: 'POST' });
+    const data = await r.json();
+    if (!r.ok || !data.ok) throw new Error(data.error || 'errore sconosciuto');
+    window.location.href = data.checkout_url;
+  } catch (e) {
+    alert('Errore conferma ordine: ' + e.message);
+  }
 }
 function rimandaProposta(id) {
   if (!confirm('Rimandare questa proposta di 30 giorni?')) return;

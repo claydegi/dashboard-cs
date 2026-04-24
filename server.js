@@ -10788,6 +10788,68 @@ app.get('/api/portali/:token', async (req, res) => {
     }
 });
 
+// POST /api/portali/:token/conferma/:proposta_id — endpoint PUBBLICO per cliente portale.
+// Protetto dal token permanente del portale. Verifica:
+//   1. Token esiste + attivo in portali_cliente
+//   2. Proposta appartiene allo stesso cliente
+//   3. Crea carrelli_draft con TTL 24h (ricostruito server-side dalle righe proposta, no trust client)
+// Ritorna: { ok, cart_token, checkout_url }
+app.post('/api/portali/:token/conferma/:proposta_id', async (req, res) => {
+    try {
+        const info = await suturePortalRenderer.resolveTokenToCliente(req.params.token, pool);
+        if (!info) return res.status(404).json({ error: 'Portale non trovato o revocato' });
+
+        const propostaId = parseInt(req.params.proposta_id, 10);
+        if (!propostaId) return res.status(400).json({ error: 'proposta_id non valido' });
+
+        const proposta = await sutureProposalBuilder.getProposta(propostaId, pool);
+        if (!proposta) return res.status(404).json({ error: 'Proposta non trovata' });
+        if (proposta.cliente_id !== info.cliente_id) {
+            return res.status(403).json({ error: 'Proposta non appartiene a questo portale' });
+        }
+
+        const righe = Array.isArray(proposta.righe) ? proposta.righe : [];
+        let subtot = 0;
+        for (const r of righe) {
+            subtot += (parseFloat(r.prezzo) || 0) * (parseInt(r.qty, 10) || 0);
+        }
+        const scontoPct = Math.max(0, Math.min(20, parseFloat(proposta.sconto_pct) || 0));
+        const totaleScontato = subtot * (1 - scontoPct / 100);
+
+        const { rows } = await pool.query(
+            `INSERT INTO carrelli_draft (proposta_id, cliente_id, items_json, sconto_pct, omaggio_3plus1, totale, expires_at)
+             VALUES ($1, $2, $3::jsonb, $4, $5, $6, NOW() + INTERVAL '24 hours')
+             RETURNING token, expires_at`,
+            [
+                propostaId,
+                info.cliente_id,
+                JSON.stringify(righe.map(r => ({
+                    cod: r.cod, nome: r.nome, prezzo: r.prezzo, qty: r.qty,
+                }))),
+                scontoPct,
+                !!proposta.omaggio_3plus1,
+                totaleScontato.toFixed(2),
+            ]
+        );
+
+        await pool.query(
+            `INSERT INTO proposta_eventi (proposta_id, evento, meta_json)
+             VALUES ($1, 'confermata', $2::jsonb)`,
+            [propostaId, JSON.stringify({ cart_token: rows[0].token, via: 'portale' })]
+        );
+
+        res.json({
+            ok: true,
+            cart_token: rows[0].token,
+            expires_at: rows[0].expires_at,
+            checkout_url: `https://www.osseotouch.com/shop/checkout-suture/?cart=${rows[0].token}`,
+        });
+    } catch (err) {
+        console.error('[SUTURE] portale conferma:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // POST /api/portali/:token/revoca — SOLO admin
 app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     try {
