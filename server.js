@@ -10844,7 +10844,7 @@ app.post('/api/portali/:token/conferma/:proposta_id', async (req, res) => {
             ok: true,
             cart_token: rows[0].token,
             expires_at: rows[0].expires_at,
-            checkout_url: `https://www.osseotouch.com/shop/checkout-suture/?cart=${rows[0].token}`,
+            checkout_url: `https://www.osseotouch.com/shop/checkout/?cart=${rows[0].token}`,
         });
     } catch (err) {
         console.error('[SUTURE] portale conferma:', err.message);
