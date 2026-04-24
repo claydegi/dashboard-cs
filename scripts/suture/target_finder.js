@@ -226,12 +226,31 @@ async function refreshPartnerSalesRepCache(pool, odooClient) {
         userByMoveId.set(m.id, Array.isArray(uv) ? uv[1] : null);
     }
 
-    // 5) UPSERT in partner_sales_rep. Lookup contatto_id via match su nome azienda
-    //    (piu' robusto: crm_contatti ha 'id' numerico che e' gia' allineato con partner_id Odoo
-    //    quando l'import arriva da odoo_sync.py). Usa id diretto.
+    // 5) Pre-filtra partner_id che esistono in crm_contatti.
+    //    SalesForceFree odoo_sync.py importa solo partner con regione attiva + altri filtri,
+    //    quindi non tutti i partner Odoo (soprattutto demo/test/estero) hanno corrispondenza
+    //    in crm_contatti. Senza questo filtro, UPSERT fallisce con FK violation.
+    //    Lezione 2026-04-24: primo run cache ha esposto questa assunzione errata.
+    const partnerIds = Array.from(byPartner.keys());
+    const { rows: existingRows } = await pool.query(
+        `SELECT id FROM crm_contatti WHERE id = ANY($1::int[])`,
+        [partnerIds]
+    );
+    const validIds = new Set(existingRows.map(r => r.id));
+
+    // 6) UPSERT in partner_sales_rep solo per partner mappati
     let processed = 0;
     let updated = 0;
+    let skipped_non_crm = 0;
+    const skipped_samples = [];
     for (const [partnerId, info] of byPartner) {
+        if (!validIds.has(partnerId)) {
+            skipped_non_crm++;
+            if (skipped_samples.length < 5) {
+                skipped_samples.push({ partner_id: partnerId, partner_name: info.partner_name });
+            }
+            continue;
+        }
         const odooUserName = userByMoveId.get(info.move_id) || null;
         const rep = mapOdooUserToRep(odooUserName);
         processed++;
@@ -254,6 +273,8 @@ async function refreshPartnerSalesRepCache(pool, odooClient) {
     return {
         processed,
         updated,
+        skipped_non_crm,
+        skipped_samples,
         partners_with_suture: byPartner.size,
         last_refresh: new Date().toISOString(),
     };
