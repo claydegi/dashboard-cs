@@ -125,7 +125,7 @@
     const FROM = (params.get('from') || 'admin').toLowerCase();
     const AGENTE = FROM;
     const NOME_REP = { kim: 'di Kim', massimo: 'di Massimo', admin: '(admin)' };
-    const BACK_MAP = { kim: 'dashboard-kim.html', massimo: 'dashboard-massimo.html', admin: 'admin' };
+    const BACK_MAP = { kim: '/dashboard-kim.html', massimo: '/dashboard-massimo.html', admin: '/admin' };
     document.getElementById('suture-hero-rep').textContent = NOME_REP[FROM] || '';
     document.getElementById('suture-brand-sub').textContent = 'Suture · ' + (FROM.charAt(0).toUpperCase() + FROM.slice(1));
     document.getElementById('suture-back-link').href = (BACK_MAP[FROM] || 'admin') + '?key=' + encodeURIComponent(params.get('key') || '');

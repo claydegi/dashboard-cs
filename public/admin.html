@@ -26,7 +26,7 @@
                     </div>
                 </div>
                 <a href="#" class="nav-link" data-section="suture">Suture</a>
-                <a href="suture-rep.html?from=admin" class="nav-link nav-proposte-suture">Proposte</a>
+                <a href="#" onclick="window.location.href='suture-rep.html?key=' + encodeURIComponent(new URLSearchParams(window.location.search).get('key') || '') + '&from=admin'" class="nav-link nav-proposte-suture">Proposte</a>
                 <a href="#" class="nav-link" data-section="shop-orders">Ordini online <span id="shop-orders-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="freelancer">Freelancer <span id="freelancer-badge" class="nav-badge" style="display:none;">0</span></a>
                 <a href="#" class="nav-link" data-section="opportunita">Opportunità <span id="opportunita-badge" class="nav-badge" style="display:none;">0</span></a>
