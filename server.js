@@ -10603,17 +10603,23 @@ app.get('/api/suture/ordini-clienti-completo', requireAdmin, async (req, res) =>
 // Riferimento: SUTURE/BRIEF_IMPLEMENTAZIONE.md · SUTURE/PIANO_FASE1.md Blocco 1 (test accettazione)
 const sutureTargetFinder = require('./scripts/suture/target_finder.js');
 
-// POST /api/suture/refresh-sales-rep-cache — Popola/aggiorna cache partner_sales_rep leggendo Odoo
-app.post('/api/suture/refresh-sales-rep-cache', requireAdmin, async (req, res) => {
+// POST /api/suture/sync-sales-rep-overrides — Popola cache partner_sales_rep da Excel analisi_vendite.
+// Chiamato dallo script Python locale analisi_vendite/build_sales_rep_overrides.py
+// (lanciato manualmente o da Task Scheduler Windows).
+// Body: { clients: [{ nome_cliente, sales_rep, ultima_data_suture }] }
+// Fonte regola #2: Excel analisi_vendite/ordini_excel/*/ORDINI_*.xlsx col. "Sales Rep"
+// (KIM/DETTO/DIREZIONALE). NON usa Odoo invoice_user_id (esplicitamente vietato dall'imprenditore).
+app.post('/api/suture/sync-sales-rep-overrides', requireAdmin, async (req, res) => {
     try {
-        const odooClient = {
-            authenticate: () => odooAuthenticate(),
-            execute: (uid, model, method, args, kwargs) => odooExecute(uid, model, method, args, kwargs),
-        };
-        const result = await sutureTargetFinder.refreshPartnerSalesRepCache(pool, odooClient);
+        const body = req.body || {};
+        const clients = body.clients;
+        if (!Array.isArray(clients)) {
+            return res.status(400).json({ error: 'Body deve contenere campo "clients" array' });
+        }
+        const result = await sutureTargetFinder.syncSalesRepOverridesFromPayload(pool, clients);
         res.json({ ok: true, ...result });
     } catch (err) {
-        console.error('[SUTURE] refresh-sales-rep-cache:', err.message);
+        console.error('[SUTURE] sync-sales-rep-overrides:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
