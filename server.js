@@ -10868,6 +10868,27 @@ app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/suture/portale-cliente/:cliente_id/revoca — SOLO admin revoca il portale
+// attivo di un cliente (brief sez. 13: revoca accentrata, su richiesta del rep).
+app.post('/api/suture/portale-cliente/:cliente_id/revoca', requireAdmin, async (req, res) => {
+    try {
+        const cliente_id = parseInt(req.params.cliente_id, 10);
+        if (!cliente_id) return res.status(400).json({ error: 'cliente_id non valido' });
+        const result = await pool.query(
+            `UPDATE portali_cliente
+             SET attivo = FALSE, revocato_at = NOW(), revocato_da = $2
+             WHERE cliente_id = $1 AND attivo = TRUE
+             RETURNING token`,
+            [cliente_id, req.body?.revocato_da || 'admin']
+        );
+        if (!result.rowCount) return res.status(404).json({ error: 'Nessun portale attivo per questo cliente' });
+        res.json({ ok: true, token_revocato: result.rows[0].token });
+    } catch (err) {
+        console.error('[SUTURE] portale-cliente/revoca:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/suture/portale-cliente/:cliente_id — ritorna (o crea on-demand) il token portale per quel cliente.
 // Usato dalle dashboard Kim/Massimo/admin per aprire la pagina portale del cliente con "Apri portale".
 app.get('/api/suture/portale-cliente/:cliente_id', requireAdmin, async (req, res) => {

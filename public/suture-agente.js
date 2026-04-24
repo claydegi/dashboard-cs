@@ -108,6 +108,7 @@
             <td class="cell-action">
               <button class="act-btn" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}')">Nuova proposta</button>
               <a class="act-link" href="#" onclick="window.SUTURE.apriPortale(${c.id});return false;">👁 Apri portale</a>
+              ${IS_ADMIN ? `<a class="act-link" href="#" style="color:#b91c1c" onclick="window.SUTURE.revocaPortale(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}');return false;">⛔ Revoca portale</a>` : ''}
             </td>
           </tr>`;
     }
@@ -466,11 +467,26 @@
         }
     }
 
+    async function revocaPortale(clienteId, nome) {
+        if (!confirm(`Revocare il portale del cliente "${nome}"?\nIl link non sarà più accessibile. Questa operazione è irreversibile.`)) return;
+        try {
+            await api(`/api/suture/portale-cliente/${clienteId}/revoca`, {
+                method: 'POST',
+                body: JSON.stringify({ revocato_da: 'admin' }),
+            });
+            alert('Portale revocato.');
+            loadClienti();
+        } catch (err) {
+            alert('Errore revoca: ' + err.message);
+        }
+    }
+
     window.SUTURE = {
         openComposer,
         apriConfermaManuale,
         riattiva,
         apriPortale,
+        revocaPortale,
         refresh: () => { loadClienti(); loadProposte(); },
     };
 
