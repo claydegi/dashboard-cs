@@ -10758,8 +10758,10 @@ app.post('/api/proposte/:id/send-email', requireAdmin, async (req, res) => {
         const proposta = await sutureProposalBuilder.getProposta(propostaId, pool);
         if (!proposta) return res.status(404).json({ error: 'Proposta non trovata' });
 
-        const clienteEmail = proposta.email;
-        if (!clienteEmail) return res.status(400).json({ error: 'Cliente senza email registrata' });
+        // to_override nel body permette al sales rep di correggere/modificare l'email
+        // proposta di default (da CRM) prima dell'invio
+        const clienteEmail = (req.body && req.body.to_override) || proposta.email;
+        if (!clienteEmail) return res.status(400).json({ error: 'Cliente senza email registrata (passa to_override nel body)' });
 
         // Token portale (lazy-create)
         const token = await sutureProposalBuilder.getOrCreatePortale(proposta.cliente_id, pool);

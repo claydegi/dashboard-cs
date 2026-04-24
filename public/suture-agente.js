@@ -96,22 +96,43 @@
         const assignedCell = IS_ADMIN
             ? `<td class="cell-assegnato">${badgeAssignedTo(c)}</td>`
             : '';
+        // Nota: uso data-* + event delegation invece di onclick inline per evitare
+        // bug con apostrofi nei nomi clienti (es. "D'Angelosante Augusto") che
+        // rompono il JS inline anche dopo HTML escape (il browser decodifica le
+        // entity HTML prima del parser JS).
+        const nomeAttr = esc(nome);
         return `
           <tr data-cliente-id="${c.id}">
             <td class="cell-nome">
-              <div class="name">${esc(nome)}</div>
+              <div class="name">${nomeAttr}</div>
               <div class="email">${esc(c.email || '')}</div>
               ${miniReg}
             </td>
             <td class="cell-city">${esc(c.citta || '—')}</td>
             ${assignedCell}
             <td class="cell-action">
-              <button class="act-btn" onclick="window.SUTURE.openComposer(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}')">Nuova proposta</button>
-              <a class="act-link" href="#" onclick="window.SUTURE.apriPortale(${c.id});return false;">👁 Apri portale</a>
-              ${IS_ADMIN ? `<a class="act-link" href="#" style="color:#b91c1c" onclick="window.SUTURE.revocaPortale(${c.id}, '${esc(nome).replace(/'/g, '&#39;')}');return false;">⛔ Revoca portale</a>` : ''}
+              <button class="act-btn" data-action="nuova-proposta" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}">Nuova proposta</button>
+              <a class="act-link" href="#" data-action="apri-portale-cliente" data-cliente-id="${c.id}">👁 Come cliente</a>
+              <a class="act-link" href="#" data-action="apri-portale-rep" data-cliente-id="${c.id}">✎ Come rep</a>
+              ${IS_ADMIN ? `<a class="act-link" href="#" style="color:#b91c1c" data-action="revoca-portale" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}">⛔ Revoca portale</a>` : ''}
             </td>
           </tr>`;
     }
+
+    // Event delegation sui bottoni/link tabella (evita bug apostrofi in onclick inline)
+    document.addEventListener('click', (ev) => {
+        const el = ev.target.closest('[data-action]');
+        if (!el) return;
+        const action = el.dataset.action;
+        const clienteId = parseInt(el.dataset.clienteId, 10);
+        const clienteNome = el.dataset.clienteNome || '';
+        if (!clienteId) return;
+        ev.preventDefault();
+        if (action === 'nuova-proposta') openComposer(clienteId, clienteNome);
+        else if (action === 'apri-portale-cliente') apriPortale(clienteId, 'cliente');
+        else if (action === 'apri-portale-rep') apriPortale(clienteId, 'rep');
+        else if (action === 'revoca-portale') revocaPortale(clienteId, clienteNome);
+    });
 
     function renderRegionCard(regione, clienti, isFuori) {
         const cls = isFuori ? 'region-card region-card-fuori' : 'region-card';
@@ -276,11 +297,11 @@
                 <input type="checkbox" id="suture-omaggio" checked> Applica regola omaggio 3+1 <span style="font-size:11px;color:#6f7580">· valido se totale qty ≥ 3</span>
               </label>
               <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:16px 0 6px">Cadenza</h3>
-              <div style="display:flex;gap:8px">
+              <div style="display:flex;gap:8px" id="suture-cad-row">
                 ${[30, 60, 90].map(g => `
-                  <label style="flex:1;cursor:pointer">
-                    <input type="radio" name="suture-cad" value="${g}" ${g === 60 ? 'checked' : ''} style="display:none">
-                    <div style="border:1.5px solid rgba(10,22,40,0.1);padding:10px;text-align:center;border-radius:2px;font-family:Georgia,serif">${g} gg</div>
+                  <label style="flex:1;cursor:pointer;position:relative">
+                    <input type="radio" name="suture-cad" value="${g}" ${g === 60 ? 'checked' : ''} style="position:absolute;opacity:0;pointer-events:none">
+                    <div class="cad-box" data-cad-val="${g}" style="border:1.5px solid ${g === 60 ? '#1a9e8f' : 'rgba(10,22,40,0.12)'};background:${g === 60 ? 'rgba(26,158,143,0.06)' : '#fff'};padding:12px;text-align:center;border-radius:2px;font-family:Georgia,serif;transition:all 0.15s">${g} gg</div>
                   </label>`).join('')}
               </div>
               <h3 style="font-family:Georgia,serif;font-weight:500;font-size:15px;margin:16px 0 6px">Modalità</h3>
@@ -325,6 +346,24 @@
         aggiungiRiga('MV0205');
         backdrop.querySelector('#suture-add-prod').addEventListener('change', e => {
             if (e.target.value) { aggiungiRiga(e.target.value); e.target.value = ''; }
+        });
+
+        // Fix cadenza: radio visivamente attivo sincronizzato con input[name=suture-cad]
+        backdrop.querySelectorAll('input[name="suture-cad"]').forEach(rad => {
+            rad.addEventListener('change', () => {
+                backdrop.querySelectorAll('.cad-box').forEach(box => {
+                    const isChecked = box.previousElementSibling.checked;
+                    box.style.borderColor = isChecked ? '#1a9e8f' : 'rgba(10,22,40,0.12)';
+                    box.style.background = isChecked ? 'rgba(26,158,143,0.06)' : '#fff';
+                });
+            });
+        });
+        // Click su box cadenza = check radio corrispondente
+        backdrop.querySelectorAll('.cad-box').forEach(box => {
+            box.addEventListener('click', () => {
+                const rad = box.previousElementSibling;
+                if (rad) { rad.checked = true; rad.dispatchEvent(new Event('change', { bubbles: true })); }
+            });
         });
 
         backdrop.querySelector('#suture-salva-btn').addEventListener('click', async () => {
@@ -396,25 +435,81 @@
             e.target.textContent = '✓ Copiato';
             setTimeout(() => { e.target.textContent = '📋 Copia'; }, 1500);
         });
-        backdrop.querySelector('#suture-email-btn').addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const status = backdrop.querySelector('#suture-email-status');
-            btn.disabled = true;
-            status.textContent = 'Invio in corso…';
+        backdrop.querySelector('#suture-email-btn').addEventListener('click', async () => {
+            // Pre-fetch email cliente dal CRM per pre-compilare input
+            let emailProposta = '';
             try {
-                const r = await api(`/api/proposte/${propostaId}/send-email`, { method: 'POST' });
-                btn.style.background = '#16a34a';
-                btn.innerHTML = '✓ Email inviata';
-                status.textContent = 'Inviata a ' + (r.sent_to || 'cliente') + ' da ' + (r.from || mittenteEmail);
-            } catch (err) {
-                btn.disabled = false;
-                btn.style.background = '#b91c1c';
-                btn.innerHTML = '⚠ Errore';
-                status.textContent = 'Errore: ' + err.message;
-            }
+                const p = await api(`/api/proposte/${propostaId}`);
+                emailProposta = (p.proposta && p.proposta.email) || '';
+            } catch {}
+            mostraModalInviaEmail(propostaId, emailProposta, mittenteEmail, backdrop);
         });
         backdrop.querySelector('#suture-wa-btn').addEventListener('click', () => {
             navigator.clipboard.writeText(waText).then(() => alert('Testo WhatsApp copiato negli appunti.'));
+        });
+    }
+
+    // ==================== MODAL INVIO EMAIL (editabile) ====================
+    function mostraModalInviaEmail(propostaId, emailProposta, mittenteEmail, parentBackdrop) {
+        const m = document.createElement('div');
+        m.className = 'suture-modal-backdrop';
+        m.style.cssText = 'position:fixed;inset:0;background:rgba(10,22,40,0.75);z-index:10001;display:flex;align-items:center;justify-content:center;padding:20px';
+        m.innerHTML = `
+          <div style="background:#fffdf7;max-width:480px;width:100%;border-radius:2px">
+            <div style="padding:20px 28px;border-bottom:1px solid rgba(10,22,40,0.08)">
+              <div style="font-family:monospace;font-size:10px;letter-spacing:0.25em;text-transform:uppercase;color:#1a9e8f">Invia email via Mailgun</div>
+              <h2 style="margin:4px 0 0;font-family:Georgia,serif;font-weight:400;font-size:20px">Conferma destinatario</h2>
+            </div>
+            <div style="padding:20px 28px">
+              <label style="font-size:12px;color:#6f7580;display:block;margin-bottom:6px;font-family:monospace;letter-spacing:0.08em;text-transform:uppercase">Email cliente (modificabile)</label>
+              <input type="email" id="suture-email-to" value="${esc(emailProposta)}" placeholder="cliente@esempio.it" style="width:100%;padding:12px;border:1px solid rgba(10,22,40,0.15);background:#f5ecd8;border-radius:2px;font-size:14px;font-family:monospace">
+              <div style="font-size:11px;color:#6f7580;margin-top:8px">Pre-compilata dal CRM. Modificala se hai un'email aggiornata.</div>
+              <div style="margin-top:16px;padding:12px;background:rgba(26,158,143,0.06);border-left:3px solid #1a9e8f;font-size:12px;color:#14243b">
+                <strong>Mittente:</strong> ${esc(mittenteEmail)}<br>
+                <strong>Oggetto:</strong> Proposta riordino suture · OSSEOTOUCH<br>
+                <strong>Tracking:</strong> Mailgun (open + click)
+              </div>
+              <div id="suture-email-status-modal" style="margin-top:10px;font-size:12px;color:#6f7580"></div>
+            </div>
+            <div style="padding:14px 28px;display:flex;justify-content:flex-end;gap:10px;background:#f5ecd8">
+              <button type="button" id="suture-email-cancel" style="background:transparent;border:1px solid rgba(10,22,40,0.2);padding:10px 20px;border-radius:2px;cursor:pointer;font-weight:600">Annulla</button>
+              <button type="button" id="suture-email-send" style="background:#1a9e8f;color:#fff;border:none;padding:10px 22px;border-radius:2px;cursor:pointer;font-weight:700">✉️ Invia ora</button>
+            </div>
+          </div>`;
+        document.body.appendChild(m);
+        m.querySelector('#suture-email-cancel').addEventListener('click', () => m.remove());
+        m.querySelector('#suture-email-send').addEventListener('click', async () => {
+            const input = m.querySelector('#suture-email-to');
+            const to = input.value.trim();
+            if (!to || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(to)) { alert('Inserisci un email valida.'); return; }
+            const btn = m.querySelector('#suture-email-send');
+            const status = m.querySelector('#suture-email-status-modal');
+            btn.disabled = true;
+            btn.textContent = 'Invio in corso…';
+            try {
+                const r = await api(`/api/proposte/${propostaId}/send-email`, {
+                    method: 'POST',
+                    body: JSON.stringify({ to_override: to }),
+                });
+                btn.style.background = '#16a34a';
+                btn.textContent = '✓ Email inviata';
+                status.innerHTML = `Inviata a <strong>${esc(r.sent_to || to)}</strong> da ${esc(r.from || mittenteEmail)}.`;
+                setTimeout(() => {
+                    m.remove();
+                    if (parentBackdrop) {
+                        const parentStatus = parentBackdrop.querySelector('#suture-email-status');
+                        const parentBtn = parentBackdrop.querySelector('#suture-email-btn');
+                        if (parentBtn) { parentBtn.style.background = '#16a34a'; parentBtn.innerHTML = '✓ Email inviata'; parentBtn.disabled = true; }
+                        if (parentStatus) parentStatus.textContent = 'Inviata a ' + (r.sent_to || to);
+                    }
+                }, 1500);
+            } catch (err) {
+                btn.disabled = false;
+                btn.style.background = '#1a9e8f';
+                btn.textContent = '✉️ Invia ora';
+                status.style.color = '#b91c1c';
+                status.textContent = 'Errore: ' + err.message;
+            }
         });
     }
 
@@ -470,12 +565,12 @@
         } catch (err) { alert('Errore: ' + err.message); }
     }
 
-    async function apriPortale(clienteId) {
+    async function apriPortale(clienteId, mode) {
         try {
             const r = await api(`/api/suture/portale-cliente/${clienteId}`);
-            const urlRep = r.url_rep || r.url;
-            if (!urlRep) return alert('Impossibile ottenere il link del portale.');
-            window.open(urlRep, '_blank', 'noopener');
+            const targetUrl = mode === 'rep' ? (r.url_rep || r.url) : (r.url || r.url_rep);
+            if (!targetUrl) return alert('Impossibile ottenere il link del portale.');
+            window.open(targetUrl, '_blank', 'noopener');
         } catch (err) {
             alert('Errore apertura portale: ' + err.message);
         }
