@@ -11297,6 +11297,34 @@ app.post('/api/suture/sync-sales-rep-overrides', requireAdmin, async (req, res) 
     }
 });
 
+// GET /api/suture/clienti-rep-v2/:rep — Nuova vista: { attivi (Odoo 2026), dormienti (CRM senza ordini 2026) }
+// Attivi: certezza 100% via x_studio_agente Odoo
+// Dormienti: assegnazione da regione (best-effort)
+app.get('/api/suture/clienti-rep-v2/:rep', requireAdmin, async (req, res) => {
+    try {
+        const rep = String(req.params.rep || '').toLowerCase();
+        if (!['kim', 'detto', 'admin'].includes(rep)) {
+            return res.status(400).json({ error: `rep non valido: ${rep}. Accetto kim|detto|admin` });
+        }
+        const odooClient = {
+            authenticate: () => odooAuthenticate(),
+            execute: (uid, model, method, args, kwargs) => odooExecute(uid, model, method, args, kwargs),
+        };
+        const result = await sutureTargetFinder.getClientsForRepV2(rep, pool, odooClient);
+        res.json({
+            ok: true,
+            rep,
+            attivi_count: result.attivi.length,
+            dormienti_count: result.dormienti.length,
+            attivi: result.attivi,
+            dormienti: result.dormienti,
+        });
+    } catch (err) {
+        console.error('[SUTURE] clienti-rep-v2:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/suture/clienti-rep/:rep — Lista clienti visibili al sales rep (regola #1 UNION #2)
 // Test accettazione Fase 1 MVP: count('kim') deve essere 154 (131 regola #1 + 23 regola #2)
 app.get('/api/suture/clienti-rep/:rep', requireAdmin, async (req, res) => {

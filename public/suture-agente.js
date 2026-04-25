@@ -164,50 +164,118 @@
           </section>`;
     }
 
+    function renderRigaAttivo(c) {
+        const nome = c.partner_name || (c.crm_match && (c.crm_match.nome_azienda || `${c.crm_match.cognome || ''} ${c.crm_match.nome || ''}`.trim())) || '(senza nome)';
+        const nomeAttr = esc(nome);
+        const citta = c.crm_match ? c.crm_match.citta : '';
+        const regione = c.crm_match ? c.crm_match.regione : '';
+        const agenteLabel = c.agente_name || 'NESSUNO (DIREZIONALE)';
+        const inCrm = !!c.crm_match;
+        const azioniHtml = inCrm
+            ? `<button class="act-btn" data-action="nuova-proposta" data-cliente-id="${c.crm_match.id}" data-cliente-nome="${nomeAttr}" data-cliente-assigned="${c.agente_internal || 'admin'}">Nuova proposta</button>
+               <a class="act-link" href="#" data-action="apri-portale-cliente" data-cliente-id="${c.crm_match.id}">👁 Come cliente</a>
+               <a class="act-link" href="#" data-action="apri-portale-rep" data-cliente-id="${c.crm_match.id}">✎ Come rep</a>
+               ${IS_ADMIN ? `<a class="act-link" href="#" style="color:#b91c1c" data-action="revoca-portale" data-cliente-id="${c.crm_match.id}" data-cliente-nome="${nomeAttr}">⛔ Revoca portale</a>` : ''}`
+            : `<span style="color:#854d0e;font-size:11px;font-style:italic">Cliente Odoo non sincronizzato in CRM</span>`;
+        return `
+          <tr data-cliente-id="${c.crm_match ? c.crm_match.id : ''}">
+            <td class="mono" style="font-weight:600;color:#0f6d63">${c.odoo_partner_id}</td>
+            <td class="cell-nome">
+              <div class="name">${nomeAttr}</div>
+              <div class="email">${esc(c.email || (c.crm_match && c.crm_match.email) || '')}</div>
+            </td>
+            <td class="cell-city">${esc(citta || '—')} ${regione ? `<span style="font-size:10px;color:#6f7580">· ${esc(regione)}</span>` : ''}</td>
+            <td><span style="font-family:monospace;font-size:11px;letter-spacing:0.08em;font-weight:600">${esc(agenteLabel)}</span></td>
+            <td class="mono" style="font-size:11px;color:#6f7580">${esc((c.ultima_data_order||'').slice(0,10))} · ${c.total_orders||0} ord.</td>
+            <td class="cell-action">${azioniHtml}</td>
+          </tr>`;
+    }
+
+    function renderRigaDormiente(c) {
+        const nome = c.nome_azienda || [c.cognome, c.nome].filter(Boolean).join(' ').trim() || '(senza nome)';
+        const nomeAttr = esc(nome);
+        const isOpportunita = !c.has_active_proposal;
+        const rowClass = isOpportunita ? ' class="row-old"' : '';
+        return `
+          <tr${rowClass} data-cliente-id="${c.id}">
+            <td class="mono" style="color:#6f7580">—</td>
+            <td class="cell-nome">
+              <div class="name">${nomeAttr}</div>
+              <div class="email">${esc(c.email || '')}</div>
+            </td>
+            <td class="cell-city">${esc(c.citta || '—')} <span style="font-size:10px;color:#6f7580">· ${esc(c.regione || '—')}</span></td>
+            <td><span style="font-family:monospace;font-size:11px;letter-spacing:0.08em;font-weight:600;color:#854d0e">${esc((c._assigned_to || 'admin').toUpperCase())} (regione)</span></td>
+            <td class="cell-action">
+              <button class="act-btn" data-action="nuova-proposta" data-cliente-id="${c.id}" data-cliente-nome="${nomeAttr}" data-cliente-assigned="${c._assigned_to || 'admin'}">Nuova proposta</button>
+              <a class="act-link" href="#" data-action="apri-portale-cliente" data-cliente-id="${c.id}">👁 Come cliente</a>
+              <a class="act-link" href="#" data-action="apri-portale-rep" data-cliente-id="${c.id}">✎ Come rep</a>
+            </td>
+          </tr>`;
+    }
+
+    function renderSezione(titolo, sottotitolo, clienti, isAttivi) {
+        if (!clienti.length) return '';
+        const headerCols = isAttivi
+            ? '<th style="width:90px">ID Odoo</th><th>Cliente</th><th>Città · Regione</th><th>Agente Odoo</th><th>Ultimo ordine</th><th class="txt-right">Azione</th>'
+            : '<th style="width:60px">ID Odoo</th><th>Cliente</th><th>Città · Regione</th><th>Assegnazione</th><th class="txt-right">Azione</th>';
+        const rows = clienti.map(isAttivi ? renderRigaAttivo : renderRigaDormiente).join('');
+        const colsCount = isAttivi ? 6 : 5;
+        return `
+          <section class="region-card${isAttivi ? '' : ' region-card-fuori'}">
+            <div class="region-head">
+              <div>
+                <div class="region-title">${esc(titolo)}</div>
+                <div style="font-size:11px;color:#6f7580;margin-top:4px">${esc(sottotitolo)}</div>
+              </div>
+              <div class="region-count">${clienti.length} client${clienti.length === 1 ? 'e' : 'i'}</div>
+            </div>
+            <table class="tbl">
+              <thead><tr>${headerCols}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </section>`;
+    }
+
     async function loadClienti() {
         const container = document.getElementById('suture-clienti-container');
         if (!container) return;
-        container.innerHTML = '<p class="empty">Caricamento clienti suture…</p>';
+        container.innerHTML = '<p class="empty">Caricamento clienti suture (lettura Odoo…)</p>';
         try {
-            const r = await api(`/api/suture/clienti-rep/${REP}`);
-            const clienti = r.clienti || [];
+            const r = await api(`/api/suture/clienti-rep-v2/${REP}`);
+            const attivi = r.attivi || [];
+            const dormienti = r.dormienti || [];
+            const totale = attivi.length + dormienti.length;
 
-            // Update stat cards
             const sTot = document.getElementById('stat-total');
             const sR1 = document.getElementById('stat-r1');
             const sR2 = document.getElementById('stat-r2');
-            if (sTot) sTot.textContent = clienti.length;
-            if (sR1) sR1.textContent = clienti.length - (r.count_rule2 || 0);
-            if (sR2) sR2.textContent = r.count_rule2 || 0;
+            if (sTot) sTot.textContent = totale;
+            if (sR1) { sR1.textContent = attivi.length; }
+            if (sR2) { sR2.textContent = dormienti.length; }
+            const lblR1 = sR1 && sR1.parentElement ? sR1.parentElement.querySelector('.lbl') : null;
+            const lblR2 = sR2 && sR2.parentElement ? sR2.parentElement.querySelector('.lbl') : null;
+            if (lblR1) lblR1.textContent = 'Attivi 2026 (Odoo)';
+            if (lblR2) lblR2.textContent = 'Dormienti (CRM)';
 
-            if (!clienti.length) {
-                container.innerHTML = '<p class="empty">Nessun cliente suture nel tuo portafoglio.</p>';
+            if (!totale) {
+                container.innerHTML = '<p class="empty">Nessun cliente suture nel portafoglio.</p>';
                 return;
             }
 
-            // Raggruppa per regione: rule #1 prima (regioni del rep), poi card "Fuori regione · Excel"
-            const byRegione = new Map();
-            const fuoriRegione = [];
-            for (const c of clienti) {
-                if (c._via_rule2) {
-                    fuoriRegione.push(c);
-                } else {
-                    const reg = (c.regione || 'SENZA REGIONE').toString().toUpperCase();
-                    if (!byRegione.has(reg)) byRegione.set(reg, []);
-                    byRegione.get(reg).push(c);
-                }
-            }
-
-            const cards = [];
-            // Ordine regioni: alfabetico (o per count desc)
-            const regioniOrdinate = Array.from(byRegione.keys()).sort();
-            for (const reg of regioniOrdinate) {
-                cards.push(renderRegionCard(reg, byRegione.get(reg), false));
-            }
-            if (fuoriRegione.length) {
-                cards.push(renderRegionCard('Fuori regione · Excel analisi_vendite', fuoriRegione, true));
-            }
-            container.innerHTML = cards.join('');
+            const sezioni = [];
+            sezioni.push(renderSezione(
+                'Clienti attivi 2026',
+                'Vendite suture nel 2026 da Odoo. Assegnazione certa via x_studio_agente.',
+                attivi,
+                true
+            ));
+            sezioni.push(renderSezione(
+                'Clienti dormienti',
+                'Pre-2026 o senza acquisti suture 2026. Assegnazione da regione (verifica manuale consigliata).',
+                dormienti,
+                false
+            ));
+            container.innerHTML = sezioni.join('');
         } catch (err) {
             container.innerHTML = `<p class="empty" style="color:#b91c1c">Errore caricamento: ${esc(err.message)}</p>`;
         }

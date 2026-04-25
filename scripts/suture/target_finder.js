@@ -209,9 +209,142 @@ async function getClientsForRep(rep, pool) {
 function mapExcelRepToInternal(excelLabel) {
     if (!excelLabel) return 'admin';
     const s = String(excelLabel).toUpperCase().trim();
-    if (s === 'KIM') return 'kim';
+    if (s === 'KIM' || s === 'KIM AGNELLO') return 'kim';
     if (s === 'DETTO' || s === 'MASSIMO' || s === 'MASSIMO DETTO') return 'detto';
     return 'admin';
+}
+
+/**
+ * Legge clienti suture ATTIVI 2026 direttamente da Odoo via x_studio_agente.
+ * Certezza 100%: ogni partner_id e' univoco in Odoo, agente e' campo strutturato.
+ *
+ * Ritorna: [{odoo_partner_id, partner_name, agente_name (KIM AGNELLO|MASSIMO DETTO|DIREZIONALE|null),
+ *            agente_internal (kim|detto|admin), ultima_data_order, total_orders, crm_match }]
+ *
+ * crm_match: { id, email, citta, regione } se matchato in crm_contatti via email, altrimenti null.
+ */
+async function getActiveSutureClients2026(pool, odooClient) {
+    const uid = await odooClient.authenticate();
+    // 1. Prodotti categoria SUTURE
+    const prodIds = await odooClient.execute(uid, 'product.product', 'search', [[['categ_id', '=', 38]]], {});
+    if (!prodIds.length) return [];
+    // 2. Righe ordine 2026 con suture
+    const solIds = await odooClient.execute(uid, 'sale.order.line', 'search',
+        [[['product_id', 'in', prodIds], ['order_id.date_order', '>=', '2026-01-01']]], {});
+    if (!solIds.length) return [];
+    const solData = await odooClient.execute(uid, 'sale.order.line', 'read', [solIds], { fields: ['order_id'] });
+    const orderIds = Array.from(new Set(solData.map(l => Array.isArray(l.order_id) ? l.order_id[0] : null).filter(Boolean)));
+    // 3. Ordini con partner + agente + data
+    const orders = await odooClient.execute(uid, 'sale.order', 'read', [orderIds],
+        { fields: ['name', 'partner_id', 'x_studio_agente', 'date_order'] });
+    // 4. Aggregazione per partner: ultimo agente, conta ordini
+    const byPartner = new Map();
+    for (const o of orders) {
+        const pid = Array.isArray(o.partner_id) ? o.partner_id[0] : null;
+        if (!pid) continue;
+        const pname = o.partner_id[1];
+        const agenteRaw = o.x_studio_agente;
+        const agenteName = (agenteRaw && Array.isArray(agenteRaw)) ? agenteRaw[1] : null;
+        const date = o.date_order || '';
+        const ex = byPartner.get(pid);
+        if (!ex || date > ex.ultima_data_order) {
+            byPartner.set(pid, {
+                odoo_partner_id: pid,
+                partner_name: pname,
+                agente_name: agenteName,
+                agente_internal: mapExcelRepToInternal(agenteName),
+                ultima_data_order: date,
+                total_orders: (ex ? ex.total_orders : 0) + 1,
+            });
+        } else {
+            ex.total_orders++;
+        }
+    }
+    const partners = Array.from(byPartner.values());
+    // 5. Match con crm_contatti via email (per arricchire con dati CRM locali)
+    const partnerIds = partners.map(p => p.odoo_partner_id);
+    const odooPartners = await odooClient.execute(uid, 'res.partner', 'read', [partnerIds], { fields: ['id', 'email', 'name'] });
+    const emailByOdooId = new Map();
+    for (const p of odooPartners) {
+        if (p.email) emailByOdooId.set(p.id, String(p.email).toLowerCase().trim());
+    }
+    const emails = Array.from(new Set(emailByOdooId.values())).filter(Boolean);
+    let emailToCrm = new Map();
+    if (emails.length) {
+        const { rows: ccRows } = await pool.query(
+            `SELECT id, email, citta, regione, cognome, nome, nome_azienda
+             FROM crm_contatti
+             WHERE LOWER(TRIM(email)) = ANY($1::text[])`,
+            [emails]
+        );
+        for (const r of ccRows) {
+            if (r.email) emailToCrm.set(String(r.email).toLowerCase().trim(), r);
+        }
+    }
+    for (const p of partners) {
+        const em = emailByOdooId.get(p.odoo_partner_id);
+        const crm = em ? emailToCrm.get(em) : null;
+        p.crm_match = crm ? {
+            id: crm.id, email: crm.email, citta: crm.citta, regione: crm.regione,
+            cognome: crm.cognome, nome: crm.nome, nome_azienda: crm.nome_azienda
+        } : null;
+        p.email = em || null;
+    }
+    return partners;
+}
+
+/**
+ * Restituisce { attivi, dormienti } per il rep.
+ * Attivi: clienti suture 2026 da Odoo (certezza 100%).
+ * Dormienti: clienti CRM con suture ma SENZA vendite 2026 in Odoo (assegnazione da regione).
+ */
+async function getClientsForRepV2(rep, pool, odooClient) {
+    const repKey = String(rep || '').toLowerCase();
+    const allActive = await getActiveSutureClients2026(pool, odooClient);
+    // Filtra attivi per rep (admin = tutti)
+    const attivi = repKey === 'admin'
+        ? allActive
+        : allActive.filter(c => c.agente_internal === repKey);
+
+    // Dormienti: tutti i CRM con suture, esclusi quelli matchati negli attivi (via email)
+    const matchedCrmIds = new Set(allActive.filter(a => a.crm_match).map(a => a.crm_match.id));
+    const regions = getRegionsForRep(repKey);
+    const isAdmin = repKey === 'admin';
+
+    const { rows: crmAll } = await pool.query(
+        `SELECT DISTINCT c.id, c.cognome, c.nome, c.email, c.telefono, c.cellulare,
+                c.citta, c.regione, c.nome_azienda,
+                EXISTS (
+                    SELECT 1 FROM proposte pr
+                    WHERE pr.cliente_id = c.id
+                      AND pr.stato = 'pending'
+                      AND (pr.rimandata_al IS NULL OR pr.rimandata_al <= CURRENT_DATE)
+                ) AS has_active_proposal
+         FROM crm_contatti c
+         JOIN crm_prodotti p ON p.contatto_id = c.id
+         WHERE p.prodotto = 'SUTURE'
+           AND (c.tipo = 'account' OR c.tipo IS NULL)
+         ORDER BY c.cognome NULLS LAST, c.nome NULLS LAST`
+    );
+
+    const dormienti = crmAll.filter(c => {
+        if (matchedCrmIds.has(c.id)) return false; // gia' attivo
+        if (isAdmin) return true;
+        const regNorm = normalizeRegion(c.regione);
+        if (repKey === 'kim') return regions.map(normalizeRegion).includes(regNorm);
+        if (repKey === 'detto') return regions.map(normalizeRegion).includes(regNorm);
+        return false;
+    }).map(c => {
+        const regNorm = normalizeRegion(c.regione);
+        const kimRegs = new Set(getRegionsForRep('kim'));
+        const dettoRegs = new Set(getRegionsForRep('detto'));
+        const regRep = kimRegs.has(regNorm) ? 'kim' : (dettoRegs.has(regNorm) ? 'detto' : 'admin');
+        c._assigned_to = regRep;
+        c._assigned_source = 'regione';
+        return c;
+    });
+
+    return { attivi, dormienti };
 }
 
 /**
@@ -365,4 +498,6 @@ module.exports = {
     mapExcelRepToInternal,
     normalizeNameKey,
     syncSalesRepOverridesFromPayload,
+    getActiveSutureClients2026,
+    getClientsForRepV2,
 };
