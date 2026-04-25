@@ -63,9 +63,106 @@ async function resolveTokenToCliente(token, pool) {
  *   ultimo_pre_2026_label (solo se acquisti [] e pre-2026 esiste, es. "marzo 2025")
  * }
  */
-async function getStoricoSutureCliente(cliente_id, pool) {
+function parseOdooProductName(name) {
+    if (!name) return { code: '', desc: '' };
+    const m = String(name).match(/^\[([^\]]+)\]\s*(.+)$/);
+    if (m) return { code: m[1].trim(), desc: m[2].trim() };
+    return { code: '', desc: String(name).trim() };
+}
+
+/**
+ * Storico acquisti suture del cliente. Fonte PRIMARIA: Odoo `account.move.line`
+ * (fatture posted out_invoice) per il partner_id risolto via email Odoo.
+ * Fallback su crm_acquisti se Odoo non raggiungibile o cliente senza email.
+ *
+ * Vantaggi Odoo diretto:
+ * - Dettaglio per riga (codice prodotto, descrizione, qty, prezzo, subtotale, omaggio)
+ * - Allineato in tempo reale (no dipendenza sync SalesForceFree)
+ * - Distinzione automatica acquisto vs omaggio (subtotale = 0)
+ */
+async function getStoricoSutureCliente(cliente_id, pool, odooClient) {
     if (!cliente_id) throw new Error('getStoricoSutureCliente: cliente_id richiesto');
 
+    // Provo Odoo se ho client + cliente con email
+    if (odooClient && typeof odooClient.authenticate === 'function') {
+        try {
+            const { rows: cc } = await pool.query(
+                `SELECT email FROM crm_contatti WHERE id = $1`,
+                [cliente_id]
+            );
+            const email = cc[0] && cc[0].email ? String(cc[0].email).trim() : null;
+            if (email) {
+                const uid = await odooClient.authenticate();
+                const partners = await odooClient.execute(uid, 'res.partner', 'search',
+                    [[['email', '=', email]]], { limit: 1 });
+                if (partners && partners.length) {
+                    const partnerId = partners[0];
+                    const prodIds = await odooClient.execute(uid, 'product.product', 'search',
+                        [[['categ_id', '=', 38]]], {});
+                    const lines = await odooClient.execute(uid, 'account.move.line', 'search_read',
+                        [[
+                            ['product_id', 'in', prodIds],
+                            ['partner_id', '=', partnerId],
+                            ['move_id.state', '=', 'posted'],
+                            ['move_id.move_type', '=', 'out_invoice'],
+                            ['date', '>=', '2026-01-01'],
+                        ]],
+                        {
+                            fields: ['move_id', 'product_id', 'quantity', 'price_unit', 'price_subtotal', 'date'],
+                            limit: 200,
+                        });
+                    const acquisti = lines.map(l => {
+                        const pn = parseOdooProductName(Array.isArray(l.product_id) ? l.product_id[1] : '');
+                        const subtot = parseFloat(l.price_subtotal) || 0;
+                        return {
+                            numero_fattura: Array.isArray(l.move_id) ? l.move_id[1] : '',
+                            data_fattura: l.date,
+                            cod_prodotto: pn.code,
+                            descrizione: pn.desc,
+                            quantita: Math.round(parseFloat(l.quantity) || 0),
+                            prezzo_unit: parseFloat(l.price_unit) || 0,
+                            subtotale: subtot,
+                            is_omaggio: subtot === 0,
+                        };
+                    }).sort((a, b) => String(b.data_fattura).localeCompare(String(a.data_fattura)));
+
+                    if (acquisti.length > 0) {
+                        const totale = acquisti.reduce((acc, a) => acc + (a.quantita || 0), 0);
+                        return {
+                            acquisti,
+                            totale_confezioni_2026: totale,
+                            ultimo_acquisto_2026: acquisti[0].data_fattura,
+                            ultimo_pre_2026_label: null,
+                            fonte: 'odoo',
+                        };
+                    }
+
+                    // Pre-2026 fallback (anche da Odoo)
+                    const preLines = await odooClient.execute(uid, 'account.move.line', 'search_read',
+                        [[
+                            ['product_id', 'in', prodIds],
+                            ['partner_id', '=', partnerId],
+                            ['move_id.state', '=', 'posted'],
+                            ['move_id.move_type', '=', 'out_invoice'],
+                            ['date', '<', '2026-01-01'],
+                        ]],
+                        { fields: ['date'], limit: 1, order: 'date desc' });
+                    const ultimoPre = preLines && preLines.length ? preLines[0].date : null;
+                    return {
+                        acquisti: [],
+                        totale_confezioni_2026: 0,
+                        ultimo_acquisto_2026: null,
+                        ultimo_pre_2026_label: ultimoPre ? formatMeseAnnoIt(ultimoPre) : null,
+                        fonte: 'odoo',
+                    };
+                }
+            }
+        } catch (e) {
+            console.warn('[SUTURE] storico Odoo fallback CRM:', e.message);
+        }
+    }
+
+    // Fallback: crm_acquisti (mirror SalesForceFree)
     const { rows: acquisti } = await pool.query(
         `SELECT id, numero_fattura, data_fattura, quantita, descrizione, fonte
          FROM crm_acquisti
@@ -76,18 +173,16 @@ async function getStoricoSutureCliente(cliente_id, pool) {
          ORDER BY data_fattura DESC, id DESC`,
         [cliente_id]
     );
-
     if (acquisti.length > 0) {
         const totale = acquisti.reduce((acc, a) => acc + (parseInt(a.quantita, 10) || 0), 0);
         return {
-            acquisti,
+            acquisti: acquisti.map(a => ({ ...a, is_omaggio: false })),
             totale_confezioni_2026: totale,
             ultimo_acquisto_2026: acquisti[0].data_fattura,
             ultimo_pre_2026_label: null,
+            fonte: 'crm_acquisti',
         };
     }
-
-    // Nessun acquisto 2026 → cerca pre-2026 per fallback label
     const { rows: pre } = await pool.query(
         `SELECT MAX(data_fattura) AS ultimo_pre
          FROM crm_acquisti
@@ -98,12 +193,12 @@ async function getStoricoSutureCliente(cliente_id, pool) {
         [cliente_id]
     );
     const ultimoPre = pre[0] && pre[0].ultimo_pre ? String(pre[0].ultimo_pre) : null;
-
     return {
         acquisti: [],
         totale_confezioni_2026: 0,
         ultimo_acquisto_2026: null,
         ultimo_pre_2026_label: ultimoPre ? formatMeseAnnoIt(ultimoPre) : null,
+        fonte: 'crm_acquisti',
     };
 }
 
@@ -238,22 +333,43 @@ function renderStorico(storico) {
         }
         return '';
     }
+    const fonte = storico.fonte || 'crm_acquisti';
+    // Aggrega per fattura per visualizzazione raggruppata
+    const byFattura = new Map();
+    for (const it of items) {
+        const k = it.numero_fattura || '—';
+        if (!byFattura.has(k)) byFattura.set(k, []);
+        byFattura.get(k).push(it);
+    }
+    const fattureRows = Array.from(byFattura.entries()).map(([nfattura, righe]) => {
+        const totFatt = righe.reduce((a, r) => a + (parseFloat(r.subtotale) || 0), 0);
+        const dataFatt = righe[0].data_fattura;
+        return `
+            <tr class="fatt-head">
+              <td colspan="5" style="background:rgba(26,158,143,0.06);padding:12px 16px;border-top:2px solid #1a9e8f">
+                <strong>${escapeHtml(nfattura)}</strong>
+                <span class="muted mono" style="margin-left:8px">${fmtDataIt(dataFatt)}</span>
+                <span class="mono" style="float:right;font-weight:600;color:#0f6d63">${fmtEuro(totFatt)}</span>
+              </td>
+            </tr>
+            ${righe.map(r => `
+              <tr ${r.is_omaggio ? 'style="background:rgba(34,197,94,0.04)"' : ''}>
+                <td class="mono" style="font-size:11px;color:#0f6d63">${escapeHtml(r.cod_prodotto || '')}</td>
+                <td>${escapeHtml(r.descrizione || '')}${r.is_omaggio ? ' <span style="background:rgba(34,197,94,0.15);color:#15803d;padding:2px 8px;border-radius:999px;font-size:10px;font-family:monospace;letter-spacing:0.08em;margin-left:6px">OMAGGIO 3+1</span>' : ''}</td>
+                <td class="txt-center mono">${r.quantita || ''}</td>
+                <td class="txt-right mono">${r.prezzo_unit !== undefined ? fmtEuro(r.prezzo_unit) : '—'}</td>
+                <td class="txt-right mono" style="font-weight:600">${r.subtotale !== undefined ? fmtEuro(r.subtotale) : '—'}</td>
+              </tr>`).join('')}
+        `;
+    }).join('');
     return `
     <section class="storico-card">
       <div class="eyebrow">Storico acquisti suture 2026</div>
       <table class="tbl-storico">
-        <thead><tr><th>Data</th><th>Fattura</th><th class="txt-center">Qtà</th><th>Descrizione</th></tr></thead>
-        <tbody>
-          ${items.map(a => `
-            <tr>
-              <td class="mono">${fmtDataIt(a.data_fattura)}</td>
-              <td class="mono">${escapeHtml(a.numero_fattura || '')}</td>
-              <td class="txt-center mono">${a.quantita || ''}</td>
-              <td>${escapeHtml(a.descrizione || '')}</td>
-            </tr>`).join('')}
-        </tbody>
+        <thead><tr><th>Codice</th><th>Articolo</th><th class="txt-center">Qtà</th><th class="txt-right">Prezzo</th><th class="txt-right">Subtotale</th></tr></thead>
+        <tbody>${fattureRows}</tbody>
       </table>
-      <p class="muted" style="margin-top:12px;">Totale ${storico.totale_confezioni_2026 || 0} confezioni dal 1° gennaio 2026.</p>
+      <p class="muted" style="margin-top:12px;">Totale ${storico.totale_confezioni_2026 || 0} confezioni dal 1° gennaio 2026 · fonte: <span class="mono">${fonte}</span></p>
     </section>`;
 }
 
@@ -305,7 +421,7 @@ async function resolveSalesRepForCliente(cliente, pool, targetFinder) {
     return 'admin';
 }
 
-async function getPortaleData(token, pool, proposalBuilder, targetFinder) {
+async function getPortaleData(token, pool, proposalBuilder, targetFinder, odooClient) {
     const info = await resolveTokenToCliente(token, pool);
     if (!info) return null;
 
@@ -315,7 +431,7 @@ async function getPortaleData(token, pool, proposalBuilder, targetFinder) {
         [info.cliente_id]
     );
     const cliente = clienti[0] || {};
-    const storico = await getStoricoSutureCliente(info.cliente_id, pool);
+    const storico = await getStoricoSutureCliente(info.cliente_id, pool, odooClient);
     const proposte = proposalBuilder
         ? await proposalBuilder.listProposte({ cliente_id: info.cliente_id }, pool)
         : [];

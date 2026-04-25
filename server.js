@@ -10639,8 +10639,9 @@ app.get('/robots.txt', (req, res, next) => {
 app.get('/portale/:token', async (req, res, next) => {
     if (!isPortaleHost(req)) return next();
     try {
+        const odooClient = { authenticate: () => odooAuthenticate(), execute: (uid, m, met, args, kw) => odooExecute(uid, m, met, args, kw) };
         const data = await suturePortalRenderer.getPortaleData(
-            req.params.token, pool, sutureProposalBuilder, sutureTargetFinder
+            req.params.token, pool, sutureProposalBuilder, sutureTargetFinder, odooClient
         );
         if (!data) {
             res.status(404).type('html').send(`<!doctype html>
@@ -10859,7 +10860,7 @@ app.get('/api/portali/:token', async (req, res) => {
              FROM crm_contatti WHERE id = $1`,
             [info.cliente_id]
         );
-        const storico = await suturePortalRenderer.getStoricoSutureCliente(info.cliente_id, pool);
+        const storico = await suturePortalRenderer.getStoricoSutureCliente(info.cliente_id, pool, { authenticate: () => odooAuthenticate(), execute: (uid, m, met, args, kw) => odooExecute(uid, m, met, args, kw) });
         const proposte = await sutureProposalBuilder.listProposte({ cliente_id: info.cliente_id }, pool);
 
         res.json({
