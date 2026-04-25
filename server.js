@@ -10049,6 +10049,257 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
     }
 });
 
+// === GIACENZE STRUMENTI MM — sync Odoo in Node (porting da cereda/sync_giacenze_strumenti.py) ===
+// Tutte le query Odoo batchate in 3 chiamate (search products + 2 search_read quants)
+// invece di ~300 chiamate dello script Python originale.
+async function syncGiacenzeStrumentiFromOdoo() {
+    if (!CONFIG.ODOO_API_KEY) {
+        throw new Error('ODOO_API_KEY non configurata');
+    }
+    console.log('[Giacenze STR] Inizio sincronizzazione (Node)...');
+    const uid = await odooAuthenticate();
+
+    const ALL_CODES = [
+        // Estrattori
+        'FPCEXTR1','FPCEXTR2','FPCEXTR3-RVS','FPCEXTR4','FPCEXTR5',
+        // Osteotomi Silver
+        'FPC100P','AZ100P-C','FPC160','AZ160-C','FPC200','AZ200-C','FPC230','AZ230-C','FPC300','AZ300-C','FPC330','FPC360',
+        // Espansori
+        'FPCSPLIT','FPCCUT','FPCEXP1','FPCEXP2','FPCEXP3A','FPCGENOA1','FPCGENOA2','FPCGENOA3',
+        // Easy-in 20
+        'AZ100-20','AZ100P-20','AZ160-20','AZ200-20','AZ230-20','AZ300-20',
+        // Black Ruby
+        'FPCBLKR1','FPCBLKR2','FPCBLKR3','FPCBLKR4','FPCBLKR5',
+        // Elevate (5 osteotomi + 13 stop + 2 box)
+        'FPCELEV1','FPCELEV2','FPCELEV3','FPCELEV4','FPCELEV5',
+        'STELEV1','STELEV2','STELEV3','STELEV4','STELEV5','STELEV6','STELEV7','STELEV8','STELEV9','STELEV10','STELEV11','STELEV12','STELEV13',
+        'BOX-W','PELEV-W',
+        // PT1
+        'BOX.PT1','OSPT1','OSPT2','OSPT3','PT1PP','PT1DRL','PT1FR22','PT1FR28','PT1CMMC','PT1CMCC',
+        // Guided
+        'FPCGUID100P','FPCGUID200','FPCGUID230','FPCGUID300','FPCGUID330',
+        'STGUID6','STGUID8','STGUID10','STGUID12','STGUID14',
+        'GFR20-6','GFR20-8','GFR20-10','GFR20-11.5','GFR20-13',
+        '3DM00626.1','3DM00626.1,5','BOX.GUIDED-NEW',
+        // Easy Pin
+        'FCINSEP','BOX.EP','CEP2.7','CEP3.1','CEP3.5',
+        // Levacorone
+        'MAOSFLC','RACLC-NEW','GL2306-NEW','GL2307-NEW','GL2308-NEW',
+        // FPDFIRST
+        'FPDFIRST',
+        // Blexo
+        'BXO-ARCH','BXO-SLIM','BXO-LONGRT','BXO-MICRO',
+        'BXO-LEFTS','BXO-RIGHTS','BXO-MESIAL','BXO-DISTAL',
+        // Box ALL-IN
+        'PALLIN-W'
+    ];
+
+    // 1) Trova tutti i prodotti in una sola chiamata
+    const products = await odooExecute(uid, 'product.product', 'search_read',
+        [[['default_code', 'in', ALL_CODES]]],
+        { fields: ['id','default_code','name'] }
+    );
+    const codeToId = {};
+    const idToCode = {};
+    for (const p of products) {
+        if (p.default_code) {
+            codeToId[p.default_code] = p.id;
+            idToCode[p.id] = p.default_code;
+        }
+    }
+    const productIds = Object.values(codeToId);
+    console.log(`[Giacenze STR] ${products.length}/${ALL_CODES.length} prodotti trovati su Odoo`);
+
+    // 2) Giacenze META (company_id=2) e OSNRGY (company_id=1) in 2 chiamate
+    const quantsMeta = productIds.length ? await odooExecute(uid, 'stock.quant', 'search_read',
+        [[['product_id','in',productIds],['company_id','=',2],['location_id.usage','=','internal']]],
+        { fields: ['product_id','quantity'] }
+    ) : [];
+    const quantsOsnrgy = productIds.length ? await odooExecute(uid, 'stock.quant', 'search_read',
+        [[['product_id','in',productIds],['company_id','=',1],['location_id.usage','=','internal']]],
+        { fields: ['product_id','quantity'] }
+    ) : [];
+
+    // Build stock map: code → {meta, osnrgy, totale, found}
+    const stockMap = {};
+    for (const code of ALL_CODES) {
+        stockMap[code] = { meta: 0, osnrgy: 0, totale: 0, found: !!codeToId[code] };
+    }
+    for (const q of quantsMeta) {
+        const code = idToCode[q.product_id[0]];
+        if (code) stockMap[code].meta += (q.quantity || 0);
+    }
+    for (const q of quantsOsnrgy) {
+        const code = idToCode[q.product_id[0]];
+        if (code) stockMap[code].osnrgy += (q.quantity || 0);
+    }
+    for (const code of ALL_CODES) {
+        const s = stockMap[code];
+        s.meta = Math.trunc(s.meta);
+        s.osnrgy = Math.trunc(s.osnrgy);
+        s.totale = s.meta + s.osnrgy;
+    }
+    const get = (code) => stockMap[code];
+    const minBy = (arr) => arr.reduce((a,b) => a[1] <= b[1] ? a : b);
+
+    // === 16 calcoli kit (mirror Python sync_giacenze_strumenti.py) ===
+    const kits = {};
+
+    // 1) Kit Estrattori Essential — 4 + 1 fungibile
+    {
+        const c = {
+            'FPCEXTR1': get('FPCEXTR1'), 'FPCEXTR2': get('FPCEXTR2'),
+            'FPCEXTR3-RVS': get('FPCEXTR3-RVS'), 'FPCEXTR4': get('FPCEXTR4'), 'FPCEXTR5': get('FPCEXTR5')
+        };
+        const fung45 = c['FPCEXTR4'].totale + c['FPCEXTR5'].totale;
+        const disp = Math.min(c['FPCEXTR1'].totale, c['FPCEXTR2'].totale, c['FPCEXTR3-RVS'].totale, fung45);
+        const bn = minBy([['FPCEXTR1',c['FPCEXTR1'].totale],['FPCEXTR2',c['FPCEXTR2'].totale],['FPCEXTR3-RVS',c['FPCEXTR3-RVS'].totale],['FPCEXTR4+FPCEXTR5',fung45]])[0];
+        kits.estrattori = { nome: 'Kit Estrattori Essential', componenti: c, disponibilita: disp, bottleneck: bn, note: 'FPCEXTR4 e FPCEXTR5 sono fungibili (somma)' };
+    }
+
+    // 2) Blexo Pathfinder
+    {
+        const c = { 'BXO-ARCH': get('BXO-ARCH'), 'BXO-SLIM': get('BXO-SLIM'), 'BXO-LONGRT': get('BXO-LONGRT'), 'BXO-MICRO': get('BXO-MICRO') };
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.blexo_pathfinder = { nome: 'Blexo Pathfinder', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0], note: '4 strumenti vendibili separatamente o con Anglefit' };
+    }
+
+    // 3) Blexo Anglefit
+    {
+        const c = { 'BXO-LEFTS': get('BXO-LEFTS'), 'BXO-RIGHTS': get('BXO-RIGHTS'), 'BXO-MESIAL': get('BXO-MESIAL'), 'BXO-DISTAL': get('BXO-DISTAL') };
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.blexo_anglefit = { nome: 'Blexo Anglefit', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0], note: '4 strumenti vendibili separatamente o con Pathfinder' };
+    }
+
+    // 4) Box ALL-IN
+    const calcBoxAllin = () => {
+        const c = { 'BOX-W': get('BOX-W'), 'PALLIN-W': get('PALLIN-W') };
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        return { nome: 'Box ALL-IN', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0], note: 'BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs' };
+    };
+    kits.box_allin = calcBoxAllin();
+
+    // 5) Total Extraction
+    {
+        const p = kits.blexo_pathfinder, a = kits.blexo_anglefit, b = kits.box_allin, e = kits.estrattori;
+        const c = { ...p.componenti, ...a.componenti, ...e.componenti, ...b.componenti };
+        const disp = Math.min(p.disponibilita, a.disponibilita, b.disponibilita, e.disponibilita);
+        const bn = minBy([['Pathfinder',p.disponibilita],['Anglefit',a.disponibilita],['Box ALL-IN',b.disponibilita],['Estrattori',e.disponibilita]])[0];
+        kits.total_extraction = { nome: 'Kit Extraction TOTAL', componenti: c, disponibilita: disp, bottleneck: bn };
+    }
+
+    // 6) Box Elevate
+    {
+        const c = { 'BOX-W': get('BOX-W'), 'PELEV-W': get('PELEV-W') };
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.box_elevate = { nome: 'Box Elevate', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0], note: 'BOX-W condiviso con Kit ALL-IN e Kit Elevate completo' };
+    }
+
+    // 7) Osteotomi Silver — 6 slot intercambiabili
+    {
+        const c = {};
+        ['FPC100P','AZ100P-C','FPC160','AZ160-C','FPC200','AZ200-C','FPC230','AZ230-C','FPC300','AZ300-C','FPC330','FPC360'].forEach(k => c[k]=get(k));
+        const slot1 = c['FPC100P'].totale + c['AZ100P-C'].totale;
+        const slot2 = c['FPC160'].totale + c['AZ160-C'].totale;
+        const slot3 = c['FPC200'].totale + c['AZ200-C'].totale;
+        const slot4 = c['FPC230'].totale + c['AZ230-C'].totale;
+        const slot5 = c['FPC300'].totale + c['AZ300-C'].totale;
+        const slot6 = c['FPC300'].totale + c['FPC330'].totale;
+        const disp = Math.min(slot1,slot2,slot3,slot4,slot5,slot6);
+        const bn = minBy([['Slot 1 (FPC100P+AZ100P-C)',slot1],['Slot 2 (FPC160+AZ160-C)',slot2],['Slot 3 (FPC200+AZ200-C)',slot3],['Slot 4 (FPC230+AZ230-C)',slot4],['Slot 5 (FPC300+AZ300-C)',slot5],['Slot 6 (FPC300>FPC330)',slot6]])[0];
+        kits.osteotomi = { nome: 'Kit Osteotomi Silver', componenti: c, disponibilita: disp, bottleneck: bn, note: 'FPC e AZ intercambiabili per slot. Slot 6: priorita FPC300>FPC330' };
+    }
+
+    // 8) Espansori — 3 configurazioni
+    {
+        const c = {};
+        ['FPCSPLIT','FPCCUT','FPCEXP1','FPCEXP2','FPCEXP3A','FPCGENOA1','FPCGENOA2','FPCGENOA3'].forEach(k => c[k]=get(k));
+        const base = Math.min(c['FPCSPLIT'].totale, c['FPCCUT'].totale, c['FPCEXP1'].totale, c['FPCEXP2'].totale, c['FPCEXP3A'].totale);
+        const genoa = Math.min(c['FPCGENOA1'].totale, c['FPCGENOA2'].totale, c['FPCGENOA3'].totale);
+        const plus = (base > 0 && genoa > 0) ? Math.min(base, genoa) : 0;
+        kits.espansori = { nome: 'Kit Espansori', componenti: c, configurazioni: { 'Base (5pcs)': base, 'Genoa (3pcs)': genoa, 'Plus (8pcs)': plus }, note: 'Plus = Base + Genoa venduti insieme' };
+    }
+
+    // 9) Easy-in 20°
+    {
+        const c = {};
+        ['AZ100-20','AZ100P-20','AZ160-20','AZ200-20','AZ230-20','AZ300-20'].forEach(k => c[k]=get(k));
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.easyin = { nome: 'Kit Easy-in 20°', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0] };
+    }
+
+    // 10) Black Ruby
+    {
+        const c = {};
+        ['FPCBLKR1','FPCBLKR2','FPCBLKR3','FPCBLKR4','FPCBLKR5'].forEach(k => c[k]=get(k));
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.black_ruby = { nome: 'Kit Black Ruby', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0] };
+    }
+
+    // 11) Elevate — 5 ost + 13 stop + 2 box
+    {
+        const c = {};
+        ['FPCELEV1','FPCELEV2','FPCELEV3','FPCELEV4','FPCELEV5',
+         'STELEV1','STELEV2','STELEV3','STELEV4','STELEV5','STELEV6','STELEV7','STELEV8','STELEV9','STELEV10','STELEV11','STELEV12','STELEV13',
+         'BOX-W','PELEV-W'].forEach(k => c[k]=get(k));
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.elevate = { nome: 'Kit Elevate', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0], note: '19 componenti: 5 osteotomi + 13 stop + BOX-W + PELEV-W' };
+    }
+
+    // 12) PT1 — kit completo + osteotomi singoli
+    {
+        const c = {};
+        ['BOX.PT1','OSPT1','OSPT2','OSPT3','PT1PP','PT1DRL','PT1FR22','PT1FR28','PT1CMMC','PT1CMCC'].forEach(k => c[k]=get(k));
+        const all = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        const completo = Math.min(...all.map(x=>x[1]));
+        const bnCompleto = minBy(all)[0];
+        const ostSolo = Math.min(c['OSPT1'].totale, c['OSPT2'].totale, c['OSPT3'].totale);
+        const bnOst = minBy([['OSPT1',c['OSPT1'].totale],['OSPT2',c['OSPT2'].totale],['OSPT3',c['OSPT3'].totale]])[0];
+        kits.pt1 = { nome: 'Kit PT1 Pterigoidei', componenti: c, configurazioni: { 'Kit completo (10 componenti)': completo, 'Set 3 osteotomi (vendita separata)': ostSolo }, bottleneck: { kit_completo: bnCompleto, set_osteotomi: bnOst } };
+    }
+
+    // 13) Guided — con/senza frese
+    {
+        const c = {};
+        ['FPCGUID100P','FPCGUID200','FPCGUID230','FPCGUID300','FPCGUID330',
+         'STGUID6','STGUID8','STGUID10','STGUID12','STGUID14',
+         'GFR20-6','GFR20-8','GFR20-10','GFR20-11.5','GFR20-13',
+         '3DM00626.1','3DM00626.1,5','BOX.GUIDED-NEW'].forEach(k => c[k]=get(k));
+        const baseCodes = ['FPCGUID100P','FPCGUID200','FPCGUID230','FPCGUID300','FPCGUID330','STGUID6','STGUID8','STGUID10','STGUID12','STGUID14','3DM00626.1','3DM00626.1,5','BOX.GUIDED-NEW'];
+        const kitBase = Math.min(...baseCodes.map(k => c[k].totale));
+        const kitConFrese = Math.min(...Object.values(c).map(v => v.totale));
+        kits.guided = { nome: 'Kit Chirurgia Guidata', componenti: c, configurazioni: { 'Con frese (18 componenti)': kitConFrese, 'Senza frese (13 componenti)': kitBase }, note: 'Molti clienti comprano senza frese GFR20-*' };
+    }
+
+    // 14) Easy Pin
+    {
+        const c = {};
+        ['FCINSEP','BOX.EP','CEP2.7','CEP3.1','CEP3.5'].forEach(k => c[k]=get(k));
+        const completo = Math.min(c['FCINSEP'].totale, c['BOX.EP'].totale);
+        kits.easypin = { nome: 'Kit Easy Pin', componenti: c, configurazioni: { 'Kit completo (FCINSEP + BOX.EP)': completo, 'Solo FCINSEP (vendita separata)': c['FCINSEP'].totale }, pins_disponibili: { 'CEP2.7 (2.7mm - 5pcs)': c['CEP2.7'].totale, 'CEP3.1 (3.1mm - 5pcs)': c['CEP3.1'].totale, 'CEP3.5 (3.5mm - 5pcs)': c['CEP3.5'].totale }, note: 'Pin venduti separatamente in confezioni da 5' };
+    }
+
+    // 15) Levacorone
+    {
+        const c = {};
+        ['MAOSFLC','RACLC-NEW','GL2306-NEW','GL2307-NEW','GL2308-NEW'].forEach(k => c[k]=get(k));
+        const arr = Object.entries(c).map(([k,v]) => [k,v.totale]);
+        kits.levacorone = { nome: 'Kit Leva Corone', componenti: c, disponibilita: Math.min(...arr.map(x=>x[1])), bottleneck: minBy(arr)[0] };
+    }
+
+    // 16) FPDFIRST (singolo)
+    {
+        const stock = get('FPDFIRST');
+        kits.fpdfirst = { nome: 'FPDFIRST (strumento singolo)', stock, disponibilita: stock.totale };
+    }
+
+    const data = { timestamp: new Date().toISOString(), kits };
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir, { recursive: true });
+    fs.writeFileSync(path.join(dataDir, 'giacenze_strumenti.json'), JSON.stringify(data, null, 2), 'utf-8');
+    console.log('[Giacenze STR] Sync completato — JSON aggiornato');
+}
+
 // POST /api/suture/sync — Trigger sync manuale da Odoo
 // Risposta IMMEDIATA per evitare timeout 502 su Railway proxy.
 // Il check 'syncing' e il sync vero girano in background.
@@ -12216,34 +12467,16 @@ app.get('/api/giacenze-strumenti', requireAdmin, async (req, res) => {
  * POST /api/giacenze-strumenti/sync - Trigger sync da Odoo
  */
 app.post('/api/giacenze-strumenti/sync', requireAdmin, async (req, res) => {
-    // Risposta immediata per evitare timeout 502 su Railway.
-    // Lo script python e' su path Windows locale: gira solo quando Dashboard CS
-    // e' avviata in locale. Su Railway Linux skippiamo gracefully.
-    const fs = require('fs');
-    const scriptPath = 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\sync_giacenze_strumenti.py';
-
-    if (process.platform !== 'win32' || !fs.existsSync(scriptPath)) {
-        console.log('[Giacenze STR] Sync skipped: ambiente non locale Windows');
-        return res.json({ success: false, skipped: true, message: 'Sync disponibile solo da Dashboard CS locale (script Python Windows).' });
-    }
-
-    res.json({ success: true, message: 'Sync avviato in background' });
-
-    try {
-        const { spawn } = require('child_process');
-        const child = spawn('python', [scriptPath], {
-            cwd: 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda'
-        });
-        let errors = '';
-        child.stderr.on('data', (data) => { errors += data.toString(); });
-        child.on('error', (err) => { console.error('[Giacenze STR] spawn error:', err.message); });
-        child.on('close', (code) => {
-            if (code === 0) console.log('[Giacenze STR] Sync completato');
-            else console.error('[Giacenze STR] Sync fallito (code ' + code + '):', errors);
-        });
-    } catch (err) {
-        console.error('[Giacenze STR] Errore avvio sync (background):', err.message);
-    }
+    // Risposta immediata per evitare timeout 502 su Railway proxy.
+    // Sync gira in background (porting Node, vedi syncGiacenzeStrumentiFromOdoo).
+    res.json({ success: true, message: 'Sincronizzazione avviata in background' });
+    (async () => {
+        try {
+            await syncGiacenzeStrumentiFromOdoo();
+        } catch (err) {
+            console.error('[Giacenze STR] Errore sync (background):', err.message);
+        }
+    })();
 });
 
 // ==================== SHOP ONLINE (JAN34) ====================
