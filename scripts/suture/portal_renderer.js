@@ -137,6 +137,40 @@ async function getStoricoSutureCliente(cliente_id, pool, odooClient) {
                         };
                     }
 
+                    // Nessuna fattura → cerca ordini di vendita 2026 in attesa fatturazione
+                    const solIds = await odooClient.execute(uid, 'sale.order.line', 'search',
+                        [[
+                            ['product_id', 'in', prodIds],
+                            ['order_partner_id', '=', partnerId],
+                            ['order_id.date_order', '>=', '2026-01-01'],
+                        ]], {});
+                    if (solIds && solIds.length) {
+                        const solRows = await odooClient.execute(uid, 'sale.order.line', 'read', [solIds],
+                            { fields: ['order_id'] });
+                        const orderIds = Array.from(new Set(solRows.map(r => Array.isArray(r.order_id) ? r.order_id[0] : null).filter(Boolean)));
+                        const orders = await odooClient.execute(uid, 'sale.order', 'read', [orderIds],
+                            { fields: ['name', 'date_order', 'state', 'invoice_status'] });
+                        const ordiniPending = orders
+                            .filter(o => o.invoice_status !== 'invoiced')
+                            .map(o => ({
+                                numero_ordine: o.name,
+                                data_ordine: o.date_order,
+                                stato: o.state,
+                                stato_fatturazione: o.invoice_status,
+                            }))
+                            .sort((a, b) => String(b.data_ordine).localeCompare(String(a.data_ordine)));
+                        if (ordiniPending.length) {
+                            return {
+                                acquisti: [],
+                                totale_confezioni_2026: 0,
+                                ultimo_acquisto_2026: null,
+                                ultimo_pre_2026_label: null,
+                                ordini_pending: ordiniPending,
+                                fonte: 'odoo',
+                            };
+                        }
+                    }
+
                     // Pre-2026 fallback (anche da Odoo)
                     const preLines = await odooClient.execute(uid, 'account.move.line', 'search_read',
                         [[
@@ -324,6 +358,22 @@ function renderPillolaRimandate(proposteRimandate) {
 function renderStorico(storico) {
     const items = storico.acquisti || [];
     if (!items.length) {
+        const ordiniPending = storico.ordini_pending || [];
+        if (ordiniPending.length) {
+            return `
+    <section class="storico-card">
+      <div class="eyebrow">Storico acquisti suture 2026</div>
+      <div style="background:rgba(234,179,8,0.08);border-left:3px solid #eab308;padding:14px 18px;margin-top:12px;border-radius:2px">
+        <p style="margin:0;font-family:'Fraunces',serif;font-style:italic;color:#854d0e;font-size:15px">
+          ${ordiniPending.length === 1
+              ? `Ordine di vendita <strong style="font-family:'JetBrains Mono',monospace;font-style:normal">${escapeHtml(ordiniPending[0].numero_ordine)}</strong> del ${fmtDataIt(ordiniPending[0].data_ordine)} in attesa di essere fatturato.`
+              : `${ordiniPending.length} ordini di vendita in attesa di fatturazione:`}
+        </p>
+        ${ordiniPending.length > 1 ? `<ul style="margin:8px 0 0 0;padding-left:20px;font-size:14px;color:#854d0e">${ordiniPending.map(o => `<li><strong style="font-family:'JetBrains Mono',monospace">${escapeHtml(o.numero_ordine)}</strong> · ${fmtDataIt(o.data_ordine)}</li>`).join('')}</ul>` : ''}
+        <p class="muted" style="margin:10px 0 0;font-size:12px">Il dettaglio degli articoli sara' visibile qui non appena la fattura sara' emessa.</p>
+      </div>
+    </section>`;
+        }
         if (storico.ultimo_pre_2026_label) {
             return `
     <section class="storico-card">
