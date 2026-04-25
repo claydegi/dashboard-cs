@@ -10956,6 +10956,27 @@ app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     }
 });
 
+// POST /api/suture/clean-stale-cache — Pulisce partner_sales_rep dai record con
+// invoice_user_odoo_name non in {KIM, DETTO, DIREZIONALE} (retaggio del primo
+// tentativo Odoo invoice_user_id, ora rimosso). Ammessi anche "Customer Service".
+app.post('/api/suture/clean-stale-cache', requireAdmin, async (req, res) => {
+    try {
+        const { rows: deleted } = await pool.query(
+            `DELETE FROM partner_sales_rep
+             WHERE UPPER(COALESCE(invoice_user_odoo_name, '')) NOT IN ('KIM', 'DETTO', 'DIREZIONALE', 'MASSIMO', 'MASSIMO DETTO')
+             RETURNING contatto_id, invoice_user_odoo_name, sales_rep`
+        );
+        res.json({
+            ok: true,
+            deleted_count: deleted.length,
+            deleted_samples: deleted.slice(0, 20),
+        });
+    } catch (err) {
+        console.error('[SUTURE] clean-stale-cache:', err.message);
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // GET /api/suture/audit-assegnazioni — report completo assegnazioni per tutti i
 // clienti suture, evidenzia discrepanze tra Excel (cache) e regione (regola #1).
 // Categorie incoerenza:
