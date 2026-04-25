@@ -103,39 +103,50 @@ async function syncAllFromOdoo(btn) {
     btn.disabled = true;
     btn.textContent = '↻ Sincronizzazione…';
 
+    // Helper: trigger sync e tratta come "avviato" se risposta arriva (anche 5xx),
+    // come l'handler originale di btnSyncSuture. Solo errore di rete = fallimento reale.
+    const triggerSync = async (label, url) => {
+        try {
+            const r = await fetch(url, { method: 'POST' });
+            let body = null;
+            try { body = await r.clone().json(); } catch (_) { body = await r.text().catch(() => null); }
+            console.log(`[SyncAll] ${label} → HTTP ${r.status}`, body);
+            // 200/202 = avviato. 409/500 = riportiamo errore visibile con status.
+            if (r.status >= 200 && r.status < 300) return { name: label, ok: true };
+            return { name: `${label} (HTTP ${r.status})`, ok: false };
+        } catch (err) {
+            console.error(`[SyncAll] ${label} fetch error:`, err);
+            return { name: `${label} (rete)`, ok: false };
+        }
+    };
+
+    const refreshLocal = async (label, fn) => {
+        if (typeof fn !== 'function') return { name: label, ok: true };
+        try { await fn(); return { name: label, ok: true }; }
+        catch (err) {
+            console.error(`[SyncAll] ${label} refresh error:`, err);
+            return { name: label, ok: false };
+        }
+    };
+
     const tasks = [
-        // 1) Suture VITREX → POST /api/suture/sync
-        fetch(`${API_URL}/suture/sync?key=${ADMIN_KEY}`, { method: 'POST' })
-            .then(r => ({ name: 'Suture VITREX', ok: r.ok }))
-            .catch(() => ({ name: 'Suture VITREX', ok: false })),
-        // 2) Giacenza Strumenti → POST /api/giacenze-strumenti/sync
-        fetch(`${API_URL}/giacenze-strumenti/sync?key=${ADMIN_KEY}`, { method: 'POST' })
-            .then(r => ({ name: 'Giacenza Strumenti', ok: r.ok }))
-            .catch(() => ({ name: 'Giacenza Strumenti', ok: false })),
-        // 3) Shop orders → refresh dati + badge
-        (typeof loadShopOrders === 'function')
-            ? loadShopOrders().then(() => ({ name: 'Ordini shop', ok: true })).catch(() => ({ name: 'Ordini shop', ok: false }))
-            : Promise.resolve({ name: 'Ordini shop', ok: true }),
-        // 4) Opportunità → refresh dati + badge
-        (typeof loadOpportunita === 'function')
-            ? loadOpportunita().then(() => ({ name: 'Opportunità', ok: true })).catch(() => ({ name: 'Opportunità', ok: false }))
-            : Promise.resolve({ name: 'Opportunità', ok: true })
+        triggerSync('Suture VITREX', `${API_URL}/suture/sync?key=${ADMIN_KEY}`),
+        triggerSync('Giacenza Strumenti', `${API_URL}/giacenze-strumenti/sync?key=${ADMIN_KEY}`),
+        refreshLocal('Ordini shop', typeof loadShopOrders === 'function' ? loadShopOrders : null),
+        refreshLocal('Opportunità', typeof loadOpportunita === 'function' ? loadOpportunita : null)
     ];
 
-    const results = await Promise.allSettled(tasks);
-    const failed = results
-        .map(r => r.status === 'fulfilled' ? r.value : { name: '?', ok: false })
-        .filter(v => !v.ok)
-        .map(v => v.name);
+    const results = await Promise.all(tasks);
+    const failed = results.filter(v => !v.ok).map(v => v.name);
 
     const stamp = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     const lastSyncEl = document.getElementById('homeLastSync');
     if (lastSyncEl) lastSyncEl.textContent = `oggi ${stamp}`;
 
     if (failed.length === 0) {
-        showToast('Sincronizzazione completata', 'success');
+        showToast('Sincronizzazione avviata', 'success');
     } else {
-        showToast(`Errore su: ${failed.join(', ')}`, 'error');
+        showToast(`Errore: ${failed.join(', ')}`, 'error');
     }
 
     btn.disabled = false;
