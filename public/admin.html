@@ -94,6 +94,28 @@
     #section-home .btn-sync-all:hover{background:var(--osseolio-deep)}
     #section-home .btn-sync-all:active{transform:translateY(1px)}
     #section-home .btn-sync-all:disabled{background:var(--mezzanotte-mute);cursor:wait}
+    /* Pannello esito sync persistente */
+    #section-home .home-sync-report{
+      display:none;margin:0 0 32px;padding:16px 22px;
+      background:#fff;border:1px solid var(--hairline-strong);border-radius:2px;
+      font-family:'JetBrains Mono',monospace;font-size:11px;
+      box-shadow:0 1px 2px rgba(10,22,40,0.04);
+    }
+    #section-home .home-sync-report.show{display:block}
+    #section-home .home-sync-report .row{
+      display:flex;justify-content:space-between;align-items:center;gap:12px;
+      padding:6px 0;border-bottom:1px dashed var(--hairline);
+    }
+    #section-home .home-sync-report .row:last-child{border-bottom:none}
+    #section-home .home-sync-report .row .label{
+      letter-spacing:0.18em;text-transform:uppercase;color:var(--mezzanotte);font-weight:500;
+    }
+    #section-home .home-sync-report .row .status{letter-spacing:0.06em;font-weight:600}
+    #section-home .home-sync-report .row .status.ok{color:#0f6d63}
+    #section-home .home-sync-report .row .status.ko{color:#b91c1c}
+    #section-home .home-sync-report .row .detail{
+      color:var(--muted);font-size:10px;letter-spacing:0.04em;
+    }
     /* Grid — bordino completo (perimetro + interni) */
     #section-home .home-grid{
       display:grid;grid-template-columns:repeat(12,1fr);gap:1px;
@@ -211,6 +233,8 @@
                     <div class="home-syncbar-info">Ultimo aggiornamento &middot; <strong id="homeLastSync">mai</strong></div>
                     <button type="button" class="btn-sync-all" id="btnSyncAll">↻ Aggiorna tutto da Odoo</button>
                 </div>
+                <!-- Pannello esito persistente (compare dopo prima sync) -->
+                <div class="home-sync-report" id="homeSyncReport"></div>
 
                 <div class="home-grid">
                     <a href="#" class="home-tile" data-card-href="suture-rep">

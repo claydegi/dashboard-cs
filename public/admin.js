@@ -103,29 +103,27 @@ async function syncAllFromOdoo(btn) {
     btn.disabled = true;
     btn.textContent = '↻ Sincronizzazione…';
 
-    // Helper: trigger sync e tratta come "avviato" se risposta arriva (anche 5xx),
-    // come l'handler originale di btnSyncSuture. Solo errore di rete = fallimento reale.
     const triggerSync = async (label, url) => {
         try {
             const r = await fetch(url, { method: 'POST' });
-            let body = null;
-            try { body = await r.clone().json(); } catch (_) { body = await r.text().catch(() => null); }
-            console.log(`[SyncAll] ${label} → HTTP ${r.status}`, body);
-            // 200/202 = avviato. 409/500 = riportiamo errore visibile con status.
-            if (r.status >= 200 && r.status < 300) return { name: label, ok: true };
-            return { name: `${label} (HTTP ${r.status})`, ok: false };
+            let bodyText = '';
+            try { const body = await r.clone().json(); bodyText = body.message || body.error || JSON.stringify(body).slice(0,80); }
+            catch (_) { bodyText = (await r.text().catch(() => '')).slice(0,80); }
+            console.log(`[SyncAll] ${label} → HTTP ${r.status}`, bodyText);
+            const ok = r.status >= 200 && r.status < 300;
+            return { name: label, ok, status: r.status, detail: bodyText };
         } catch (err) {
             console.error(`[SyncAll] ${label} fetch error:`, err);
-            return { name: `${label} (rete)`, ok: false };
+            return { name: label, ok: false, status: 0, detail: String(err.message || err) };
         }
     };
 
     const refreshLocal = async (label, fn) => {
-        if (typeof fn !== 'function') return { name: label, ok: true };
-        try { await fn(); return { name: label, ok: true }; }
+        if (typeof fn !== 'function') return { name: label, ok: true, detail: 'skip' };
+        try { await fn(); return { name: label, ok: true, detail: 'refresh OK' }; }
         catch (err) {
             console.error(`[SyncAll] ${label} refresh error:`, err);
-            return { name: label, ok: false };
+            return { name: label, ok: false, detail: String(err.message || err) };
         }
     };
 
@@ -137,16 +135,28 @@ async function syncAllFromOdoo(btn) {
     ];
 
     const results = await Promise.all(tasks);
-    const failed = results.filter(v => !v.ok).map(v => v.name);
+    const failed = results.filter(v => !v.ok);
 
     const stamp = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
     const lastSyncEl = document.getElementById('homeLastSync');
     if (lastSyncEl) lastSyncEl.textContent = `oggi ${stamp}`;
 
+    // Pannello esito persistente
+    const reportEl = document.getElementById('homeSyncReport');
+    if (reportEl) {
+        reportEl.classList.add('show');
+        reportEl.innerHTML = results.map(r => {
+            const cls = r.ok ? 'ok' : 'ko';
+            const lbl = r.ok ? 'OK' : (r.status ? `ERRORE HTTP ${r.status}` : 'ERRORE');
+            const det = r.detail ? `<span class="detail">${escapeHtml(String(r.detail))}</span>` : '';
+            return `<div class="row"><span class="label">${escapeHtml(r.name)}</span><span class="status ${cls}">${lbl}</span>${det}</div>`;
+        }).join('');
+    }
+
     if (failed.length === 0) {
         showToast('Sincronizzazione avviata', 'success');
     } else {
-        showToast(`Errore: ${failed.join(', ')}`, 'error');
+        showToast(`Errore: ${failed.map(f => f.name).join(', ')}`, 'error');
     }
 
     btn.disabled = false;
