@@ -141,7 +141,7 @@ async function syncAllFromOdoo(btn) {
     const lastSyncEl = document.getElementById('homeLastSync');
     if (lastSyncEl) lastSyncEl.textContent = `oggi ${stamp}`;
 
-    // Pannello esito persistente
+    // Pannello esito (auto-hide dopo 3s, solo se tutto OK; resta visibile se errori)
     const reportEl = document.getElementById('homeSyncReport');
     if (reportEl) {
         reportEl.classList.add('show');
@@ -151,6 +151,9 @@ async function syncAllFromOdoo(btn) {
             const det = r.detail ? `<span class="detail">${escapeHtml(String(r.detail))}</span>` : '';
             return `<div class="row"><span class="label">${escapeHtml(r.name)}</span><span class="status ${cls}">${lbl}</span>${det}</div>`;
         }).join('');
+        if (failed.length === 0) {
+            setTimeout(() => { reportEl.classList.remove('show'); }, 3000);
+        }
     }
 
     if (failed.length === 0) {
