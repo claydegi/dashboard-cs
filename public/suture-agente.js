@@ -92,7 +92,7 @@
         let mismatchBadge = '';
         if (c._mismatch === 'excel_vs_regione') {
             const regLabel = { kim: 'Kim', detto: 'Detto', admin: 'admin' }[c._regione_rep] || c._regione_rep;
-            mismatchBadge = `<span title="Excel dice ${label}, regione dice ${regLabel}. Excel ha priorità (regola #2). Verifica se corretto." style="margin-left:6px;padding:2px 6px;background:rgba(239,68,68,0.15);color:#b91c1c;border:1px solid rgba(239,68,68,0.4);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:help">⚠ MISMATCH</span>`;
+            mismatchBadge = `<span title="${label} cura questo cliente anche se vive in zona ${regLabel} (regola #2 Excel analisi_vendite)" style="margin-left:6px;padding:2px 6px;background:rgba(168,85,247,0.12);color:#6b21a8;border:1px solid rgba(168,85,247,0.35);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:help">FUORI REGIONE</span>`;
         } else if (c._mismatch === 'no_excel_solo_regione') {
             mismatchBadge = `<span title="Cliente non presente nei file Excel analisi_vendite. Assegnazione basata solo sulla regione: verifica manuale consigliata." style="margin-left:6px;padding:2px 6px;background:rgba(234,179,8,0.15);color:#854d0e;border:1px solid rgba(234,179,8,0.4);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:help">⚠ NO EXCEL</span>`;
         }
