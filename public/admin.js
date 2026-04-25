@@ -4,7 +4,7 @@ const ADMIN_KEY = new URLSearchParams(window.location.search).get('key') || '';
 
 // Stato
 let allTasks = [];
-let currentSection = 'cs';
+let currentSection = 'home';
 
 // Elementi DOM
 const taskForm = document.getElementById('taskForm');
@@ -45,7 +45,98 @@ document.addEventListener('DOMContentLoaded', () => {
 
     loadTasks();
     setupEventListeners();
+    setupHomeDashboard();
+    switchSection('home');
 });
+
+// === HOME EDITORIAL DASHBOARD ===
+function setupHomeDashboard() {
+    // Data eyebrow (es. "SABATO 25 APRILE 2026")
+    try {
+        const fmt = new Intl.DateTimeFormat('it-IT', { weekday:'long', day:'numeric', month:'long', year:'numeric' });
+        const lbl = document.getElementById('homeDateLabel');
+        if (lbl) lbl.textContent = fmt.format(new Date());
+    } catch (e) { /* ignore */ }
+
+    // H1 click → home
+    const h1 = document.querySelector('.container > header h1');
+    if (h1) h1.addEventListener('click', () => switchSection('home'));
+
+    // Card click handlers (delegation)
+    const grid = document.querySelector('#section-home .home-grid');
+    if (grid) {
+        grid.addEventListener('click', (e) => {
+            const tile = e.target.closest('.home-tile');
+            if (!tile) return;
+            e.preventDefault();
+            const sect = tile.dataset.cardSection;
+            const href = tile.dataset.cardHref;
+            if (sect) {
+                switchSection(sect);
+                window.scrollTo({top:0,behavior:'instant'});
+                return;
+            }
+            if (href) {
+                const k = encodeURIComponent(ADMIN_KEY || '');
+                const map = {
+                    'suture-rep':    `suture-rep.html?key=${k}&from=admin`,
+                    'giacenza-str':  `giacenza-str.html?key=${k}`,
+                    'report':        `report.html?key=${k}`,
+                    'mktg':          `pianificazione-mktg.html?key=${k}`
+                };
+                if (map[href]) window.location.href = map[href];
+            }
+        });
+    }
+
+    // Bottone Aggiorna tutto
+    const btn = document.getElementById('btnSyncAll');
+    if (btn) btn.addEventListener('click', () => syncAllFromOdoo(btn));
+}
+
+async function syncAllFromOdoo(btn) {
+    const originalText = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '↻ Sincronizzazione…';
+
+    const tasks = [
+        // 1) Suture VITREX → POST /api/suture/sync
+        fetch(`${API_URL}/suture/sync?key=${ADMIN_KEY}`, { method: 'POST' })
+            .then(r => ({ name: 'Suture VITREX', ok: r.ok }))
+            .catch(() => ({ name: 'Suture VITREX', ok: false })),
+        // 2) Giacenza Strumenti → POST /api/giacenze-strumenti/sync
+        fetch(`${API_URL}/giacenze-strumenti/sync?key=${ADMIN_KEY}`, { method: 'POST' })
+            .then(r => ({ name: 'Giacenza Strumenti', ok: r.ok }))
+            .catch(() => ({ name: 'Giacenza Strumenti', ok: false })),
+        // 3) Shop orders → refresh dati + badge
+        (typeof loadShopOrders === 'function')
+            ? loadShopOrders().then(() => ({ name: 'Ordini shop', ok: true })).catch(() => ({ name: 'Ordini shop', ok: false }))
+            : Promise.resolve({ name: 'Ordini shop', ok: true }),
+        // 4) Opportunità → refresh dati + badge
+        (typeof loadOpportunita === 'function')
+            ? loadOpportunita().then(() => ({ name: 'Opportunità', ok: true })).catch(() => ({ name: 'Opportunità', ok: false }))
+            : Promise.resolve({ name: 'Opportunità', ok: true })
+    ];
+
+    const results = await Promise.allSettled(tasks);
+    const failed = results
+        .map(r => r.status === 'fulfilled' ? r.value : { name: '?', ok: false })
+        .filter(v => !v.ok)
+        .map(v => v.name);
+
+    const stamp = new Date().toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' });
+    const lastSyncEl = document.getElementById('homeLastSync');
+    if (lastSyncEl) lastSyncEl.textContent = `oggi ${stamp}`;
+
+    if (failed.length === 0) {
+        showToast('Sincronizzazione completata', 'success');
+    } else {
+        showToast(`Errore su: ${failed.join(', ')}`, 'error');
+    }
+
+    btn.disabled = false;
+    btn.textContent = originalText;
+}
 
 // Setup event listeners
 function setupEventListeners() {
@@ -139,6 +230,8 @@ function switchSection(section) {
     });
 
     // Mostra/nascondi sezioni
+    const homeEl = document.getElementById('section-home');
+    if (homeEl) homeEl.style.display = section === 'home' ? 'block' : 'none';
     document.getElementById('section-cs').style.display = section === 'cs' ? 'block' : 'none';
     document.getElementById('section-privati').style.display = section === 'privati' ? 'block' : 'none';
     document.getElementById('section-report-kim').style.display = section === 'report-kim' ? 'block' : 'none';
@@ -149,10 +242,16 @@ function switchSection(section) {
     document.getElementById('section-opportunita').style.display = section === 'opportunita' ? 'block' : 'none';
     document.getElementById('section-shop-orders').style.display = section === 'shop-orders' ? 'block' : 'none';
 
-    // Nascondi form e filtri per le sezioni report
+    // Quando home: rimuovi 'active' da tutti i nav-link (nessun tab corrisponde a home)
+    if (section === 'home') {
+        document.querySelectorAll('nav .nav-link, nav .nav-dropdown-item').forEach(el => el.classList.remove('active'));
+    }
+
+    // Nascondi form e filtri per le sezioni report e per home
     const formSection = document.querySelector('.form-section');
     const filtersSection = document.querySelector('.filters-section');
-    if (section === 'report-kim' || section === 'report-massimo' || section === 'suture' || section === 'crm' || section === 'freelancer' || section === 'opportunita' || section === 'shop-orders') {
+    const hideFormFor = ['home','report-kim','report-massimo','suture','crm','freelancer','opportunita','shop-orders'];
+    if (hideFormFor.includes(section)) {
         if (formSection) formSection.style.display = 'none';
         if (filtersSection) filtersSection.style.display = 'none';
     } else {

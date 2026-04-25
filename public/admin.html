@@ -5,6 +5,139 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Admin - Dashboard CS</title>
     <link rel="stylesheet" href="style.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,200..700,30..100;1,9..144,200..700,30..100&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+    /* === HOME EDITORIAL — scoped a #section-home === */
+    #section-home{
+      --avorio:#fbf6ea;
+      --paper:#fffdf7;
+      --mezzanotte:#0a1628;
+      --mezzanotte-soft:#14243b;
+      --mezzanotte-mute:#3a4860;
+      --osseolio:#1a9e8f;
+      --osseolio-deep:#0f6d63;
+      --hairline:rgba(10,22,40,0.10);
+      --hairline-strong:rgba(10,22,40,0.18);
+      --muted:#6f7580;
+      background:var(--avorio);
+      margin:-20px -20px 0;
+      padding:48px 40px 60px;
+      position:relative;
+      isolation:isolate;
+    }
+    #section-home::before{
+      content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;
+      background-image:
+        radial-gradient(900px circle at 12% -10%,rgba(26,158,143,0.06),transparent 55%),
+        radial-gradient(700px circle at 95% 25%,rgba(245,236,216,0.7),transparent 60%);
+    }
+    #section-home .home-brand{
+      text-align:center;padding:8px 0 44px;
+      border-bottom:1px solid var(--hairline-strong);margin-bottom:48px;
+    }
+    #section-home .home-eyebrow{
+      font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.34em;
+      text-transform:uppercase;color:var(--osseolio-deep);margin-bottom:22px;
+      display:flex;align-items:center;justify-content:center;gap:16px;
+    }
+    #section-home .home-eyebrow::before,#section-home .home-eyebrow::after{
+      content:'';width:42px;height:1px;background:var(--osseolio);
+    }
+    #section-home .home-mark{
+      font-family:'Fraunces',serif;font-variation-settings:'opsz' 144,'SOFT' 30;
+      font-weight:200;font-size:clamp(44px,6.5vw,86px);letter-spacing:-0.05em;
+      line-height:0.95;color:var(--mezzanotte);margin:0;
+    }
+    #section-home .home-mark em{
+      font-style:italic;font-weight:200;color:var(--osseolio-deep);
+      font-variation-settings:'opsz' 144,'SOFT' 100;
+    }
+    #section-home .home-sub{
+      font-family:'Fraunces',serif;font-style:italic;font-weight:300;
+      font-size:clamp(18px,2vw,26px);letter-spacing:-0.015em;
+      color:var(--mezzanotte-soft);margin-top:6px;
+    }
+    /* Sync-all bar */
+    #section-home .home-syncbar{
+      display:flex;justify-content:space-between;align-items:center;
+      gap:18px;flex-wrap:wrap;margin-bottom:32px;
+    }
+    #section-home .home-syncbar-info{
+      font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.26em;
+      text-transform:uppercase;color:var(--muted);
+    }
+    #section-home .home-syncbar-info strong{color:var(--mezzanotte);font-weight:500;letter-spacing:0.18em}
+    #section-home .btn-sync-all{
+      font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:0.22em;
+      text-transform:uppercase;color:var(--avorio);background:var(--mezzanotte);
+      border:none;padding:14px 26px;cursor:pointer;border-radius:1px;
+      transition:background 0.25s ease,transform 0.18s ease;font-weight:500;
+    }
+    #section-home .btn-sync-all:hover{background:var(--osseolio-deep)}
+    #section-home .btn-sync-all:active{transform:translateY(1px)}
+    #section-home .btn-sync-all:disabled{background:var(--mezzanotte-mute);cursor:wait}
+    /* Grid */
+    #section-home .home-grid{
+      display:grid;grid-template-columns:repeat(12,1fr);gap:1px;
+      background:var(--hairline);
+      border-top:1px solid var(--hairline-strong);
+      border-bottom:1px solid var(--hairline-strong);
+    }
+    #section-home .home-tile{
+      background:var(--avorio);padding:40px 32px 36px;cursor:pointer;
+      transition:background 0.32s ease;position:relative;display:flex;
+      flex-direction:column;gap:14px;min-height:210px;
+      grid-column:span 4;text-decoration:none;color:inherit;
+    }
+    #section-home .home-tile:hover{background:var(--paper)}
+    #section-home .home-spacer{
+      grid-column:span 2;background:var(--avorio);pointer-events:none;
+    }
+    #section-home .home-num{
+      font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.32em;
+      color:var(--muted);text-transform:uppercase;
+    }
+    #section-home .home-name{
+      font-family:'Fraunces',serif;font-variation-settings:'opsz' 96,'SOFT' 30;
+      font-weight:300;font-size:42px;letter-spacing:-0.03em;line-height:1;
+      color:var(--mezzanotte);
+    }
+    #section-home .home-name em{
+      font-style:italic;font-weight:200;color:var(--osseolio-deep);
+      font-variation-settings:'opsz' 96,'SOFT' 80;
+    }
+    #section-home .home-desc{
+      font-family:'Fraunces',serif;font-style:italic;font-weight:300;
+      font-size:14px;line-height:1.5;color:var(--mezzanotte-mute);
+      max-width:36ch;margin-top:auto;
+    }
+    #section-home .home-arrow{
+      position:absolute;top:32px;right:32px;font-family:'Fraunces',serif;
+      font-style:italic;font-weight:300;font-size:28px;color:var(--mezzanotte);
+      opacity:0.25;transition:opacity 0.25s ease,transform 0.25s ease,color 0.25s ease;
+    }
+    #section-home .home-tile:hover .home-arrow{
+      opacity:1;transform:translate(6px,-6px);color:var(--osseolio-deep);
+    }
+    #section-home .home-badge{
+      position:absolute;top:32px;right:64px;
+      background:var(--osseolio);color:#fff;
+      font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:600;
+      padding:3px 8px;border-radius:1px;letter-spacing:0.04em;display:none;
+    }
+    #section-home .home-badge.show{display:inline-block}
+    @media(max-width:1080px){
+      #section-home .home-tile{grid-column:span 6}
+      #section-home .home-spacer{display:none}
+    }
+    @media(max-width:680px){
+      #section-home .home-tile{grid-column:span 12}
+    }
+    /* Title h1 cliccabile per tornare home */
+    .container > header h1{cursor:pointer;user-select:none}
+    </style>
 </head>
 <body>
     <div class="container">
@@ -38,6 +171,106 @@
         </header>
 
         <main>
+            <!-- HOME EDITORIAL — landing dashboard admin -->
+            <section id="section-home">
+                <header class="home-brand">
+                    <div class="home-eyebrow"><span id="homeDateLabel">Dashboard del giorno</span></div>
+                    <h1 class="home-mark">OSSE<em>O</em>TOUCH</h1>
+                    <div class="home-sub"><em>Dashboard</em></div>
+                </header>
+
+                <div class="home-syncbar">
+                    <div class="home-syncbar-info">Ultimo aggiornamento &middot; <strong id="homeLastSync">mai</strong></div>
+                    <button type="button" class="btn-sync-all" id="btnSyncAll">↻ Aggiorna tutto da Odoo</button>
+                </div>
+
+                <div class="home-grid">
+                    <a href="#" class="home-tile" data-card-href="suture-rep">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">01 — vendita suture</span>
+                        <span class="home-name">My<em>Osseotouch</em></span>
+                        <span class="home-desc">Proposte cliente, portale, conversioni 2026.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="shop-orders">
+                        <span class="home-badge" id="home-badge-shop"></span>
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">02 — shop online</span>
+                        <span class="home-name">Or<em>dini</em></span>
+                        <span class="home-desc">Stripe, BCC, customer service.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="suture">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">03 — approvvigionamento</span>
+                        <span class="home-name"><em>Suture</em> VITREX</span>
+                        <span class="home-desc">Stock, ordini fornitore, backorders.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="report-kim">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">04 — agente Nord</span>
+                        <span class="home-name"><em>Kim</em></span>
+                        <span class="home-desc">Vendite, crediti, da attenzionare.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="report-massimo">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">05 — agente Sud</span>
+                        <span class="home-name"><em>Massimo</em></span>
+                        <span class="home-desc">Vendite, crediti, da attenzionare.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="crm">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">06 — anagrafica</span>
+                        <span class="home-name"><em>CRM</em></span>
+                        <span class="home-desc">Venti regioni, scoring, GDPR.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-href="giacenza-str">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">07 — magazzino</span>
+                        <span class="home-name">Giacenza <em>Strumenti</em></span>
+                        <span class="home-desc">Manipolo, Levacorone, MM.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="opportunita">
+                        <span class="home-badge" id="home-badge-opp"></span>
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">08 — lead caldi</span>
+                        <span class="home-name">Oppor<em>tunità</em></span>
+                        <span class="home-desc">Da Calendly, form, webinar.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-section="freelancer">
+                        <span class="home-badge" id="home-badge-free"></span>
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">09 — recruiting</span>
+                        <span class="home-name"><em>Freelancer</em></span>
+                        <span class="home-desc">Cinque moduli, approvazione umana.</span>
+                    </a>
+
+                    <span class="home-spacer" aria-hidden="true"></span>
+
+                    <a href="#" class="home-tile" data-card-href="report">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">10 — analisi</span>
+                        <span class="home-name"><em>Report</em></span>
+                        <span class="home-desc">Vendite, crediti, attenzionare.</span>
+                    </a>
+
+                    <a href="#" class="home-tile" data-card-href="mktg">
+                        <span class="home-arrow">↗</span>
+                        <span class="home-num">11 — promozione</span>
+                        <span class="home-name">Attività <em>Marketing</em></span>
+                        <span class="home-desc">Calendari, Google Ads, YouTube.</span>
+                    </a>
+
+                    <span class="home-spacer" aria-hidden="true"></span>
+                </div>
+            </section>
+
             <!-- Form nuovo task -->
             <section class="form-section">
                 <h2>Nuovo Task</h2>
