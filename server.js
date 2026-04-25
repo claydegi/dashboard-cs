@@ -10050,18 +10050,22 @@ app.get('/api/suture/ordine', requireAdmin, async (req, res) => {
 });
 
 // POST /api/suture/sync — Trigger sync manuale da Odoo
+// Risposta IMMEDIATA per evitare timeout 502 su Railway proxy.
+// Il check 'syncing' e il sync vero girano in background.
 app.post('/api/suture/sync', requireAdmin, async (req, res) => {
-    try {
-        const metaResult = await pool.query('SELECT status FROM suture_sync_meta WHERE id = 1');
-        if (metaResult.rows[0]?.status === 'syncing') {
-            return res.json({ message: 'Sincronizzazione gia in corso' });
+    res.json({ message: 'Sincronizzazione avviata' });
+    (async () => {
+        try {
+            const metaResult = await pool.query('SELECT status FROM suture_sync_meta WHERE id = 1');
+            if (metaResult.rows[0]?.status === 'syncing') {
+                console.log('[Suture API] Sync gia in corso, skip');
+                return;
+            }
+            syncSutureFromOdoo();
+        } catch (err) {
+            console.error('[Suture API] Errore sync (background):', err.message);
         }
-        syncSutureFromOdoo();
-        res.json({ message: 'Sincronizzazione avviata' });
-    } catch (err) {
-        console.error('[Suture API] Errore sync:', err.message);
-        res.status(500).json({ error: 'Errore server' });
-    }
+    })();
 });
 
 // GET /api/suture/catalogo — Tutti i prodotti suture per dropdown
@@ -12212,37 +12216,33 @@ app.get('/api/giacenze-strumenti', requireAdmin, async (req, res) => {
  * POST /api/giacenze-strumenti/sync - Trigger sync da Odoo
  */
 app.post('/api/giacenze-strumenti/sync', requireAdmin, async (req, res) => {
+    // Risposta immediata per evitare timeout 502 su Railway.
+    // Lo script python e' su path Windows locale: gira solo quando Dashboard CS
+    // e' avviata in locale. Su Railway Linux skippiamo gracefully.
+    const fs = require('fs');
+    const scriptPath = 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\sync_giacenze_strumenti.py';
+
+    if (process.platform !== 'win32' || !fs.existsSync(scriptPath)) {
+        console.log('[Giacenze STR] Sync skipped: ambiente non locale Windows');
+        return res.json({ success: false, skipped: true, message: 'Sync disponibile solo da Dashboard CS locale (script Python Windows).' });
+    }
+
+    res.json({ success: true, message: 'Sync avviato in background' });
+
     try {
         const { spawn } = require('child_process');
-        const scriptPath = 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda\\sync_giacenze_strumenti.py';
-
         const child = spawn('python', [scriptPath], {
             cwd: 'C:\\Users\\Claudio De Giglio\\OneDrive\\Desktop\\OSSEOTOUCH AI\\cereda'
         });
-
-        let output = '';
         let errors = '';
-
-        child.stdout.on('data', (data) => {
-            output += data.toString();
-        });
-
-        child.stderr.on('data', (data) => {
-            errors += data.toString();
-        });
-
+        child.stderr.on('data', (data) => { errors += data.toString(); });
+        child.on('error', (err) => { console.error('[Giacenze STR] spawn error:', err.message); });
         child.on('close', (code) => {
-            if (code === 0) {
-                console.log('[Giacenze STR] Sync completato');
-                res.json({ success: true, message: 'Sync completato con successo' });
-            } else {
-                console.error('[Giacenze STR] Sync fallito:', errors);
-                res.status(500).json({ error: 'Sync fallito', details: errors });
-            }
+            if (code === 0) console.log('[Giacenze STR] Sync completato');
+            else console.error('[Giacenze STR] Sync fallito (code ' + code + '):', errors);
         });
     } catch (err) {
-        console.error('[Giacenze STR] Errore sync:', err);
-        res.status(500).json({ error: err.message });
+        console.error('[Giacenze STR] Errore avvio sync (background):', err.message);
     }
 });
 
