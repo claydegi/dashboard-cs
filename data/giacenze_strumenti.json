@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-04-24T08:15:03.812048",
+  "timestamp": "2026-04-25T08:15:07.486784",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
           "meta": 88,
-          "osnrgy": 22,
-          "totale": 110,
+          "osnrgy": 21,
+          "totale": 109,
           "found": true
         },
         "FPCEXTR2": {
@@ -35,7 +35,7 @@
           "found": true
         }
       },
-      "disponibilita": 110,
+      "disponibilita": 109,
       "bottleneck": "FPCEXTR1",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -44,30 +44,30 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 0,
-          "osnrgy": 70,
-          "totale": 70,
+          "osnrgy": 69,
+          "totale": 69,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 0,
-          "osnrgy": 50,
-          "totale": 50,
+          "osnrgy": 49,
+          "totale": 49,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 0,
-          "osnrgy": 59,
-          "totale": 59,
+          "osnrgy": 58,
+          "totale": 58,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 0,
-          "osnrgy": 44,
-          "totale": 44,
+          "osnrgy": 43,
+          "totale": 43,
           "found": true
         }
       },
-      "disponibilita": 44,
+      "disponibilita": 43,
       "bottleneck": "BXO-MICRO",
       "note": "4 strumenti vendibili separatamente o con Anglefit"
     },
@@ -76,30 +76,30 @@
       "componenti": {
         "BXO-LEFTS": {
           "meta": 0,
-          "osnrgy": 101,
-          "totale": 101,
+          "osnrgy": 100,
+          "totale": 100,
           "found": true
         },
         "BXO-RIGHTS": {
           "meta": 0,
-          "osnrgy": 102,
-          "totale": 102,
+          "osnrgy": 101,
+          "totale": 101,
           "found": true
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 80,
-          "totale": 80,
+          "osnrgy": 79,
+          "totale": 79,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 83,
-          "totale": 83,
+          "osnrgy": 82,
+          "totale": 82,
           "found": true
         }
       },
-      "disponibilita": 80,
+      "disponibilita": 79,
       "bottleneck": "BXO-MESIAL",
       "note": "4 strumenti vendibili separatamente o con Pathfinder"
     },
@@ -108,56 +108,56 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 0,
-          "osnrgy": 70,
-          "totale": 70,
+          "osnrgy": 69,
+          "totale": 69,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 0,
-          "osnrgy": 50,
-          "totale": 50,
+          "osnrgy": 49,
+          "totale": 49,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 0,
-          "osnrgy": 59,
-          "totale": 59,
+          "osnrgy": 58,
+          "totale": 58,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 0,
-          "osnrgy": 44,
-          "totale": 44,
+          "osnrgy": 43,
+          "totale": 43,
           "found": true
         },
         "BXO-LEFTS": {
+          "meta": 0,
+          "osnrgy": 100,
+          "totale": 100,
+          "found": true
+        },
+        "BXO-RIGHTS": {
           "meta": 0,
           "osnrgy": 101,
           "totale": 101,
           "found": true
         },
-        "BXO-RIGHTS": {
-          "meta": 0,
-          "osnrgy": 102,
-          "totale": 102,
-          "found": true
-        },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 80,
-          "totale": 80,
+          "osnrgy": 79,
+          "totale": 79,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 83,
-          "totale": 83,
+          "osnrgy": 82,
+          "totale": 82,
           "found": true
         },
         "FPCEXTR1": {
           "meta": 88,
-          "osnrgy": 22,
-          "totale": 110,
+          "osnrgy": 21,
+          "totale": 109,
           "found": true
         },
         "FPCEXTR2": {
@@ -186,18 +186,18 @@
         },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 290,
-          "totale": 290,
+          "osnrgy": 288,
+          "totale": 288,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 192,
-          "totale": 192,
+          "osnrgy": 190,
+          "totale": 190,
           "found": true
         }
       },
-      "disponibilita": 44,
+      "disponibilita": 43,
       "bottleneck": "Pathfinder"
     },
     "box_allin": {
@@ -205,18 +205,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 290,
-          "totale": 290,
+          "osnrgy": 288,
+          "totale": 288,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 192,
-          "totale": 192,
+          "osnrgy": 190,
+          "totale": 190,
           "found": true
         }
       },
-      "disponibilita": 192,
+      "disponibilita": 190,
       "bottleneck": "PALLIN-W",
       "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
     },
@@ -225,8 +225,8 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 290,
-          "totale": 290,
+          "osnrgy": 288,
+          "totale": 288,
           "found": true
         },
         "PELEV-W": {
@@ -572,8 +572,8 @@
         },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 290,
-          "totale": 290,
+          "osnrgy": 288,
+          "totale": 288,
           "found": true
         },
         "PELEV-W": {
@@ -834,8 +834,8 @@
         },
         "RACLC-NEW": {
           "meta": 0,
-          "osnrgy": 21,
-          "totale": 21,
+          "osnrgy": 20,
+          "totale": 20,
           "found": true
         },
         "GL2306-NEW": {
@@ -852,8 +852,8 @@
         },
         "GL2308-NEW": {
           "meta": 0,
-          "osnrgy": 18,
-          "totale": 18,
+          "osnrgy": 17,
+          "totale": 17,
           "found": true
         }
       },
