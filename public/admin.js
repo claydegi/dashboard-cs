@@ -58,9 +58,13 @@ function setupHomeDashboard() {
         if (lbl) lbl.textContent = fmt.format(new Date());
     } catch (e) { /* ignore */ }
 
-    // H1 click → home
-    const h1 = document.querySelector('.container > header h1');
-    if (h1) h1.addEventListener('click', () => switchSection('home'));
+    // Link "Torna alla home" → home
+    const backLink = document.getElementById('homeBackLink');
+    if (backLink) backLink.addEventListener('click', (e) => {
+        e.preventDefault();
+        switchSection('home');
+        window.scrollTo({top:0,behavior:'instant'});
+    });
 
     // Card click handlers (delegation)
     const grid = document.querySelector('#section-home .home-grid');
@@ -246,6 +250,10 @@ function switchSection(section) {
     if (section === 'home') {
         document.querySelectorAll('nav .nav-link, nav .nav-dropdown-item').forEach(el => el.classList.remove('active'));
     }
+
+    // Mostra/nascondi link "Torna alla home"
+    const backLink = document.getElementById('homeBackLink');
+    if (backLink) backLink.classList.toggle('visible', section !== 'home');
 
     // Nascondi form e filtri per le sezioni report e per home
     const formSection = document.querySelector('.form-section');

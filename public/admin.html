@@ -10,6 +10,11 @@
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght,SOFT@0,9..144,200..700,30..100;1,9..144,200..700,30..100&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <style>
     /* === HOME EDITORIAL — scoped a #section-home === */
+    /* Nasconde la fascia bianca "Dashboard Admin" + nav: navigazione SOLO via card */
+    .container > header{display:none !important}
+    /* Reset dei margini di main per editorial fullbleed */
+    .container > main{padding:0;margin:0}
+
     #section-home{
       --avorio:#fbf6ea;
       --paper:#fffdf7;
@@ -19,11 +24,11 @@
       --osseolio:#1a9e8f;
       --osseolio-deep:#0f6d63;
       --hairline:rgba(10,22,40,0.10);
-      --hairline-strong:rgba(10,22,40,0.18);
+      --hairline-strong:rgba(10,22,40,0.22);
       --muted:#6f7580;
       background:var(--avorio);
       margin:-20px -20px 0;
-      padding:48px 40px 60px;
+      padding:64px 48px 64px;
       position:relative;
       isolation:isolate;
     }
@@ -31,38 +36,49 @@
       content:'';position:absolute;inset:0;pointer-events:none;z-index:-1;
       background-image:
         radial-gradient(900px circle at 12% -10%,rgba(26,158,143,0.06),transparent 55%),
-        radial-gradient(700px circle at 95% 25%,rgba(245,236,216,0.7),transparent 60%);
+        radial-gradient(700px circle at 95% 25%,rgba(245,236,216,0.55),transparent 60%);
     }
+    /* Brand block — DIV, non header (per evitare ereditarietà style.css) */
     #section-home .home-brand{
-      text-align:center;padding:8px 0 44px;
-      border-bottom:1px solid var(--hairline-strong);margin-bottom:48px;
+      text-align:center;
+      padding:0 0 52px;
+      border-bottom:1px solid var(--hairline-strong);
+      margin-bottom:48px;
+      background:transparent;
+      box-shadow:none;
+      display:block;
     }
     #section-home .home-eyebrow{
       font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.34em;
-      text-transform:uppercase;color:var(--osseolio-deep);margin-bottom:22px;
-      display:flex;align-items:center;justify-content:center;gap:16px;
+      text-transform:uppercase;color:var(--osseolio-deep);
+      margin:0 auto 28px;
+      display:inline-flex;align-items:center;gap:18px;
     }
     #section-home .home-eyebrow::before,#section-home .home-eyebrow::after{
       content:'';width:42px;height:1px;background:var(--osseolio);
     }
     #section-home .home-mark{
+      display:block;
       font-family:'Fraunces',serif;font-variation-settings:'opsz' 144,'SOFT' 30;
-      font-weight:200;font-size:clamp(44px,6.5vw,86px);letter-spacing:-0.05em;
+      font-weight:200;font-size:clamp(64px,9.5vw,140px);letter-spacing:-0.055em;
       line-height:0.95;color:var(--mezzanotte);margin:0;
+      text-align:center;
+      cursor:pointer;
     }
     #section-home .home-mark em{
       font-style:italic;font-weight:200;color:var(--osseolio-deep);
       font-variation-settings:'opsz' 144,'SOFT' 100;
     }
     #section-home .home-sub{
+      display:block;
       font-family:'Fraunces',serif;font-style:italic;font-weight:300;
-      font-size:clamp(18px,2vw,26px);letter-spacing:-0.015em;
-      color:var(--mezzanotte-soft);margin-top:6px;
+      font-size:clamp(16px,1.5vw,20px);letter-spacing:0.04em;
+      color:var(--mezzanotte-mute);margin-top:14px;text-align:center;
     }
     /* Sync-all bar */
     #section-home .home-syncbar{
       display:flex;justify-content:space-between;align-items:center;
-      gap:18px;flex-wrap:wrap;margin-bottom:32px;
+      gap:18px;flex-wrap:wrap;margin-bottom:36px;
     }
     #section-home .home-syncbar-info{
       font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:0.26em;
@@ -78,17 +94,17 @@
     #section-home .btn-sync-all:hover{background:var(--osseolio-deep)}
     #section-home .btn-sync-all:active{transform:translateY(1px)}
     #section-home .btn-sync-all:disabled{background:var(--mezzanotte-mute);cursor:wait}
-    /* Grid */
+    /* Grid — bordino completo (perimetro + interni) */
     #section-home .home-grid{
       display:grid;grid-template-columns:repeat(12,1fr);gap:1px;
-      background:var(--hairline);
-      border-top:1px solid var(--hairline-strong);
-      border-bottom:1px solid var(--hairline-strong);
+      background:var(--hairline-strong);
+      border:1px solid var(--hairline-strong);
+      box-shadow:0 1px 2px rgba(10,22,40,0.04);
     }
     #section-home .home-tile{
-      background:var(--avorio);padding:40px 32px 36px;cursor:pointer;
+      background:var(--avorio);padding:40px 34px 36px;cursor:pointer;
       transition:background 0.32s ease;position:relative;display:flex;
-      flex-direction:column;gap:14px;min-height:210px;
+      flex-direction:column;gap:14px;min-height:220px;
       grid-column:span 4;text-decoration:none;color:inherit;
     }
     #section-home .home-tile:hover{background:var(--paper)}
@@ -133,12 +149,19 @@
       #section-home .home-spacer{display:none}
     }
     @media(max-width:680px){
+      #section-home{padding:36px 20px}
       #section-home .home-tile{grid-column:span 12}
     }
-    /* Title h1 cliccabile per tornare home */
-    .container > header h1{cursor:pointer;user-select:none}
-    /* Nav tab in alto rimossa: navigazione SOLO via card */
-    .container > header nav{display:none}
+    /* Link "Torna alla home" mostrato dentro le sezioni tab */
+    .home-back-link{
+      display:none;font-family:'JetBrains Mono',monospace;font-size:11px;
+      letter-spacing:0.22em;text-transform:uppercase;color:#0f6d63;
+      padding:10px 16px;text-decoration:none;border:1px solid #cce6e2;
+      background:#fff;border-radius:2px;margin:14px 0 18px;
+      transition:background 0.18s ease,color 0.18s ease;
+    }
+    .home-back-link:hover{background:#0f6d63;color:#fff}
+    .home-back-link.visible{display:inline-block}
     </style>
 </head>
 <body>
@@ -173,13 +196,16 @@
         </header>
 
         <main>
+            <!-- Link torna alla home (visibile solo dentro tab) -->
+            <a href="#" id="homeBackLink" class="home-back-link">&larr; Torna alla home</a>
+
             <!-- HOME EDITORIAL — landing dashboard admin -->
             <section id="section-home">
-                <header class="home-brand">
+                <div class="home-brand">
                     <div class="home-eyebrow"><span id="homeDateLabel">Dashboard del giorno</span></div>
                     <h1 class="home-mark">OSSE<em>O</em>TOUCH</h1>
-                    <div class="home-sub"><em>Dashboard</em></div>
-                </header>
+                    <div class="home-sub">Dashboard</div>
+                </div>
 
                 <div class="home-syncbar">
                     <div class="home-syncbar-info">Ultimo aggiornamento &middot; <strong id="homeLastSync">mai</strong></div>
