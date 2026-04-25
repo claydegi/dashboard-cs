@@ -170,22 +170,28 @@ async function getClientsForRep(rep, pool) {
 
         for (const c of union) {
             const ov = overrideMap.get(c.id);
+            const regNorm = normalizeRegion(c.regione);
+            let regRep = 'admin';
+            if (kimRegs.has(regNorm)) regRep = 'kim';
+            else if (dettoRegs.has(regNorm)) regRep = 'detto';
+
             if (ov) {
                 // Excel analisi_vendite (piu' forte): assegnazione certa
                 c._assigned_to = ov.sales_rep;          // 'kim' | 'detto' | 'admin'
                 c._assigned_source = 'excel';
                 c._assigned_excel_raw = ov.invoice_user_odoo_name || null;
+                // Mismatch: Excel != regione (regola #2 fuori-regione legittima,
+                // ma admin va informato per eventuale verifica manuale)
+                c._mismatch = (ov.sales_rep !== regRep) ? 'excel_vs_regione' : null;
+                c._regione_rep = regRep;
             } else {
-                // Cliente non in Excel cache: fallback regione (regola #1)
-                // Coerente con resolveSalesRepForCliente del portale cliente.
-                // I casi specifici sbagliati (es. direzionale in regione Kim)
-                // si risolvono completando il matching Excel (TODO B).
-                const regNorm = normalizeRegion(c.regione);
-                if (kimRegs.has(regNorm)) c._assigned_to = 'kim';
-                else if (dettoRegs.has(regNorm)) c._assigned_to = 'detto';
-                else c._assigned_to = 'admin';
+                // Cliente NON in cache Excel: fallback regione (regola #1)
+                c._assigned_to = regRep;
                 c._assigned_source = 'regione';
                 c._assigned_excel_raw = null;
+                // Confidenza inferiore: solo regione, no conferma Excel
+                c._mismatch = 'no_excel_solo_regione';
+                c._regione_rep = regRep;
             }
         }
     }

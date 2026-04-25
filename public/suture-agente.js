@@ -89,7 +89,14 @@
         const label = { kim: 'KIM', detto: 'DETTO', admin: 'DIREZIONALE' }[c._assigned_to] || c._assigned_to.toUpperCase();
         const src = c._assigned_source === 'excel' ? ' · excel' : ' · regione';
         const style = styleMap[c._assigned_to] || styleMap.admin;
-        return `<span style="${style};padding:3px 10px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;font-weight:600;white-space:nowrap">${label}<span style="font-weight:400;opacity:0.7">${src}</span></span>`;
+        let mismatchBadge = '';
+        if (c._mismatch === 'excel_vs_regione') {
+            const regLabel = { kim: 'Kim', detto: 'Detto', admin: 'admin' }[c._regione_rep] || c._regione_rep;
+            mismatchBadge = `<span title="Excel dice ${label}, regione dice ${regLabel}. Excel ha priorità (regola #2). Verifica se corretto." style="margin-left:6px;padding:2px 6px;background:rgba(239,68,68,0.15);color:#b91c1c;border:1px solid rgba(239,68,68,0.4);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:help">⚠ MISMATCH</span>`;
+        } else if (c._mismatch === 'no_excel_solo_regione') {
+            mismatchBadge = `<span title="Cliente non presente nei file Excel analisi_vendite. Assegnazione basata solo sulla regione: verifica manuale consigliata." style="margin-left:6px;padding:2px 6px;background:rgba(234,179,8,0.15);color:#854d0e;border:1px solid rgba(234,179,8,0.4);border-radius:4px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:700;cursor:help">⚠ NO EXCEL</span>`;
+        }
+        return `<span style="${style};padding:3px 10px;border-radius:999px;font-size:10px;font-family:'JetBrains Mono',monospace;letter-spacing:0.1em;font-weight:600;white-space:nowrap">${label}<span style="font-weight:400;opacity:0.7">${src}</span></span>${mismatchBadge}`;
     }
 
     function renderRigaCliente(c) {
