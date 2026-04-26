@@ -384,6 +384,68 @@ async function initDB() {
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_contatti_odoo_partner_id ON crm_contatti(odoo_partner_id) WHERE odoo_partner_id IS NOT NULL`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_email_odoo ON crm_contatti(email_odoo) WHERE email_odoo IS NOT NULL`);
 
+        // Migrazione 2026-04-26 (parte 2): tabelle multi-valore per email, telefoni, cellulari, nomi
+        // Permettono N valori per nominativo accumulati nel tempo da fonti diverse (Odoo, webinar, manuali, finder).
+        // Schema replicato identico in SQLite SalesForceFree (vedi script SalesForceFree/scripts/migrate_multi_value_tables.py).
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_contatti_emails (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                tipo TEXT,
+                is_primary BOOLEAN DEFAULT false,
+                fonte TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(contatto_id, email)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_emails_contatto ON crm_contatti_emails(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_emails_email ON crm_contatti_emails(LOWER(email))`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_contatti_telefoni (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                telefono TEXT NOT NULL,
+                tipo TEXT,
+                is_primary BOOLEAN DEFAULT false,
+                fonte TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(contatto_id, telefono)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_telefoni_contatto ON crm_contatti_telefoni(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_telefoni_telefono ON crm_contatti_telefoni(telefono)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_contatti_cellulari (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                cellulare TEXT NOT NULL,
+                tipo TEXT,
+                is_primary BOOLEAN DEFAULT false,
+                fonte TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(contatto_id, cellulare)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_cellulari_contatto ON crm_contatti_cellulari(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_cellulari_cellulare ON crm_contatti_cellulari(cellulare)`);
+
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_contatti_nomi (
+                id SERIAL PRIMARY KEY,
+                contatto_id INTEGER NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                nome TEXT NOT NULL,
+                tipo TEXT,
+                is_primary BOOLEAN DEFAULT false,
+                fonte TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW()
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_nomi_contatto ON crm_contatti_nomi(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_nomi_nome ON crm_contatti_nomi(LOWER(nome))`);
+
         // Tabella note CRM (storico, una entry per ogni nota)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_note (
