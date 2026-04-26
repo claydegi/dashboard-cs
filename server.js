@@ -374,6 +374,16 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS mesi_riordino INTEGER DEFAULT 2`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_acquisti_contatto ON crm_acquisti(contatto_id)`);
 
+        // Migrazione 2026-04-26: univocita' account CRM <-> Odoo (vedi SalesForceFree/context_claude/UNIVOCITA_ACCOUNT.md)
+        // 4 colonne: link permanente partner Odoo + email contabile + audit del match
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS odoo_partner_id INTEGER`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_odoo TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS odoo_match_method TEXT`);
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS odoo_match_at TIMESTAMPTZ`);
+        // UNIQUE su odoo_partner_id (impedisce 2 record CRM con stesso partner Odoo) + indice email_odoo per lookup veloce
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_contatti_odoo_partner_id ON crm_contatti(odoo_partner_id) WHERE odoo_partner_id IS NOT NULL`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_email_odoo ON crm_contatti(email_odoo) WHERE email_odoo IS NOT NULL`);
+
         // Tabella note CRM (storico, una entry per ogni nota)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_note (
