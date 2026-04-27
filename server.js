@@ -3143,7 +3143,7 @@ app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
 
 // Sync CRM: bulk replace per regione
 app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
-    const { contatti, prodotti, acquisti, regione } = req.body;
+    const { contatti, prodotti, acquisti, regione, emails, telefoni, cellulari, nomi } = req.body;
     if (!contatti || !regione) {
         return res.status(400).json({ error: 'contatti e regione obbligatori' });
     }
@@ -3319,13 +3319,98 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
             }
         }
 
+        // Tabelle multi-valore (emails/telefoni/cellulari/nomi) — full replace per i contatti della regione
+        // Pattern: DELETE per existingIds non protetti, poi INSERT da payload (se presente).
+        // Tutti gli array sono OPZIONALI: se assenti dal payload, comportamento invariato.
+        const FONTI_PROTETTE_MV = ['dashboard_manual', 'webinar_registrazione', 'finder_email_whatsapp'];
+
+        if (Array.isArray(emails)) {
+            if (existingIds.length > 0) {
+                await client.query(
+                    `DELETE FROM crm_contatti_emails WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))`,
+                    [existingIds, FONTI_PROTETTE_MV]
+                );
+            }
+            for (const e of emails) {
+                if (!e.email || !e.contatto_id) continue;
+                await client.query(`
+                    INSERT INTO crm_contatti_emails (contatto_id, email, tipo, is_primary, fonte, created_at)
+                    VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()))
+                    ON CONFLICT (contatto_id, email) DO UPDATE SET
+                        tipo = COALESCE(EXCLUDED.tipo, crm_contatti_emails.tipo),
+                        is_primary = EXCLUDED.is_primary,
+                        fonte = COALESCE(EXCLUDED.fonte, crm_contatti_emails.fonte)
+                `, [e.contatto_id, e.email, e.tipo || null, e.is_primary || false, e.fonte || null, e.created_at || null]);
+            }
+        }
+
+        if (Array.isArray(telefoni)) {
+            if (existingIds.length > 0) {
+                await client.query(
+                    `DELETE FROM crm_contatti_telefoni WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))`,
+                    [existingIds, FONTI_PROTETTE_MV]
+                );
+            }
+            for (const t of telefoni) {
+                if (!t.telefono || !t.contatto_id) continue;
+                await client.query(`
+                    INSERT INTO crm_contatti_telefoni (contatto_id, telefono, tipo, is_primary, fonte, created_at)
+                    VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()))
+                    ON CONFLICT (contatto_id, telefono) DO UPDATE SET
+                        tipo = COALESCE(EXCLUDED.tipo, crm_contatti_telefoni.tipo),
+                        is_primary = EXCLUDED.is_primary,
+                        fonte = COALESCE(EXCLUDED.fonte, crm_contatti_telefoni.fonte)
+                `, [t.contatto_id, t.telefono, t.tipo || null, t.is_primary || false, t.fonte || null, t.created_at || null]);
+            }
+        }
+
+        if (Array.isArray(cellulari)) {
+            if (existingIds.length > 0) {
+                await client.query(
+                    `DELETE FROM crm_contatti_cellulari WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))`,
+                    [existingIds, FONTI_PROTETTE_MV]
+                );
+            }
+            for (const cl of cellulari) {
+                if (!cl.cellulare || !cl.contatto_id) continue;
+                await client.query(`
+                    INSERT INTO crm_contatti_cellulari (contatto_id, cellulare, tipo, is_primary, fonte, created_at)
+                    VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()))
+                    ON CONFLICT (contatto_id, cellulare) DO UPDATE SET
+                        tipo = COALESCE(EXCLUDED.tipo, crm_contatti_cellulari.tipo),
+                        is_primary = EXCLUDED.is_primary,
+                        fonte = COALESCE(EXCLUDED.fonte, crm_contatti_cellulari.fonte)
+                `, [cl.contatto_id, cl.cellulare, cl.tipo || null, cl.is_primary || false, cl.fonte || null, cl.created_at || null]);
+            }
+        }
+
+        if (Array.isArray(nomi)) {
+            if (existingIds.length > 0) {
+                await client.query(
+                    `DELETE FROM crm_contatti_nomi WHERE contatto_id = ANY($1::int[]) AND (fonte IS NULL OR fonte != ALL($2::text[]))`,
+                    [existingIds, FONTI_PROTETTE_MV]
+                );
+            }
+            for (const n of nomi) {
+                if (!n.nome || !n.contatto_id) continue;
+                await client.query(`
+                    INSERT INTO crm_contatti_nomi (contatto_id, nome, tipo, is_primary, fonte, created_at)
+                    VALUES ($1, $2, $3, $4, $5, COALESCE($6::timestamptz, NOW()))
+                `, [n.contatto_id, n.nome, n.tipo || null, n.is_primary || false, n.fonte || null, n.created_at || null]);
+            }
+        }
+
         await client.query('COMMIT');
-        console.log(`[CRM Sync] ${regione}: ${contatti.length} contatti, ${(prodotti || []).length} prodotti, ${(acquisti || []).length} acquisti`);
+        console.log(`[CRM Sync] ${regione}: ${contatti.length} contatti, ${(prodotti || []).length} prodotti, ${(acquisti || []).length} acquisti, ${(emails || []).length} emails, ${(telefoni || []).length} telefoni, ${(cellulari || []).length} cellulari, ${(nomi || []).length} nomi`);
         res.json({
             ok: true,
             contatti: contatti.length,
             prodotti: (prodotti || []).length,
-            acquisti: (acquisti || []).length
+            acquisti: (acquisti || []).length,
+            emails: (emails || []).length,
+            telefoni: (telefoni || []).length,
+            cellulari: (cellulari || []).length,
+            nomi: (nomi || []).length
         });
     } catch (err) {
         await client.query('ROLLBACK');
