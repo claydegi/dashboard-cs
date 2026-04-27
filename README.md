@@ -559,19 +559,32 @@ ciascun agente (Appendice B).
 
 ---
 
-## Appendice A. File legacy / da archiviare
+## Appendice A. Pulizia legacy — stato post-Filone 4
 
-Note operative. Tutti gli elementi seguenti sono **candidati a
-rimozione/archiviazione previa autorizzazione esplicita** dell'imprenditore.
+La pulizia dei file legacy della root è stata eseguita il 2026-04-27
+(Filone 4). Stato corrente:
 
-### Root del repo
+### File rimossi dal repo
 
-| Elemento | Stato | Azione candidata |
+| Elemento | Esito |
+|---|---|
+| `database.json` | ✅ **Cancellato** (storage JSON pre-PostgreSQL) |
+| `INV_2026_00072.pdf` | ✅ **Cancellato** (fattura PDF spuria) |
+| `temp_audit_video_tracking.js` | ✅ **Cancellato** (audit one-shot) |
+| `temp_count_arcara.js` | ✅ **Cancellato** (count one-shot) |
+
+### Script diagnostici archiviati
+
+I 16 script diagnostici one-shot di marzo-aprile 2026 sono stati spostati
+in `_archive/`:
+
+| Cartella | # script | Contenuto |
 |---|---|---|
-| `database.json` (361 B) | Storage JSON pre-PostgreSQL. Gitignored. Nessun riferimento attivo da `server.js` | Rimuovere con commit dedicato |
-| `INV_2026_00072.pdf` (60 KB) | Fattura PDF spuria nella root | Spostare in archivio fuori repo |
-| `analisi_bozza.js` (9.6 KB) | Diagnostica suture one-shot. Contiene chiave admin storica nel sorgente | Sanitizzare la stringa o rimuovere il file |
-| 14 script `verifica_*.js`, `check_*.py`, `cleanup_*.{js,sql}`, `temp_*.js`, `test_verifica_copertura.js`, `lista_ordini_*.js` | Diagnostica one-shot di marzo-aprile 2026 (suture, webinar Arcara/Galizia/Malavasi). Nessuno è importato da `server.js` | Spostare in `_archive/diagnostica_suture/` e `_archive/diagnostica_webinar/` |
+| `_archive/diagnostica_suture/` | 8 | `analisi_bozza.js`, `lista_ordini_completa.js`, `lista_ordini_suture.js`, `verifica_copertura_ordini.js`, `verifica_copertura_senza_bozza.js`, `verifica_po_vitrex.js`, `verifica_s00343.js`, `test_verifica_copertura.js` |
+| `_archive/diagnostica_webinar/` | 8 | `check_arcara_bug.py`, `check_arcara_bug_api.py`, `check_arcara_bug_full.py`, `check_galizia_api.py`, `check_galizia_video.js`, `verifica_malavasi_fix.py`, `cleanup_arcara_test.js`, `cleanup_arcara_test.sql` |
+
+`_archive/README.md` documenta le caratteristiche e le regole d'uso dei
+file archiviati. **Nessuno è runtime**, nessuno è importato da `server.js`.
 
 ### Debiti tecnici futuri (non urgenti)
 
@@ -581,8 +594,6 @@ rimozione/archiviazione previa autorizzazione esplicita** dell'imprenditore.
 | Template duplication | `WEBINAR_REPLAY_ACCESSO_TARDANI.html` è copia personalizzata del generico | Quando un terzo webinar richiederà il proprio template: introdurre placeholder + parametrizzazione, oppure template engine minimale |
 | Viste duplicate con JAN34 | `magnetic-mallet.html`, `cadaver-lab-verona.html`, `privacy-policy.html` coesistono con equivalenti su `osseotouch.com` | Decidere la versione canonica e impostare redirect |
 | Schema DB inline in `server.js` | `initDB()` cresce a ogni nuova tabella; nessun migration tool | Estrazione a file dedicato e/o introduzione tool tipo Knex/Prisma migrate quando il dolore lo giustifica |
-| `package.json:description` | "Dashboard Task Management per Customer Service" — non riflette lo scope reale (12 moduli) | Aggiornare descrizione |
-| `OPENAI_API_KEY` in `CONFIG` | Apparentemente non utilizzata nel codice attuale | Verificare prima di rimuovere |
 
 ---
 

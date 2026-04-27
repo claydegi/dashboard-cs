@@ -1,7 +1,7 @@
 {
   "name": "dashboard-cs",
   "version": "1.0.0",
-  "description": "Dashboard Task Management per Customer Service",
+  "description": "Hub web operativo OSSEOTOUCH: task CS, CRM, report, dashboard agenti, SUTURE, shop, webinar, FREELANCER e sync marketing",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

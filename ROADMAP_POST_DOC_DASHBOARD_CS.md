@@ -40,12 +40,20 @@ Stringa storica `chiave-segreta-admin-2024` rimossa da 11 script diagnostici e d
 
 ---
 
-## Filone 4 — Pulizia file legacy
+## Filone 4 — Pulizia file legacy ✅ completato lato pulizia root
 
-- **Scopo**: archiviare/rimuovere i file orfani della root identificati in README v2 Appendice A e aggiornare metadata stale (`package.json:description`, eventuale `OPENAI_API_KEY` in `CONFIG`).
+- **Scopo**: archiviare/rimuovere i file orfani della root identificati in README v2 Appendice A e aggiornare metadata stale (`package.json:description`, `OPENAI_API_KEY` in `CONFIG`).
 - **Rischio**: 🟢 basso — i file da pulire non sono importati da `server.js`, già verificato staticamente.
 - **Azione principale**: cancellazione/spostamento dei file legacy in `_archive/`, aggiornamento metadata, allineamento Appendice A del README.
-- **Finito quando**: la root contiene solo file effettivamente parte del runtime + automation + doc; `_archive/` popolato e documentato; README v2 Appendice A coerente con lo stato post-pulizia.
+- **Stato attuale (2026-04-27)**:
+  - ✅ 4 file cancellati (`database.json`, `INV_2026_00072.pdf`, `temp_audit_video_tracking.js`, `temp_count_arcara.js`).
+  - ✅ 16 script diagnostici archiviati in `_archive/diagnostica_suture/` (8) e `_archive/diagnostica_webinar/` (8).
+  - ✅ `_archive/README.md` creato.
+  - ✅ `package.json:description` aggiornata.
+  - ✅ `OPENAI_API_KEY` rimossa dal codice nel Filone 3 (commit `e2c2838`).
+  - ✅ README v2 Appendice A aggiornata per riflettere lo stato post-pulizia.
+  - 🟡 **Resta solo**: commit dedicato + push (autorizzati separatamente).
+- **Finito quando**: la root contiene solo file effettivamente parte del runtime + automation + doc; `_archive/` popolato e documentato; README v2 Appendice A coerente con lo stato post-pulizia; commit + push completati.
 
 ---
 
