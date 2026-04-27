@@ -182,16 +182,14 @@ Nessun valore va committato nel repo (`.env` è in `.gitignore`).
 | `MAILGUN_DOMAIN` / `MAILGUN_BASE_URL` / `MAILGUN_FROM` | Default Mailgun EU |
 | `ODOO_URL` / `ODOO_DB` / `ODOO_USER` | Default OSSEOTOUCH |
 | `SHOP_FRONTEND_URL` | Deve puntare a `https://www.osseotouch.com` in prod |
-| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE` | Notifiche admin / Kim / relatore. ⚠️ Vedi §11 (fallback hardcoded) |
+| `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` | Alert admin **solo** per cancellazioni/revoche critiche (vedi §11). Senza, gli alert sono silenziati ma l'azione principale procede |
 | `RELATORE_KEY` / `RELATORE_EMAIL` | Auth forum webinar. ⚠️ Vedi §11 |
 | `PORT` | Default 3000. Railway inietta valore proprio |
 | `NODE_ENV` | Imposta `production` su Railway |
 
-### Variabile da chiarire
+### Variabili rimosse (Filone 3 — riduzione Telegram)
 
-| Variabile | Stato |
-|---|---|
-| `OPENAI_API_KEY` | Apparentemente non utilizzata nel codice attuale; verificare prima di rimuovere |
+`TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE` e `OPENAI_API_KEY` sono state rimosse dal codice. Possono essere cancellate da Railway Variables in azione manuale separata.
 
 ---
 
@@ -482,16 +480,38 @@ Anthropic, Freelancer, Odoo).
 Vedi §6: ogni modifica dello schema su database con dati di produzione
 richiede autorizzazione esplicita, review, backup, verifica post-deploy.
 
+### Telegram — riduzione ad alert cancellazioni (Filone 3)
+
+Telegram è stato ridotto a un solo uso: **alert al canale admin per cancellazioni/revoche critiche**. Sono stati rimossi:
+
+- Bot interattivo (polling, creazione task da testo, trascrizione vocali via OpenAI Whisper).
+- Notifiche task completion, report ready (Kim + tutti), forum (admin + relatore + reply), Calendly opportunità (era un bug latente).
+- Allarme suture sync error (sostituito da `console.error`).
+- Helper `sendTelegramNotification`, `sendTelegramReply`, `startTelegramPolling`, `handleTelegramMessage`, `handleVoiceMessage`, `transcribeAndCreateTask`.
+- Variabili `TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE`, `OPENAI_API_KEY`.
+- Tutti i fallback hardcoded di `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+
+Resta una sola helper, `sendTelegramDeletionAlert(text)`, che invia al canale admin solo per eventi di cancellazione/revoca:
+- Threshold CRM cestino (>5 cancellazioni in 10 min) — da `logAndTrash`.
+- `DELETE /api/proposte/:id` (SUTURE).
+- `POST /api/portali/:token/revoca` e `POST /api/suture/portale-cliente/:cliente_id/revoca`.
+- `DELETE /api/shop/orders/:id`.
+- `DELETE /api/fatture/:id`.
+
+Se `TELEGRAM_BOT_TOKEN` o `TELEGRAM_CHAT_ID` non sono configurati, l'alert è silenziato e l'azione principale procede normalmente.
+
 ### Gap di sicurezza noti — da risolvere
 
 | Gap | Riga | Severità |
 |---|---|---|
-| Fallback hardcoded di `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_CHAT_ID_KIM` nel sorgente | `server.js:17,18,20` | 🔴 Alta — secret in repo |
 | Fallback hardcoded di `RELATORE_KEY` (auth forum) | `server.js:25` | 🟡 Media — chiave debole come default |
-| File `analisi_bozza.js` contiene chiave admin storica nel sorgente | `analisi_bozza.js:4` | 🔴 Alta — anche se ruotata su Railway, resta nel repo |
-| `/api/calendly/webhook` accetta payload senza verifica firma | `server.js:12197` | 🟡 Media |
-| `ANTHROPIC_API_KEY` controllata lazy (4 check separati nei moduli FREELANCER, nessun fail-fast al boot) | `server.js:11922,11954,12019,12052` | 🟢 Bassa — degrado funzionale |
-| SSL detection su `DATABASE_URL.includes('localhost')` (heuristic fragile) | `server.js:251` | 🟢 Bassa |
+| `/api/calendly/webhook` accetta payload senza verifica firma | `server.js` (Calendly webhook) | 🟡 Media |
+| `ANTHROPIC_API_KEY` controllata lazy (4 check separati nei moduli FREELANCER, nessun fail-fast al boot) | `server.js` (FREELANCER AI handlers) | 🟢 Bassa — degrado funzionale |
+| SSL detection su `DATABASE_URL.includes('localhost')` (heuristic fragile) | `server.js` (pool init) | 🟢 Bassa |
+
+**Gap chiusi nel Filone 3** (2026-04-27):
+- ✅ Fallback hardcoded `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID`, `TELEGRAM_CHAT_ID_KIM` rimossi.
+- ✅ `analisi_bozza.js` e i 10 script diagnostici legacy sanitizzati (Filone D.1 + D.1-bis).
 
 ### Quanto è OK
 

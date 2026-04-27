@@ -14,10 +14,10 @@ const CONFIG = {
     // (brief SUTURE/PIANO_FASE1.md punto C, rotazione chiave 2026-04-24)
     ADMIN_KEY: process.env.ADMIN_KEY,
     REPORTS_API_KEY: process.env.REPORTS_API_KEY || process.env.ADMIN_KEY,
-    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '7975162439:AAGB95NY4fAVdhNdgBY5X5QObHDNKHNkNFw',
-    TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '-5130672016',
-    OPENAI_API_KEY: process.env.OPENAI_API_KEY || 'LA_TUA_API_KEY_OPENAI',
-    TELEGRAM_CHAT_ID_KIM: process.env.TELEGRAM_CHAT_ID_KIM || '8418876575',
+    // Telegram: solo alert admin per cancellazioni/revoche critiche.
+    // Nessun fallback hardcoded (gap chiuso 2026-04-27). Vedi README §11.
+    TELEGRAM_BOT_TOKEN: process.env.TELEGRAM_BOT_TOKEN || '',
+    TELEGRAM_CHAT_ID: process.env.TELEGRAM_CHAT_ID || '',
     MAILGUN_API_KEY: process.env.MAILGUN_API_KEY,
     MAILGUN_DOMAIN: process.env.MAILGUN_DOMAIN || 'osseotouch.com',
     MAILGUN_BASE_URL: process.env.MAILGUN_BASE_URL || 'https://api.eu.mailgun.net/v3',
@@ -26,7 +26,6 @@ const CONFIG = {
     RELATORE_NOME: 'Alberto',
     RELATORE_COGNOME: 'Malavasi',
     RELATORE_EMAIL: process.env.RELATORE_EMAIL || 'dottmalavasi@gmail.com',
-    TELEGRAM_CHAT_ID_RELATORE: process.env.TELEGRAM_CHAT_ID_RELATORE || '',
     ODOO_URL: process.env.ODOO_URL || 'https://osseotouch.odoo.com',
     ODOO_DB: process.env.ODOO_DB || 'ati-comunicazione-osseotouch-produzione-26370252',
     ODOO_USER: process.env.ODOO_USER || 'admin',
@@ -1640,19 +1639,9 @@ async function syncSutureFromOdoo() {
         console.error('[Suture Sync] Errore:', err.message);
         await pool.query(`UPDATE suture_sync_meta SET status = 'error', error_message = $1 WHERE id = 1`, [err.message.substring(0, 500)]);
 
-        // Allarme Telegram se autenticazione fallita (API key scaduta)
+        // Errore di autenticazione: log esplicito (Telegram rimosso da Filone 3).
         if (err.message.includes('uid=false') || err.message.includes('autenticazione fallita') || err.message.includes('Access Denied')) {
-            try {
-                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID,
-                    `⚠️ *ALLARME SUTURE SYNC*\n\n` +
-                    `La API key Odoo è SCADUTA o non valida.\n` +
-                    `Il sync suture non funziona.\n\n` +
-                    `Errore: ${err.message.substring(0, 200)}\n\n` +
-                    `👉 Rigenerare la API key su Odoo e aggiornare la variabile ODOO\\_API\\_KEY su Railway.`
-                );
-            } catch (telegramErr) {
-                console.error('[Suture Sync] Errore invio allarme Telegram:', telegramErr.message);
-            }
+            console.error('[Suture Sync] API key Odoo scaduta o non valida. Rigenerare e aggiornare ODOO_API_KEY su Railway.');
         }
     }
 }
@@ -1811,8 +1800,8 @@ app.put('/api/tasks/:id/complete', async (req, res) => {
 
         const task = result.rows[0];
 
-        // Invia notifica Telegram
-        sendTelegramNotification(task, completato_da || 'Operatore CS');
+        // Notifica Telegram task completion rimossa in Filone 3.
+        // Il completamento è visibile in dashboard /storico per gli admin.
 
         res.json(task);
     } catch (err) {
@@ -2058,49 +2047,8 @@ app.post('/api/reports', requireReportsKey, async (req, res) => {
         console.log(`[Reports] Nuovo report salvato: ${tipo} - ${titolo} (ID: ${result.rows[0].id})`);
         res.status(201).json(result.rows[0]);
 
-        // Notifica Telegram a Kim quando viene caricato/aggiornato un suo report
-        if (tipo === 'crediti_kim' || tipo === 'vendite_kim') {
-            try {
-                const nomeReport = tipo === 'crediti_kim' ? 'Report Crediti' : 'Vendite Progressivo 2026';
-                const d = new Date(data_report);
-                const giorno = String(d.getDate()).padStart(2, '0');
-                const mese = String(d.getMonth() + 1).padStart(2, '0');
-                const anno = d.getFullYear();
-                const messaggioKim = `📋 *Nuovo ${nomeReport}*\n\n📄 ${titolo}\n📅 Data: ${giorno}/${mese}/${anno}\n\nIl report è stato aggiornato nella dashboard.`;
-                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_KIM, messaggioKim);
-                console.log(`[Reports] Notifica Telegram inviata a Kim per: ${tipo}`);
-            } catch (kimNotifErr) {
-                console.error('[Reports] Errore notifica Kim:', kimNotifErr);
-            }
-        }
-
-        // Controlla se tutti e 4 i report del giorno sono pronti
-        try {
-            const countResult = await pool.query(
-                'SELECT COUNT(DISTINCT tipo) as tipi FROM reports WHERE data_report = $1',
-                [data_report]
-            );
-            const tipiPresenti = parseInt(countResult.rows[0].tipi);
-
-            if (tipiPresenti === 4) {
-                // Formatta la data per il messaggio
-                let messaggio;
-                try {
-                    const d = new Date(data_report);
-                    const giorno = String(d.getDate()).padStart(2, '0');
-                    const mese = String(d.getMonth() + 1).padStart(2, '0');
-                    const anno = d.getFullYear();
-                    messaggio = `📊 Report del giorno ${giorno}/${mese}/${anno} pronti`;
-                } catch (e) {
-                    messaggio = '📊 Report pronti';
-                }
-
-                sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, messaggio);
-                console.log(`[Reports] Notifica Telegram: tutti e 4 i report per ${data_report} sono pronti`);
-            }
-        } catch (notifErr) {
-            console.error('[Reports] Errore check notifica:', notifErr);
-        }
+        // Notifiche Telegram (Kim report ready + tutti i 4 report giornalieri pronti)
+        // rimosse in Filone 3. Le viste agente sono accessibili dalla dashboard.
     } catch (err) {
         console.error('[Reports]', err);
         res.status(500).json({ error: 'Errore server' });
@@ -2121,241 +2069,22 @@ app.delete('/api/reports/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// ==================== TELEGRAM ====================
+// ==================== TELEGRAM (alert cancellazioni/revoche critiche) ====================
+// Bot Telegram ridotto a solo notifiche outbound per eventi di cancellazione/revoca.
+// Niente polling, niente bot interattivo, niente notifiche task/report/forum/Calendly.
+// Vedi README §11 e MANUALE §3.3.
+//
+// Helper unico: invia un alert testuale al canale admin (CONFIG.TELEGRAM_CHAT_ID).
+// Se TELEGRAM_BOT_TOKEN o TELEGRAM_CHAT_ID non sono configurati, alert silenziato:
+// l'azione principale (delete/revoca) non viene mai bloccata.
 
-async function sendTelegramNotification(task, completatoDa) {
-    if (CONFIG.TELEGRAM_BOT_TOKEN === 'IL_TUO_TOKEN_TELEGRAM') {
-        console.log('[Telegram] Token non configurato, notifica saltata');
-        return;
+async function sendTelegramDeletionAlert(text) {
+    if (!CONFIG.TELEGRAM_BOT_TOKEN || !CONFIG.TELEGRAM_CHAT_ID) {
+        return; // Telegram non configurato — silenziato.
     }
-
-    const dataCompletamento = new Date(task.completato_il).toLocaleString('it-IT', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
-    const messaggio = `✅ *Task Completato*
-
-📋 *${task.titolo}*
-👤 Completato da: ${completatoDa}
-📅 Data: ${dataCompletamento}
-${task.priorita === 'alta' ? '🔴 Priorità Alta' : task.priorita === 'media' ? '🟡 Priorità Media' : '🟢 Priorità Bassa'}`;
 
     const data = JSON.stringify({
         chat_id: CONFIG.TELEGRAM_CHAT_ID,
-        text: messaggio,
-        parse_mode: 'Markdown'
-    });
-
-    const options = {
-        hostname: 'api.telegram.org',
-        path: `/bot${CONFIG.TELEGRAM_BOT_TOKEN}/sendMessage`,
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Content-Length': Buffer.byteLength(data)
-        }
-    };
-
-    const req = https.request(options, (res) => {
-        let responseData = '';
-        res.on('data', chunk => responseData += chunk);
-        res.on('end', () => {
-            if (res.statusCode === 200) {
-                console.log('[Telegram] Notifica inviata con successo');
-            } else {
-                console.log('[Telegram] Errore:', responseData);
-            }
-        });
-    });
-
-    req.on('error', (e) => {
-        console.log('[Telegram] Errore connessione:', e.message);
-    });
-
-    req.write(data);
-    req.end();
-}
-
-// ==================== TELEGRAM BOT (Polling per vocali) ====================
-
-let lastUpdateId = 0;
-
-async function startTelegramPolling() {
-    if (CONFIG.TELEGRAM_BOT_TOKEN === 'IL_TUO_TOKEN_TELEGRAM') {
-        console.log('[Telegram Bot] Token non configurato, polling disabilitato');
-        return;
-    }
-
-    console.log('[Telegram Bot] Avvio polling per messaggi vocali...');
-
-    setInterval(async () => {
-        try {
-            const url = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/getUpdates?offset=${lastUpdateId + 1}&timeout=10`;
-
-            https.get(url, (res) => {
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', async () => {
-                    try {
-                        const response = JSON.parse(data);
-                        if (response.ok && response.result) {
-                            for (const update of response.result) {
-                                lastUpdateId = update.update_id;
-                                await handleTelegramMessage(update.message);
-                            }
-                        }
-                    } catch (e) {}
-                });
-            }).on('error', () => {});
-        } catch (e) {}
-    }, 3000);
-}
-
-async function handleTelegramMessage(message) {
-    if (!message) return;
-
-    const chatId = message.chat.id;
-
-    if (message.voice) {
-        await handleVoiceMessage(message, chatId);
-        return;
-    }
-
-    if (message.text && !message.text.startsWith('/')) {
-        try {
-            const result = await pool.query(`
-                INSERT INTO tasks (titolo, tipo, priorita)
-                VALUES ($1, 'cs', 'media')
-                RETURNING *
-            `, [message.text]);
-            await sendTelegramReply(chatId, `✅ Task creato:\n\n📋 *${result.rows[0].titolo}*`);
-        } catch (e) {
-            await sendTelegramReply(chatId, '❌ Errore nella creazione del task');
-        }
-        return;
-    }
-
-    if (message.text === '/start') {
-        await sendTelegramReply(chatId, `👋 Ciao! Sono il bot della Dashboard CS.
-
-📝 *Come usarmi:*
-- Invia un messaggio vocale per creare un task
-- Invia un messaggio di testo per creare un task
-- Il vocale verrà trascritto automaticamente
-
-🎤 Prova a inviarmi un vocale!`);
-    }
-}
-
-async function handleVoiceMessage(message, chatId) {
-    try {
-        await sendTelegramReply(chatId, '🎤 Sto trascrivendo il vocale...');
-
-        const fileId = message.voice.file_id;
-        const fileInfoUrl = `https://api.telegram.org/bot${CONFIG.TELEGRAM_BOT_TOKEN}/getFile?file_id=${fileId}`;
-
-        https.get(fileInfoUrl, (res) => {
-            let data = '';
-            res.on('data', chunk => data += chunk);
-            res.on('end', async () => {
-                try {
-                    const fileInfo = JSON.parse(data);
-                    if (fileInfo.ok) {
-                        const filePath = fileInfo.result.file_path;
-                        const fileUrl = `https://api.telegram.org/file/bot${CONFIG.TELEGRAM_BOT_TOKEN}/${filePath}`;
-                        await transcribeAndCreateTask(fileUrl, chatId);
-                    }
-                } catch (e) {
-                    await sendTelegramReply(chatId, '❌ Errore durante l\'elaborazione del vocale');
-                }
-            });
-        });
-    } catch (e) {
-        await sendTelegramReply(chatId, '❌ Errore durante l\'elaborazione del vocale');
-    }
-}
-
-async function transcribeAndCreateTask(audioUrl, chatId) {
-    if (CONFIG.OPENAI_API_KEY === 'LA_TUA_API_KEY_OPENAI') {
-        await sendTelegramReply(chatId, '❌ API OpenAI non configurata. Configura OPENAI_API_KEY.');
-        return;
-    }
-
-    const tempFile = path.join(__dirname, 'temp_audio.ogg');
-    const file = fs.createWriteStream(tempFile);
-
-    https.get(audioUrl, (response) => {
-        response.pipe(file);
-        file.on('finish', async () => {
-            file.close();
-
-            try {
-                const FormData = require('form-data');
-                const form = new FormData();
-                form.append('file', fs.createReadStream(tempFile), 'audio.ogg');
-                form.append('model', 'whisper-1');
-                form.append('language', 'it');
-
-                const options = {
-                    hostname: 'api.openai.com',
-                    path: '/v1/audio/transcriptions',
-                    method: 'POST',
-                    headers: {
-                        'Authorization': `Bearer ${CONFIG.OPENAI_API_KEY}`,
-                        ...form.getHeaders()
-                    }
-                };
-
-                const req = https.request(options, (res) => {
-                    let data = '';
-                    res.on('data', chunk => data += chunk);
-                    res.on('end', async () => {
-                        try {
-                            const result = JSON.parse(data);
-                            if (result.text) {
-                                const titolo = result.text.length > 100 ? result.text.substring(0, 100) + '...' : result.text;
-                                const descrizione = result.text.length > 100 ? result.text : '';
-
-                                const dbResult = await pool.query(`
-                                    INSERT INTO tasks (titolo, descrizione, tipo, priorita)
-                                    VALUES ($1, $2, 'cs', 'media')
-                                    RETURNING *
-                                `, [titolo, descrizione]);
-
-                                await sendTelegramReply(chatId, `✅ Task creato da vocale:\n\n📋 *${dbResult.rows[0].titolo}*\n\n📝 Trascrizione: "${result.text}"`);
-                            } else {
-                                await sendTelegramReply(chatId, '❌ Non sono riuscito a trascrivere il vocale');
-                            }
-                        } catch (e) {
-                            await sendTelegramReply(chatId, '❌ Errore nella trascrizione');
-                        }
-                        fs.unlink(tempFile, () => {});
-                    });
-                });
-
-                req.on('error', async () => {
-                    await sendTelegramReply(chatId, '❌ Errore di connessione a OpenAI');
-                    fs.unlink(tempFile, () => {});
-                });
-
-                form.pipe(req);
-            } catch (e) {
-                await sendTelegramReply(chatId, '❌ Errore durante la trascrizione');
-                fs.unlink(tempFile, () => {});
-            }
-        });
-    }).on('error', async () => {
-        await sendTelegramReply(chatId, '❌ Errore nel download del file audio');
-    });
-}
-
-async function sendTelegramReply(chatId, text) {
-    const data = JSON.stringify({
-        chat_id: chatId,
         text: text,
         parse_mode: 'Markdown'
     });
@@ -2371,13 +2100,21 @@ async function sendTelegramReply(chatId, text) {
     };
 
     return new Promise((resolve) => {
-        const req = https.request(options, (res) => {
-            res.on('data', () => {});
-            res.on('end', resolve);
-        });
-        req.on('error', resolve);
-        req.write(data);
-        req.end();
+        try {
+            const req = https.request(options, (res) => {
+                res.on('data', () => {});
+                res.on('end', resolve);
+            });
+            req.on('error', (e) => {
+                console.error('[Telegram] alert non inviato:', e.message);
+                resolve();
+            });
+            req.write(data);
+            req.end();
+        } catch (e) {
+            console.error('[Telegram] alert non inviato:', e.message);
+            resolve();
+        }
     });
 }
 
@@ -2406,7 +2143,7 @@ async function logAndTrash(client, { azione, tabella, recordId, contattoId, dati
         const msg = `⚠️ *ALERT CRM*\n\n🗑️ ${count} cancellazioni negli ultimi 10 minuti\n\n` +
                     `Ultima: ${azione}\nTabella: ${tabella}\nContatto ID: ${contattoId}\n` +
                     `IP: ${ip || 'N/A'}\n\n_Controlla la dashboard._`;
-        sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, msg);
+        sendTelegramDeletionAlert(msg);
         console.log(`[CRM Audit] Alert Telegram inviato: ${count} cancellazioni in 10 min`);
     }
 }
@@ -2747,6 +2484,7 @@ app.delete('/api/fatture/:id', requireAdmin, async (req, res) => {
         }
 
         console.log(`[Fatture] Fattura eliminata: ${result.rows[0].nome_file} (ID: ${id})`);
+        sendTelegramDeletionAlert(`📄 *Fattura eliminata*\n\nID: ${id}\nFile: ${result.rows[0].nome_file}`);
         res.json({ message: 'Fattura eliminata' });
     } catch (err) {
         console.error('[Fatture]', err);
@@ -9758,15 +9496,8 @@ app.post('/api/webinar/forum/topics', async (req, res) => {
         const topic = result.rows[0];
         console.log(`[Forum] Nuovo topic #${topic.id}: "${titolo}" da ${emailClean}`);
 
-        // Notifica Telegram admin
-        const telegramMsg = `📋 *Forum Webinar — Nuova domanda*\n\nAutore: ${reg.rows[0].nome || ''} ${reg.rows[0].cognome || ''}\nTitolo: ${titolo}\n\nhttps://app.osseotouch.com/webinar-followup#topic-${topic.id}`;
-        sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, telegramMsg);
-
-        // Notifica Telegram relatore
-        if (CONFIG.TELEGRAM_CHAT_ID_RELATORE) {
-            const relatoreMsg = `📋 *Nuova domanda sul webinar*\n\nDa: ${reg.rows[0].nome || ''} ${reg.rows[0].cognome || ''}\nTitolo: ${titolo}\n\n${corpo.substring(0, 200)}${corpo.length > 200 ? '...' : ''}\n\n👉 Rispondi: https://app.osseotouch.com/webinar-followup?relatore_key=${CONFIG.RELATORE_KEY}#topic-${topic.id}`;
-            sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID_RELATORE, relatoreMsg);
-        }
+        // Notifiche Telegram (admin + relatore) rimosse in Filone 3.
+        // Resta la notifica email al relatore via Mailgun (sotto).
 
         // Notifica email relatore (nuovo thread)
         if (CONFIG.RELATORE_EMAIL) {
@@ -9852,11 +9583,7 @@ app.post('/api/webinar/forum/replies', async (req, res) => {
         const reply = result.rows[0];
         console.log(`[Forum] Nuova risposta #${reply.id} al topic #${topic_id} da ${isRelatore ? 'RELATORE' : emailClean}`);
 
-        // Notifica Telegram solo admin per risposte dei partecipanti (relatore riceve solo notifica nuovo thread)
-        if (!isRelatore) {
-            const msg = `💬 *Forum Webinar — Nuova risposta*\n\nDa: ${nome} ${cognome}\nSu: "${topicRow.titolo}"\n\nhttps://app.osseotouch.com/webinar-followup#topic-${topic_id}`;
-            sendTelegramReply(CONFIG.TELEGRAM_CHAT_ID, msg);
-        }
+        // Notifica Telegram per nuova risposta forum rimossa in Filone 3.
 
         res.status(201).json({ ok: true, reply });
     } catch (err) {
@@ -11131,7 +10858,9 @@ app.patch('/api/proposte/:id', requireAdmin, async (req, res) => {
 // DELETE /api/proposte/:id
 app.delete('/api/proposte/:id', requireAdmin, async (req, res) => {
     try {
-        const result = await sutureProposalBuilder.deleteProposta(parseInt(req.params.id, 10), pool);
+        const propostaId = parseInt(req.params.id, 10);
+        const result = await sutureProposalBuilder.deleteProposta(propostaId, pool);
+        sendTelegramDeletionAlert(`🗑️ *Proposta SUTURE eliminata*\n\nProposta ID: ${propostaId}`);
         res.json({ ok: true, ...result });
     } catch (err) {
         console.error('[SUTURE] DELETE /api/proposte/:id:', err.message);
@@ -11354,14 +11083,16 @@ app.post('/api/portali/:token/conferma/:proposta_id', async (req, res) => {
 // POST /api/portali/:token/revoca — SOLO admin
 app.post('/api/portali/:token/revoca', requireAdmin, async (req, res) => {
     try {
+        const revocatoDa = req.body?.revocato_da || 'admin';
         const result = await pool.query(
             `UPDATE portali_cliente
              SET attivo = FALSE, revocato_at = NOW(), revocato_da = $2
              WHERE token = $1 AND attivo = TRUE
              RETURNING cliente_id`,
-            [req.params.token, req.body?.revocato_da || 'admin']
+            [req.params.token, revocatoDa]
         );
         if (!result.rowCount) return res.status(404).json({ error: 'Portale non trovato o gia revocato' });
+        sendTelegramDeletionAlert(`⛔ *Portale SUTURE revocato*\n\nCliente ID: ${result.rows[0].cliente_id}\nRevocato da: ${revocatoDa}`);
         res.json({ ok: true, revocato: true, cliente_id: result.rows[0].cliente_id });
     } catch (err) {
         console.error('[SUTURE] revoca:', err.message);
@@ -11531,14 +11262,16 @@ app.post('/api/suture/portale-cliente/:cliente_id/revoca', requireAdmin, async (
     try {
         const cliente_id = parseInt(req.params.cliente_id, 10);
         if (!cliente_id) return res.status(400).json({ error: 'cliente_id non valido' });
+        const revocatoDa = req.body?.revocato_da || 'admin';
         const result = await pool.query(
             `UPDATE portali_cliente
              SET attivo = FALSE, revocato_at = NOW(), revocato_da = $2
              WHERE cliente_id = $1 AND attivo = TRUE
              RETURNING token`,
-            [cliente_id, req.body?.revocato_da || 'admin']
+            [cliente_id, revocatoDa]
         );
         if (!result.rowCount) return res.status(404).json({ error: 'Nessun portale attivo per questo cliente' });
+        sendTelegramDeletionAlert(`⛔ *Portale SUTURE revocato*\n\nCliente ID: ${cliente_id}\nRevocato da: ${revocatoDa}`);
         res.json({ ok: true, token_revocato: result.rows[0].token });
     } catch (err) {
         console.error('[SUTURE] portale-cliente/revoca:', err.message);
@@ -12439,9 +12172,9 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
 
                     console.log(`[Calendly] Assegnati 200 punti ${lineaProdotto} al lead ${newLeadId}`);
 
-                    // Aggiorna notifica Telegram con info CRM
-                    const messaggioCRM = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✨ NUOVO LEAD CREATO NEL CRM\n🎯 200 punti ${lineaProdotto} assegnati\n📝 ${note || 'Nessuna nota'}`;
-                    await sendTelegram(messaggioCRM);
+                    // Notifica Telegram opportunità Calendly rimossa in Filone 3
+                    // (la funzione sendTelegram non era mai stata definita: bug latente).
+                    // Calendly invia già email all'host via il proprio canale nativo.
                 } else if (existingContact.rows.length > 0) {
                     // Email esiste già: aggiungi 200 punti per la linea prodotto rilevata
                     const contattoId = existingContact.rows[0].id;
@@ -12459,14 +12192,11 @@ app.post('/api/calendly/webhook', express.json(), async (req, res) => {
 
                     console.log(`[Calendly] Assegnati 200 punti ${lineaProdotto} al contatto esistente ${contattoId}`);
 
-                    // Notifica Telegram standard
-                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n🏙️ ${citta || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n✅ Contatto esistente nel CRM\n🎯 200 punti ${lineaProdotto} assegnati\n📝 ${note || 'Nessuna nota'}`;
-                    await sendTelegram(messaggio);
+                    // Notifica Telegram opportunità Calendly rimossa in Filone 3.
                 } else {
                     // Email non valida (N/A)
                     console.log('[Calendly] Email non valida, skip integrazione CRM');
-                    const messaggio = `🔔 NUOVA OPPORTUNITÀ\n\n👤 ${nomeCompleto}\n📧 ${email}\n📞 ${telefono || 'N/A'}\n📅 ${dataChiamata.toLocaleString('it-IT', { timeZone: 'Europe/Rome' })}\n\n⚠️ Email non valida, NON salvato nel CRM\n📝 ${note || 'Nessuna nota'}`;
-                    await sendTelegram(messaggio);
+                    // Notifica Telegram opportunità Calendly rimossa in Filone 3.
                 }
 
                 res.status(200).json({ success: true, id: opportunitaId });
@@ -13187,10 +12917,11 @@ app.delete('/api/shop/orders/:id', requireAdmin, async (req, res) => {
     const { id } = req.params;
     try {
         const r = await pool.query(
-            `UPDATE shop_orders SET is_deleted = TRUE WHERE id = $1 RETURNING id`,
+            `UPDATE shop_orders SET is_deleted = TRUE WHERE id = $1 RETURNING id, order_number`,
             [id]
         );
         if (r.rows.length === 0) return res.status(404).json({ error: 'Ordine non trovato' });
+        sendTelegramDeletionAlert(`🛒 *Ordine shop cancellato*\n\nID: ${r.rows[0].id}\nN. ordine: ${r.rows[0].order_number}`);
         res.json({ success: true });
     } catch (err) {
         console.error('[shop/orders delete] error:', err);
@@ -13215,7 +12946,7 @@ async function start() {
 ╚════════════════════════════════════════════════════════════╝
         `);
 
-        startTelegramPolling();
+        // Telegram polling rimosso in Filone 3 (era usato per task/voice intake).
 
         // Sync suture da Odoo: controlla ogni minuto, esegue alle 8:00 ora italiana
         setInterval(() => {

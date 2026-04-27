@@ -189,12 +189,18 @@ Apri `https://dashboard-cs-production.up.railway.app/cs` (senza chiave). Vedi so
 
 I task privati admin-admin non sono visibili in `/cs`.
 
-#### Telegram bot @Ossetouch_cs_bot
+#### Telegram (canale admin alert)
 
-- Riceve **notifica di completamento** quando un task viene marcato completato.
-- Permette di **creare task inviando messaggi di testo** al bot.
+A partire dal 2026-04-27 (Filone 3), Telegram è ridotto a **un solo uso: alert sul canale admin per cancellazioni/revoche critiche**. Non c'è più bot interattivo: il bot non risponde a messaggi, non crea task da testo o vocali, non invia notifiche di completamento task o report ready.
 
-La gestione dei vocali Telegram non è documentata come funzione operativa corrente: verificarla prima di usarla.
+Gli alert arrivano sul canale admin in caso di:
+- soglia CRM (>5 cancellazioni nel cestino in 10 minuti);
+- cancellazione proposta SUTURE;
+- revoca portale cliente SUTURE;
+- cancellazione ordine shop;
+- cancellazione fattura aggregata.
+
+Se Telegram non è configurato (token o chat ID assenti), gli alert sono silenziati ma le azioni operative procedono normalmente.
 
 ---
 
