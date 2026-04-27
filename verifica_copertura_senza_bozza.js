@@ -3,7 +3,7 @@ const https = require('https');
 // Endpoint per ottenere i dati raw dello stock
 const CATALOGO_URL = 'https://dashboard-cs-production.up.railway.app/api/suture/catalogo';
 const ORDINE_URL = 'https://dashboard-cs-production.up.railway.app/api/suture/ordine';
-const ADMIN_KEY = process.env.ADMIN_KEY || 'chiave-segreta-admin-2024';
+const ADMIN_KEY = process.env.ADMIN_KEY || '<ADMIN_KEY_STORICA_RIMOSSA>';
 
 function httpsGet(url) {
     return new Promise((resolve, reject) => {

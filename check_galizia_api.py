@@ -7,7 +7,7 @@ import json
 
 # Config
 DASHBOARD_URL = "https://dashboard-cs-production.up.railway.app"
-ADMIN_KEY = "chiave-segreta-admin-2024"
+ADMIN_KEY = "<ADMIN_KEY_STORICA_RIMOSSA>"
 GALIZIA_EMAIL = "cesaregalizia@gmail.com"
 
 def get_video_tracking(campagna=None):

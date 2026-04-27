@@ -6,7 +6,7 @@ import requests
 import json
 
 DASHBOARD_URL = "https://dashboard-cs-production.up.railway.app"
-ADMIN_KEY = "chiave-segreta-admin-2024"
+ADMIN_KEY = "<ADMIN_KEY_STORICA_RIMOSSA>"
 
 # 1. Recupera TUTTI gli iscritti (senza limite)
 resp1 = requests.get(

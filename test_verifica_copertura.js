@@ -1,7 +1,7 @@
 const https = require('https');
 
 const API_URL = 'https://dashboard-cs-production.up.railway.app/api/suture/verifica-copertura';
-const ADMIN_KEY = process.env.ADMIN_KEY || 'chiave-segreta-admin-2024';
+const ADMIN_KEY = process.env.ADMIN_KEY || '<ADMIN_KEY_STORICA_RIMOSSA>';
 
 console.log('Attendo 60 secondi per il deploy Railway...\n');
 
