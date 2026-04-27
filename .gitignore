@@ -2,3 +2,5 @@ node_modules/
 database.json
 temp_audio.ogg
 .env
+sync_daily.log
+*.pre-v2.md
