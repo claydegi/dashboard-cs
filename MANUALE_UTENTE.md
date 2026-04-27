@@ -189,18 +189,20 @@ Apri `https://dashboard-cs-production.up.railway.app/cs` (senza chiave). Vedi so
 
 I task privati admin-admin non sono visibili in `/cs`.
 
-#### Telegram (canale admin alert)
+#### Telegram (canale admin alert — non più bot operativo CS)
 
-A partire dal 2026-04-27 (Filone 3), Telegram è ridotto a **un solo uso: alert sul canale admin per cancellazioni/revoche critiche**. Non c'è più bot interattivo: il bot non risponde a messaggi, non crea task da testo o vocali, non invia notifiche di completamento task o report ready.
+A partire dal 2026-04-27 (Filone 3), **Telegram non è più un bot operativo per il Customer Service**. Il bot interattivo è stato rimosso completamente: non risponde più a messaggi di testo, non riceve né trascrive vocali, non crea task, non manda notifiche di completamento task o report pronti.
 
-Gli alert arrivano sul canale admin in caso di:
+L'unico uso attuale di Telegram è un **canale admin di alert per cancellazioni/revoche critiche**:
 - soglia CRM (>5 cancellazioni nel cestino in 10 minuti);
 - cancellazione proposta SUTURE;
 - revoca portale cliente SUTURE;
 - cancellazione ordine shop;
 - cancellazione fattura aggregata.
 
-Se Telegram non è configurato (token o chat ID assenti), gli alert sono silenziati ma le azioni operative procedono normalmente.
+Gli alert partono **solo se** Railway è configurato con `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`. Se le due variabili non sono valorizzate su Railway, **gli alert Telegram restano spenti** ma tutte le azioni operative della Dashboard procedono normalmente (la cancellazione/revoca avviene comunque, semplicemente senza notifica).
+
+Per il Customer Service significa: i task e i loro stati si gestiscono solo dalla pagina `/cs`. Niente più creazione task da Telegram.
 
 ---
 

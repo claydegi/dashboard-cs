@@ -480,25 +480,34 @@ Anthropic, Freelancer, Odoo).
 Vedi §6: ogni modifica dello schema su database con dati di produzione
 richiede autorizzazione esplicita, review, backup, verifica post-deploy.
 
-### Telegram — riduzione ad alert cancellazioni (Filone 3)
+### Telegram — riduzione ad alert cancellazioni (Filone 3, completato)
 
-Telegram è stato ridotto a un solo uso: **alert al canale admin per cancellazioni/revoche critiche**. Sono stati rimossi:
+Telegram è stato ridotto a un solo uso: **alert al canale admin per cancellazioni/revoche critiche**. Stato confermato:
 
-- Bot interattivo (polling, creazione task da testo, trascrizione vocali via OpenAI Whisper).
-- Notifiche task completion, report ready (Kim + tutti), forum (admin + relatore + reply), Calendly opportunità (era un bug latente).
-- Allarme suture sync error (sostituito da `console.error`).
-- Helper `sendTelegramNotification`, `sendTelegramReply`, `startTelegramPolling`, `handleTelegramMessage`, `handleVoiceMessage`, `transcribeAndCreateTask`.
-- Variabili `TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE`, `OPENAI_API_KEY`.
-- Tutti i fallback hardcoded di `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
+- ✅ **Bot interattivo Telegram rimosso**: niente più polling, creazione task da testo, gestione messaggi vocali, trascrizione OpenAI Whisper.
+- ✅ Rimosse le notifiche non-cancellazione: task completion, report ready (Kim + tutti), forum (admin + relatore + reply), Calendly opportunità (bug latente: la funzione `sendTelegram` non era mai stata definita), allarme suture sync error (sostituito da `console.error`).
+- ✅ Rimossi gli helper `sendTelegramNotification`, `sendTelegramReply`, `startTelegramPolling`, `handleTelegramMessage`, `handleVoiceMessage`, `transcribeAndCreateTask`.
+- ✅ Rimosse le variabili `TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE`, `OPENAI_API_KEY` da `CONFIG`.
+- ✅ Rimossi i fallback hardcoded di `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID`.
 
-Resta una sola helper, `sendTelegramDeletionAlert(text)`, che invia al canale admin solo per eventi di cancellazione/revoca:
+Resta **una sola helper**, `sendTelegramDeletionAlert(text)`, che invia al canale admin solo per eventi di cancellazione/revoca:
 - Threshold CRM cestino (>5 cancellazioni in 10 min) — da `logAndTrash`.
 - `DELETE /api/proposte/:id` (SUTURE).
 - `POST /api/portali/:token/revoca` e `POST /api/suture/portale-cliente/:cliente_id/revoca`.
 - `DELETE /api/shop/orders/:id`.
 - `DELETE /api/fatture/:id`.
 
-Se `TELEGRAM_BOT_TOKEN` o `TELEGRAM_CHAT_ID` non sono configurati, l'alert è silenziato e l'azione principale procede normalmente.
+**Prerequisiti per gli alert**: gli alert Telegram partono **solo se** Railway Variables contiene **entrambe** `TELEGRAM_BOT_TOKEN` e `TELEGRAM_CHAT_ID` valorizzate. Se anche solo una delle due è assente o vuota, la helper esegue un no-op silenzioso e l'azione principale (cancellazione/revoca) procede normalmente — Telegram resta semplicemente spento.
+
+#### Azione manuale residua — rotazione token Telegram
+
+Anche se i fallback hardcoded sono stati rimossi dal sorgente attuale, il vecchio token Telegram **resta nello storico Git** dei commit precedenti al Filone 3. Per chiudere completamente il gap di sicurezza:
+
+- **Aprire `@BotFather` su Telegram**, selezionare il bot della Dashboard CS, generare un nuovo token (`/revoke` + `/token`) — il vecchio token diventa così inutilizzabile a prescindere da chi lo abbia visto nello storico Git.
+- **Aggiornare `TELEGRAM_BOT_TOKEN` su Railway Variables** con il nuovo valore.
+- **Opzionale**: rimuovere anche `TELEGRAM_CHAT_ID_KIM`, `TELEGRAM_CHAT_ID_RELATORE`, `OPENAI_API_KEY` da Railway Variables (non più referenziate dal codice).
+
+Questa azione è **manuale** (richiede accesso a BotFather + Railway) e non è automatizzabile dal repo.
 
 ### Gap di sicurezza noti — da risolvere
 
