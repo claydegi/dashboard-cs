@@ -1307,6 +1307,21 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_deleted ON shop_orders(is_deleted)`);
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS financing_data JSONB`);
 
+        // ===== USA shop extensions (Sprint 3 — 04/05/2026) =====
+        // Add columns to support OSSEOTOUCH LLC US orders + Customer Service quote requests
+        // alongside existing IT orders, in the same table for unified admin list.
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS market TEXT NOT NULL DEFAULT 'IT'`);     // 'IT' | 'US'
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS flow TEXT`);                              // 'buy_now' | 'customer_service' (null for IT)
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS currency TEXT NOT NULL DEFAULT 'EUR'`);   // 'EUR' | 'USD'
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS sales_tax NUMERIC(10,2) DEFAULT 0`);      // US sales tax (distinct from EU vat_amount)
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS ship_state TEXT`);                        // US state code (for sales tax AL only)
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS ship_country TEXT`);                      // ISO country code (US, IT, etc.)
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_id TEXT`);             // QuickBooks invoice ID after team review
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_url TEXT`);            // QuickBooks "Pay Now" link sent to customer
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS practice_name TEXT`);                     // dental practice/clinic name (US flow)
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_market ON shop_orders(market)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_flow ON shop_orders(flow)`);
+
         await client.query(`
             CREATE TABLE IF NOT EXISTS shop_order_items (
                 id SERIAL PRIMARY KEY,
@@ -12771,8 +12786,49 @@ app.post('/api/shop/stripe-webhook', async (req, res) => {
                     }
                 };
 
-                sendMailgunEmail(order.buyer_email, `Pagamento ricevuto ${orderNumber} — OSSEOTOUCH`, buildShopCustomerEmailHtml(orderForEmail), 'shop-order-paid').catch(e => console.error('mail:', e));
-                sendMailgunEmail('contact@osseotouch.com', `[PAGATO] ${orderNumber} — ${order.buyer_company}`, buildShopInternalEmailHtml(orderForEmail), 'shop-order-paid-internal').catch(e => console.error('mail:', e));
+                if (order.market === 'US') {
+                    // US flavor — EN email, customer shape uses full_name + state/zip
+                    const usOrderForEmail = {
+                        orderNumber: order.order_number,
+                        customer: {
+                            full_name: order.buyer_contact_name,
+                            email: order.buyer_email,
+                            phone: order.buyer_phone,
+                            practice: order.practice_name
+                        },
+                        shipping_address: {
+                            street: order.ship_street, city: order.ship_city,
+                            state: order.ship_state, zip: order.ship_zip
+                        },
+                        notes: order.customer_notes || '',
+                        items: itemsRes.rows.map(it => ({
+                            name: it.product_name, qty: it.qty, price: Number(it.unit_price),
+                            id: it.product_code, type: it.product_type
+                        })),
+                        totals: {
+                            subtotal: Number(order.subtotal_net),
+                            shipping: Number(order.shipping || 0),
+                            sales_tax: Number(order.sales_tax || 0),
+                            total: Number(order.total_gross)
+                        }
+                    };
+                    sendMailgunEmail(
+                        order.buyer_email,
+                        `Payment received ${orderNumber} — OSSEOTOUCH USA`,
+                        buildShopUsPaymentReceivedEmailHtml(usOrderForEmail),
+                        'shop-us-order-paid'
+                    ).catch(e => console.error('[shop-us paid mail customer]:', e));
+                    sendMailgunEmail(
+                        'contact@osseotouch.com',
+                        `[US PAID] ${orderNumber} — ${order.practice_name || order.buyer_contact_name}`,
+                        buildShopUsInternalEmailHtml(usOrderForEmail),
+                        'shop-us-order-paid-internal'
+                    ).catch(e => console.error('[shop-us paid mail internal]:', e));
+                } else {
+                    // IT flavor (default) — Italian email
+                    sendMailgunEmail(order.buyer_email, `Pagamento ricevuto ${orderNumber} — OSSEOTOUCH`, buildShopCustomerEmailHtml(orderForEmail), 'shop-order-paid').catch(e => console.error('mail:', e));
+                    sendMailgunEmail('contact@osseotouch.com', `[PAGATO] ${orderNumber} — ${order.buyer_company}`, buildShopInternalEmailHtml(orderForEmail), 'shop-order-paid-internal').catch(e => console.error('mail:', e));
+                }
             }
         }
 
@@ -12847,16 +12903,19 @@ app.get('/api/shop/orders', requireAdmin, async (req, res) => {
         } else if (archive === 'true') {
             conds.push(`status IN ('confirmed', 'cancelled')`);
         } else {
-            // Default: ordini attivi (non ancora chiusi)
-            conds.push(`status IN ('pending', 'pending_payment', 'paid', 'pending_financing')`);
+            // Default: ordini attivi (IT + US, include quote_pending e quote_invoiced US)
+            conds.push(`status IN ('pending', 'pending_payment', 'paid', 'pending_financing', 'quote_pending', 'quote_invoiced')`);
         }
         const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
 
         const ordersRes = await pool.query(`
             SELECT id, order_number, status, payment_method,
                    buyer_company, buyer_contact_name, buyer_email, buyer_phone,
-                   buyer_vat,
-                   total_gross, subtotal_net, shipping, vat_amount,
+                   buyer_vat, practice_name,
+                   ship_street, ship_zip, ship_city, ship_prov, ship_state, ship_country,
+                   total_gross, subtotal_net, shipping, vat_amount, sales_tax,
+                   market, flow, currency,
+                   quickbooks_invoice_id, quickbooks_invoice_url,
                    customer_notes, internal_notes,
                    is_test, is_deleted,
                    created_at, confirmed_at, cancelled_at
@@ -12928,6 +12987,368 @@ app.delete('/api/shop/orders/:id', requireAdmin, async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+// ==================== SHOP USA — Customer Service quote requests ====================
+// Sprint 3 (04/05/2026) — endpoint POST /api/shop-us/quote-request
+//
+// Receives form submissions from /en/shop/checkout/?flow=customer_service.
+// Saves the order in shop_orders with market='US', flow='customer_service',
+// currency='USD', status='quote_pending'. Sends 2 emails (customer confirmation
+// + internal notification to OSSEOTOUCH LLC team with line-items copy-paste-ready
+// for QuickBooks invoice creation).
+//
+// IMPORTANT: prices for US flow are indicative — final price is confirmed in the
+// QuickBooks invoice (no payment is collected at this step).
+
+// Helper — format USD as "$1,234"
+function shopFmtUsd(n) {
+    return '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
+}
+
+// Helper — render customer confirmation email (EN)
+function buildShopUsCustomerEmailHtml(order) {
+    const itemsHtml = (order.items || []).map(i => {
+        return `<tr><td style="padding:8px;border-bottom:1px solid #eee">${i.qty}× ${i.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${shopFmtUsd((Number(i.price) || 0) * (Number(i.qty) || 1))}</td></tr>`;
+    }).join('');
+    return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:620px;margin:0 auto;padding:24px">
+  <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:28px;color:#0a1f2e;margin:0 0 8px">Quote request received</h2>
+  <p style="color:#5a6878;font-size:15px;line-height:1.5;margin:0 0 24px">Thank you, <strong>${order.customer?.full_name || 'Customer'}</strong>. Our OSSEOTOUCH team will review your configuration and reply within <strong>1 business day</strong>.</p>
+  <div style="background:#f0eae0;padding:16px;border-left:3px solid #1a9e8f;font-size:14px;color:#0d1822;margin-bottom:24px">
+    <strong>Reference:</strong> ${order.orderNumber}<br>
+    <strong>Status:</strong> Quote pending review.<br>
+    <strong>What happens next:</strong> We confirm shipping and final price, then email you a QuickBooks invoice with a Pay Now link. <strong>No payment is collected until you approve the invoice.</strong>
+  </div>
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:20px;color:#0a1f2e;margin:24px 0 8px">Your configuration</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px">
+    ${itemsHtml}
+    <tr><td style="padding:12px 8px;font-weight:600;border-top:2px solid #0a1f2e">Indicative subtotal</td><td style="padding:12px 8px;text-align:right;font-weight:600;border-top:2px solid #0a1f2e;color:#0a1f2e">${shopFmtUsd(order.totals?.subtotal || 0)}</td></tr>
+  </table>
+  <p style="font-size:13px;color:#5a6878;line-height:1.5">Final price including shipping and any setup fee will be confirmed in the invoice.</p>
+  <p style="font-size:13px;color:#5a6878;line-height:1.5;margin-top:24px">Need to reach us? Email <a href="mailto:contact@osseotouch.com" style="color:#1a9e8f">contact@osseotouch.com</a> or message us on WhatsApp.</p>
+  <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
+  <p style="font-size:11px;color:#5a6878">OSSEOTOUCH LLC · Fairhope, AL · USA<br>Free U.S. shipping · 30-day returns on unopened items · 24-month limited warranty</p>
+</div>`;
+}
+
+// Helper — render internal team email (EN) with line-items copy-paste-ready for QuickBooks
+function buildShopUsInternalEmailHtml(order) {
+    const itemsRows = (order.items || []).map(i => {
+        const lineTotal = (Number(i.price) || 0) * (Number(i.qty) || 1);
+        return `<tr>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee">${i.qty}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;font-family:monospace">${i.id || ''}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee">${i.name}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">${shopFmtUsd(i.price || 0)}</td>
+          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${shopFmtUsd(lineTotal)}</td>
+        </tr>`;
+    }).join('');
+    const c = order.customer || {};
+    const ship = order.shipping_address || {};
+    return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:760px;margin:0 auto;padding:20px">
+  <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:24px;color:#0a1f2e;margin:0 0 8px">[US QUOTE] ${order.orderNumber} — ${c.practice || c.full_name || ''}</h2>
+  <p style="color:#5a6878;font-size:14px;margin:0 0 20px">A new quote request was submitted via /en/shop/checkout/. Review below, then create a QuickBooks invoice and send the Pay Now link.</p>
+
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Customer</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;background:#faf7f2;border:1px solid #ddd">
+    <tr><td style="padding:6px 10px;font-weight:600;width:140px">Name</td><td style="padding:6px 10px">${c.full_name || ''}</td></tr>
+    <tr><td style="padding:6px 10px;font-weight:600">Email</td><td style="padding:6px 10px"><a href="mailto:${c.email || ''}" style="color:#1a9e8f">${c.email || ''}</a></td></tr>
+    <tr><td style="padding:6px 10px;font-weight:600">Phone</td><td style="padding:6px 10px">${c.phone || ''}</td></tr>
+    <tr><td style="padding:6px 10px;font-weight:600">Practice</td><td style="padding:6px 10px">${c.practice || '—'}</td></tr>
+  </table>
+
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Shipping address</h3>
+  <p style="font-size:13px;line-height:1.5;background:#faf7f2;padding:10px 14px;border:1px solid #ddd;margin:0 0 16px">
+    ${ship.street || ''}<br>
+    ${ship.city || ''}, ${ship.state || ''} ${ship.zip || ''}<br>
+    United States
+  </p>
+
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Line items <span style="font-size:12px;color:#5a6878;font-style:italic">(copy-paste-ready for QuickBooks)</span></h3>
+  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;background:#fff;border:1px solid #ddd">
+    <thead style="background:#0a1f2e;color:#faf7f2">
+      <tr>
+        <th style="padding:8px 10px;text-align:left">Qty</th>
+        <th style="padding:8px 10px;text-align:left">SKU/ID</th>
+        <th style="padding:8px 10px;text-align:left">Product</th>
+        <th style="padding:8px 10px;text-align:right">Unit price</th>
+        <th style="padding:8px 10px;text-align:right">Line total</th>
+      </tr>
+    </thead>
+    <tbody>${itemsRows}</tbody>
+    <tfoot>
+      <tr><td colspan="4" style="padding:10px;text-align:right;font-weight:600;border-top:2px solid #0a1f2e">Indicative subtotal</td><td style="padding:10px;text-align:right;font-weight:700;border-top:2px solid #0a1f2e;color:#0a1f2e">${shopFmtUsd(order.totals?.subtotal || 0)}</td></tr>
+    </tfoot>
+  </table>
+
+  ${order.notes ? `<h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Customer notes</h3><p style="font-size:13px;background:#fdf6e3;padding:10px 14px;border-left:3px solid #c9a25c;margin:0 0 16px">${order.notes}</p>` : ''}
+
+  <p style="font-size:13px;color:#5a6878;margin-top:20px">Reference ID: <strong>${order.orderNumber}</strong> · Submitted at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT<br>Admin: <a href="https://dashboard-cs.up.railway.app/admin#shop" style="color:#1a9e8f">view in Dashboard</a></p>
+</div>`;
+}
+
+// POST /api/shop-us/quote-request
+app.post('/api/shop-us/quote-request', async (req, res) => {
+    const { customer, shipping_address, items, notes } = req.body || {};
+
+    // Validation
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Empty cart' });
+    }
+    if (!customer || !customer.full_name || !customer.email || !customer.phone) {
+        return res.status(400).json({ error: 'Missing customer information (name, email, phone required)' });
+    }
+    if (!shipping_address || !shipping_address.street || !shipping_address.city || !shipping_address.state || !shipping_address.zip) {
+        return res.status(400).json({ error: 'Incomplete shipping address (street, city, state, zip required)' });
+    }
+
+    // Compute indicative subtotal in USD (no tax, no shipping at this stage)
+    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+    const totals = { subtotal, shipping: 0, sales_tax: 0, total: subtotal };
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const orderNumber = await generateShopOrderNumber(client);
+        const status = 'quote_pending';
+
+        const ins = await client.query(
+            `INSERT INTO shop_orders (
+                order_number, status, payment_method,
+                buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
+                ship_street, ship_zip, ship_city, ship_state, ship_country,
+                subtotal_net, shipping, vat_amount, sales_tax, total_gross,
+                customer_notes, market, flow, currency, is_test
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+            RETURNING id`,
+            [
+                orderNumber, status, 'quickbooks_invoice',
+                customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
+                shipping_address.street, shipping_address.zip, shipping_address.city, (shipping_address.state || '').toUpperCase(), 'US',
+                subtotal, 0, 0, 0, subtotal,
+                notes || null, 'US', 'customer_service', 'USD', process.env.NODE_ENV !== 'production'
+            ]
+        );
+        const orderId = ins.rows[0].id;
+
+        for (const item of items) {
+            await client.query(
+                `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, 0, false]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        const orderForEmail = { orderNumber, customer, shipping_address, notes: notes || '', items, totals };
+
+        // Async emails — don't block the response
+        sendMailgunEmail(
+            customer.email,
+            `Quote request received ${orderNumber} — OSSEOTOUCH USA`,
+            buildShopUsCustomerEmailHtml(orderForEmail),
+            'shop-us-quote-customer'
+        ).catch(e => console.error('[shop-us quote] customer mail error:', e));
+
+        sendMailgunEmail(
+            'contact@osseotouch.com',
+            `[US QUOTE] ${orderNumber} — ${customer.practice || customer.full_name}`,
+            buildShopUsInternalEmailHtml(orderForEmail),
+            'shop-us-quote-internal'
+        ).catch(e => console.error('[shop-us quote] internal mail error:', e));
+
+        return res.json({
+            success: true,
+            orderNumber,
+            redirectUrl: `/en/shop/quote-received/?requestId=${orderNumber}`
+        });
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('[shop-us quote-request] error:', err);
+        res.status(500).json({ error: 'Could not save quote request: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
+
+// ==================== SHOP USA — Buy Now (Stripe Checkout Session) ====================
+// Sprint 4 (04/05/2026) — endpoint POST /api/shop-us/checkout
+//
+// Receives form submissions from /en/shop/checkout/?flow=buy_now (default flow
+// for cart without Magnetic Mallet, or chosen explicitly when cart contains MM).
+// Creates a Stripe Checkout Session in USD, saves the order in shop_orders with
+// market='US', flow='buy_now', currency='USD', status='pending_payment'.
+// The existing webhook /api/shop/stripe-webhook marks the order 'paid' on
+// checkout.session.completed and sends the EN confirmation email (market-aware).
+//
+// Sales tax: 4% on the subtotal when ship_state === 'AL' (Alabama nexus only).
+// Out-of-state buyers pay no sales tax.
+// Free nationwide U.S. shipping.
+
+// Helper — render payment received email (EN, post-Stripe-success)
+function buildShopUsPaymentReceivedEmailHtml(order) {
+    const itemsHtml = (order.items || []).map(i => {
+        return `<tr><td style="padding:8px;border-bottom:1px solid #eee">${i.qty}× ${i.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${shopFmtUsd((Number(i.price) || 0) * (Number(i.qty) || 1))}</td></tr>`;
+    }).join('');
+    const ship = order.shipping_address || {};
+    const totals = order.totals || {};
+    const taxRow = (Number(totals.sales_tax) || 0) > 0
+        ? `<tr><td style="padding:6px 8px;color:#5a6878">Sales tax (Alabama 4%)</td><td style="padding:6px 8px;text-align:right">${shopFmtUsd(totals.sales_tax)}</td></tr>`
+        : '';
+    return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:620px;margin:0 auto;padding:24px">
+  <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:28px;color:#0a1f2e;margin:0 0 8px">Payment received</h2>
+  <p style="color:#5a6878;font-size:15px;line-height:1.5;margin:0 0 24px">Thank you, <strong>${order.customer?.full_name || 'Customer'}</strong>. Your order has been received and the payment has cleared.</p>
+  <div style="background:#f0eae0;padding:16px;border-left:3px solid #1a9e8f;font-size:14px;color:#0d1822;margin-bottom:24px">
+    <strong>Order number:</strong> ${order.orderNumber}<br>
+    <strong>Status:</strong> Paid · processing for shipment.<br>
+    <strong>Delivery:</strong> 1–2 business days · Free U.S. shipping.
+  </div>
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:20px;color:#0a1f2e;margin:24px 0 8px">Order summary</h3>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:8px">${itemsHtml}</table>
+  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;border-top:1px solid #ddd">
+    <tr><td style="padding:6px 8px;color:#5a6878">Subtotal</td><td style="padding:6px 8px;text-align:right">${shopFmtUsd(totals.subtotal || 0)}</td></tr>
+    <tr><td style="padding:6px 8px;color:#5a6878">Shipping</td><td style="padding:6px 8px;text-align:right">Free</td></tr>
+    ${taxRow}
+    <tr><td style="padding:10px 8px;font-weight:700;border-top:2px solid #0a1f2e;font-size:16px">Total paid</td><td style="padding:10px 8px;text-align:right;font-weight:700;border-top:2px solid #0a1f2e;color:#0a1f2e;font-size:16px">${shopFmtUsd(totals.total || 0)}</td></tr>
+  </table>
+  <h3 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:18px;color:#0a1f2e;margin:24px 0 8px">Shipping address</h3>
+  <p style="font-size:13px;line-height:1.5;background:#faf7f2;padding:10px 14px;border:1px solid #ddd;margin:0 0 16px">
+    ${ship.street || ''}<br>
+    ${ship.city || ''}, ${ship.state || ''} ${ship.zip || ''}<br>
+    United States
+  </p>
+  <p style="font-size:13px;color:#5a6878;line-height:1.5">Need help? Email <a href="mailto:contact@osseotouch.com" style="color:#1a9e8f">contact@osseotouch.com</a> or message us on WhatsApp.</p>
+  <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
+  <p style="font-size:11px;color:#5a6878">OSSEOTOUCH LLC · Fairhope, AL · USA<br>30-day returns on unopened items · 24-month limited warranty</p>
+</div>`;
+}
+
+// POST /api/shop-us/checkout — Stripe Checkout Session in USD
+app.post('/api/shop-us/checkout', async (req, res) => {
+    const { customer, shipping_address, items, notes } = req.body || {};
+
+    // Validation
+    if (!items || !Array.isArray(items) || items.length === 0) {
+        return res.status(400).json({ error: 'Empty cart' });
+    }
+    if (!customer || !customer.full_name || !customer.email || !customer.phone) {
+        return res.status(400).json({ error: 'Missing customer information (name, email, phone required)' });
+    }
+    if (!shipping_address || !shipping_address.street || !shipping_address.city || !shipping_address.state || !shipping_address.zip) {
+        return res.status(400).json({ error: 'Incomplete shipping address (street, city, state, zip required)' });
+    }
+    if (!stripe) {
+        return res.status(503).json({ error: 'Stripe not configured on server' });
+    }
+
+    // Compute totals (USD; sales tax 4% only if Alabama; free U.S. shipping)
+    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
+    const stateUpper = (shipping_address.state || '').toUpperCase();
+    const salesTax = stateUpper === 'AL' ? Math.round(subtotal * 0.04 * 100) / 100 : 0;
+    const total = Math.round((subtotal + salesTax) * 100) / 100;
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const orderNumber = await generateShopOrderNumber(client);
+
+        const ins = await client.query(
+            `INSERT INTO shop_orders (
+                order_number, status, payment_method,
+                buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
+                ship_street, ship_zip, ship_city, ship_state, ship_country,
+                subtotal_net, shipping, vat_amount, sales_tax, total_gross,
+                customer_notes, market, flow, currency, is_test
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+            RETURNING id`,
+            [
+                orderNumber, 'pending_payment', 'stripe_card',
+                customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
+                shipping_address.street, shipping_address.zip, shipping_address.city, stateUpper, 'US',
+                subtotal, 0, 0, salesTax, total,
+                notes || null, 'US', 'buy_now', 'USD', process.env.NODE_ENV !== 'production'
+            ]
+        );
+        const orderId = ins.rows[0].id;
+
+        for (const item of items) {
+            await client.query(
+                `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
+                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
+                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, 0, Number(item.price) === 0]
+            );
+        }
+
+        await client.query('COMMIT');
+
+        // Build Stripe line_items in USD cents (skip free items — Stripe rejects $0)
+        const lineItems = items
+            .filter(it => Number(it.price) > 0)
+            .map(it => ({
+                price_data: {
+                    currency: 'usd',
+                    product_data: { name: it.name },
+                    unit_amount: Math.round(Number(it.price) * 100)
+                },
+                quantity: Number(it.qty)
+            }));
+
+        // Sales tax as separate line item (only if Alabama)
+        if (salesTax > 0) {
+            lineItems.push({
+                price_data: {
+                    currency: 'usd',
+                    product_data: { name: 'Sales tax (Alabama 4%)' },
+                    unit_amount: Math.round(salesTax * 100)
+                },
+                quantity: 1
+            });
+        }
+
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            payment_method_types: ['card'],
+            line_items: lineItems,
+            customer_email: customer.email,
+            success_url: `${CONFIG.SHOP_FRONTEND_URL}/en/shop/order-confirmed/?id=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${CONFIG.SHOP_FRONTEND_URL}/en/shop/checkout/?canceled=1`,
+            metadata: {
+                order_number: orderNumber,
+                order_id: String(orderId),
+                market: 'US',
+                buyer_name: customer.full_name || '',
+                practice: customer.practice || ''
+            },
+            locale: 'en'
+        });
+
+        // Save Stripe session_id on the order
+        const innerClient = await pool.connect();
+        try {
+            await innerClient.query(
+                `UPDATE shop_orders SET stripe_session_id = $1 WHERE id = $2`,
+                [session.id, orderId]
+            );
+        } finally {
+            innerClient.release();
+        }
+
+        return res.json({
+            success: true,
+            orderNumber,
+            sessionUrl: session.url
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK').catch(() => {});
+        console.error('[shop-us/checkout] error:', err);
+        return res.status(500).json({ error: 'Could not create checkout session: ' + err.message });
+    } finally {
+        client.release();
+    }
+});
+
 
 // ==================== AVVIO SERVER ====================
 
