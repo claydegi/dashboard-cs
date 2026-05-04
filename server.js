@@ -13193,9 +13193,6 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
     }).join('');
     const ship = order.shipping_address || {};
     const totals = order.totals || {};
-    const taxRow = (Number(totals.sales_tax) || 0) > 0
-        ? `<tr><td style="padding:6px 8px;color:#5a6878">Sales tax (Alabama 4%)</td><td style="padding:6px 8px;text-align:right">${shopFmtUsd(totals.sales_tax)}</td></tr>`
-        : '';
     return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:620px;margin:0 auto;padding:24px">
   <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:28px;color:#0a1f2e;margin:0 0 8px">Payment received</h2>
   <p style="color:#5a6878;font-size:15px;line-height:1.5;margin:0 0 24px">Thank you, <strong>${order.customer?.full_name || 'Customer'}</strong>. Your order has been received and the payment has cleared.</p>
@@ -13209,7 +13206,6 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
   <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px;border-top:1px solid #ddd">
     <tr><td style="padding:6px 8px;color:#5a6878">Subtotal</td><td style="padding:6px 8px;text-align:right">${shopFmtUsd(totals.subtotal || 0)}</td></tr>
     <tr><td style="padding:6px 8px;color:#5a6878">Shipping</td><td style="padding:6px 8px;text-align:right">Free</td></tr>
-    ${taxRow}
     <tr><td style="padding:10px 8px;font-weight:700;border-top:2px solid #0a1f2e;font-size:16px">Total paid</td><td style="padding:10px 8px;text-align:right;font-weight:700;border-top:2px solid #0a1f2e;color:#0a1f2e;font-size:16px">${shopFmtUsd(totals.total || 0)}</td></tr>
   </table>
   <h3 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:18px;color:#0a1f2e;margin:24px 0 8px">Shipping address</h3>
@@ -13242,11 +13238,12 @@ app.post('/api/shop-us/checkout', async (req, res) => {
         return res.status(503).json({ error: 'Stripe not configured on server' });
     }
 
-    // Compute totals (USD; sales tax 4% only if Alabama; free U.S. shipping)
+    // Compute totals (USD; free U.S. shipping; sales tax handled manually by
+    // Customer Service post-checkout, no automatic calculation)
     const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
     const stateUpper = (shipping_address.state || '').toUpperCase();
-    const salesTax = stateUpper === 'AL' ? Math.round(subtotal * 0.04 * 100) / 100 : 0;
-    const total = Math.round((subtotal + salesTax) * 100) / 100;
+    const salesTax = 0;
+    const total = subtotal;
 
     const client = await pool.connect();
     try {
@@ -13294,17 +13291,7 @@ app.post('/api/shop-us/checkout', async (req, res) => {
                 quantity: Number(it.qty)
             }));
 
-        // Sales tax as separate line item (only if Alabama)
-        if (salesTax > 0) {
-            lineItems.push({
-                price_data: {
-                    currency: 'usd',
-                    product_data: { name: 'Sales tax (Alabama 4%)' },
-                    unit_amount: Math.round(salesTax * 100)
-                },
-                quantity: 1
-            });
-        }
+        // Sales tax: handled manually by Customer Service post-checkout (no automatic line item)
 
         const session = await stripe.checkout.sessions.create({
             mode: 'payment',
