@@ -252,6 +252,7 @@
             const attivi = r.attivi || [];
             const dormienti = r.dormienti || [];
             const totale = attivi.length + dormienti.length;
+            const isMyOss = UNIVERSO === 'italiani-2026';
 
             const sTot = document.getElementById('stat-total');
             const sR1 = document.getElementById('stat-r1');
@@ -261,27 +262,44 @@
             if (sR2) { sR2.textContent = dormienti.length; }
             const lblR1 = sR1 && sR1.parentElement ? sR1.parentElement.querySelector('.lbl') : null;
             const lblR2 = sR2 && sR2.parentElement ? sR2.parentElement.querySelector('.lbl') : null;
-            if (lblR1) lblR1.textContent = 'Attivi 2026 (Odoo)';
-            if (lblR2) lblR2.textContent = 'Dormienti (CRM)';
+            if (lblR1) lblR1.textContent = isMyOss ? 'Attivi suture 2026' : 'Attivi 2026 (Odoo)';
+            if (lblR2) lblR2.textContent = isMyOss ? 'Senza suture 2026' : 'Dormienti (CRM)';
 
             if (!totale) {
-                container.innerHTML = '<p class="empty">Nessun cliente suture nel portafoglio.</p>';
+                container.innerHTML = '<p class="empty">Nessun cliente nel portafoglio.</p>';
                 return;
             }
 
             const sezioni = [];
-            sezioni.push(renderSezione(
-                'Clienti attivi 2026',
-                'Vendite suture nel 2026 da Odoo. Assegnazione certa via x_studio_agente.',
-                attivi,
-                true
-            ));
-            sezioni.push(renderSezione(
-                'Clienti dormienti',
-                'Pre-2026 o senza acquisti suture 2026. Assegnazione da regione (verifica manuale consigliata).',
-                dormienti,
-                false
-            ));
+            if (isMyOss) {
+                // Card MyOsseotouch: tutti i partner sono italiani Odoo 2026, divisi per attivo_suture
+                sezioni.push(renderSezione(
+                    'Clienti italiani con suture 2026',
+                    'Hanno fatturato suture (categoria Odoo 38) nel 2026.',
+                    attivi,
+                    true
+                ));
+                sezioni.push(renderSezione(
+                    'Clienti italiani senza suture 2026',
+                    'Hanno fatturato altri prodotti nel 2026 ma non suture. Potenziali nuovi acquirenti.',
+                    dormienti,
+                    true // anche questi sono partner Odoo: stesso rendering "attivo"
+                ));
+            } else {
+                // Vista suture standard
+                sezioni.push(renderSezione(
+                    'Clienti attivi 2026',
+                    'Vendite suture nel 2026 da Odoo. Assegnazione certa via x_studio_agente.',
+                    attivi,
+                    true
+                ));
+                sezioni.push(renderSezione(
+                    'Clienti dormienti',
+                    'Pre-2026 o senza acquisti suture 2026. Assegnazione da regione (verifica manuale consigliata).',
+                    dormienti,
+                    false
+                ));
+            }
             container.innerHTML = sezioni.join('');
         } catch (err) {
             container.innerHTML = `<p class="empty" style="color:#b91c1c">Errore caricamento: ${esc(err.message)}</p>`;

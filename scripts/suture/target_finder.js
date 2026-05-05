@@ -642,19 +642,74 @@ async function getActiveItalianClients2026(pool, odooClient) {
 }
 
 /**
+ * Restituisce un Set dei partner_id Odoo che hanno almeno una FATTURA 2026
+ * (out_invoice posted, OSNRGY) con almeno una riga prodotto categ_id=38 (suture).
+ * Usato per dividere l'universo italiani-2026 in "attivi suture" vs "dormienti suture".
+ */
+async function getSutureBuyerIds2026FromInvoices(odooClient) {
+    const uid = await odooClient.authenticate();
+    const prodIds = await odooClient.execute(uid, 'product.product', 'search', [[['categ_id', '=', 38]]], {});
+    if (!prodIds.length) return new Set();
+    const invoiceIds = await odooClient.execute(uid, 'account.move', 'search',
+        [[['move_type', '=', 'out_invoice'],
+          ['state', '=', 'posted'],
+          ['invoice_date', '>=', '2026-01-01'],
+          ['company_id', '=', 1]]], {});
+    if (!invoiceIds.length) return new Set();
+    const invoices = await odooClient.execute(uid, 'account.move', 'read', [invoiceIds],
+        { fields: ['partner_id', 'invoice_line_ids'] });
+    const partnerByMove = new Map();
+    const allLineIds = [];
+    for (const inv of invoices) {
+        if (inv.partner_id && Array.isArray(inv.partner_id)) {
+            partnerByMove.set(inv.id, inv.partner_id[0]);
+        }
+        if (Array.isArray(inv.invoice_line_ids)) allLineIds.push(...inv.invoice_line_ids);
+    }
+    if (!allLineIds.length) return new Set();
+    const sutureProductSet = new Set(prodIds);
+    const buyerSet = new Set();
+    for (let i = 0; i < allLineIds.length; i += 500) {
+        const batch = allLineIds.slice(i, i + 500);
+        const lines = await odooClient.execute(uid, 'account.move.line', 'read', [batch],
+            { fields: ['move_id', 'product_id'] });
+        for (const line of lines) {
+            const pid = (line.product_id && Array.isArray(line.product_id)) ? line.product_id[0] : null;
+            if (!pid || !sutureProductSet.has(pid)) continue;
+            const moveId = (line.move_id && Array.isArray(line.move_id)) ? line.move_id[0] : null;
+            const partnerId = partnerByMove.get(moveId);
+            if (partnerId) buyerSet.add(partnerId);
+        }
+    }
+    return buyerSet;
+}
+
+/**
  * Variante di getClientsForRepV2 con parametro `universo`:
- *   - universo === 'italiani-2026' → ritorna i 275 partner italiani 2026 in `attivi`,
- *     `dormienti = []`. Usato dalla card MyOsseotouch (Blocco 1 univocita').
+ *   - universo === 'italiani-2026' → ritorna i ~275 partner italiani 2026 divisi
+ *     in `attivi` (chi ha fatturato suture 2026) e `dormienti` (chi ha fatturato
+ *     altri prodotti ma non suture 2026). Usato dalla card MyOsseotouch (Blocco 1).
  *   - default → comportamento esistente (47 clienti suture + dormienti CRM).
  */
 async function getClientsForRepV2Universo(rep, pool, odooClient, universo) {
     if (String(universo || '').toLowerCase() === 'italiani-2026') {
-        const allItalian = await getActiveItalianClients2026(pool, odooClient);
+        const [allItalian, sutureBuyerIds] = await Promise.all([
+            getActiveItalianClients2026(pool, odooClient),
+            getSutureBuyerIds2026FromInvoices(odooClient),
+        ]);
         const repKey = String(rep || '').toLowerCase();
-        const attivi = repKey === 'admin'
+        const filtered = repKey === 'admin'
             ? allItalian
             : allItalian.filter(c => c.agente_internal === repKey);
-        return { attivi, dormienti: [] };
+        // Marca ogni partner come attivo/dormiente sulle suture 2026
+        const attivi = [];
+        const dormienti = [];
+        for (const p of filtered) {
+            p.attivo_suture = sutureBuyerIds.has(p.odoo_partner_id);
+            if (p.attivo_suture) attivi.push(p);
+            else dormienti.push(p);
+        }
+        return { attivi, dormienti };
     }
     return getClientsForRepV2(rep, pool, odooClient);
 }
@@ -672,6 +727,7 @@ module.exports = {
     syncSalesRepOverridesFromPayload,
     getActiveSutureClients2026,
     getActiveItalianClients2026,
+    getSutureBuyerIds2026FromInvoices,
     getClientsForRepV2,
     getClientsForRepV2Universo,
 };
