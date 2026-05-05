@@ -263,7 +263,7 @@
             const lblR1 = sR1 && sR1.parentElement ? sR1.parentElement.querySelector('.lbl') : null;
             const lblR2 = sR2 && sR2.parentElement ? sR2.parentElement.querySelector('.lbl') : null;
             if (lblR1) lblR1.textContent = isMyOss ? 'Attivi suture 2026' : 'Attivi 2026 (Odoo)';
-            if (lblR2) lblR2.textContent = isMyOss ? 'Senza suture 2026' : 'Dormienti (CRM)';
+            if (lblR2) lblR2.textContent = isMyOss ? 'Suture dormienti' : 'Dormienti (CRM)';
 
             if (!totale) {
                 container.innerHTML = '<p class="empty">Nessun cliente nel portafoglio.</p>';
@@ -280,8 +280,8 @@
                     true
                 ));
                 sezioni.push(renderSezione(
-                    'Clienti italiani senza suture 2026',
-                    'Hanno fatturato altri prodotti nel 2026 ma non suture. Potenziali nuovi acquirenti.',
+                    'Account suture dormienti (no acquisti nel 2026)',
+                    'Italiani che hanno fatturato altri prodotti nel 2026 ma non suture. Potenziali nuovi acquirenti.',
                     dormienti,
                     true // anche questi sono partner Odoo: stesso rendering "attivo"
                 ));
