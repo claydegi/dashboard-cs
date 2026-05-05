@@ -221,8 +221,8 @@
     function renderSezione(titolo, sottotitolo, clienti, isAttivi) {
         if (!clienti.length) return '';
         const headerCols = isAttivi
-            ? '<th style="width:90px">ID Odoo</th><th>Cliente</th><th>Città · Regione</th><th>Agente Odoo</th><th>Ultimo ordine</th><th class="txt-right">Azione</th>'
-            : '<th style="width:60px">ID Odoo</th><th>Cliente</th><th>Città · Regione</th><th>Assegnazione</th><th class="txt-right">Azione</th>';
+            ? '<th style="width:90px">ID Odoo</th><th>Cliente</th><th>Città · Provincia</th><th>Agente Odoo</th><th>Ultimo ordine</th><th class="txt-right">Azione</th>'
+            : '<th style="width:60px">ID Odoo</th><th>Cliente</th><th>Città · Provincia</th><th>Assegnazione</th><th class="txt-right">Azione</th>';
         const rows = clienti.map(isAttivi ? renderRigaAttivo : renderRigaDormiente).join('');
         const colsCount = isAttivi ? 6 : 5;
         return `
