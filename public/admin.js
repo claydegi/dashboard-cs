@@ -83,7 +83,7 @@ function setupHomeDashboard() {
             if (href) {
                 const k = encodeURIComponent(ADMIN_KEY || '');
                 const map = {
-                    'suture-rep':    `suture-rep.html?key=${k}&from=admin`,
+                    'suture-rep':    `suture-rep.html?key=${k}&from=admin&universo=italiani-2026`,
                     'giacenza-str':  `giacenza-str.html?key=${k}`,
                     'report':        `report.html?key=${k}`,
                     'mktg':          `pianificazione-mktg.html?key=${k}`
@@ -2206,7 +2206,10 @@ const SHOP_STATUS_LABELS = {
     pending_financing: { label: 'Attesa moduli BCC', color: '#1e40af', bg: '#dbeafe' },
     paid: { label: 'Pagato', color: '#059669', bg: '#d1fae5' },
     confirmed: { label: 'Confermato', color: '#059669', bg: '#d1fae5' },
-    cancelled: { label: 'Cancellato', color: '#991b1b', bg: '#fee2e2' }
+    cancelled: { label: 'Cancellato', color: '#991b1b', bg: '#fee2e2' },
+    // US Customer Service flow statuses
+    quote_pending: { label: 'Quote in attesa team', color: '#7c3aed', bg: '#ede9fe' },
+    quote_invoiced: { label: 'Invoice QuickBooks inviata', color: '#1e40af', bg: '#dbeafe' }
 };
 
 const SHOP_METHOD_LABELS = {
@@ -2214,11 +2217,27 @@ const SHOP_METHOD_LABELS = {
     stripe_sepa: '🏦 SEPA Stripe',
     cs_offline: '📄 Finalizza CS',
     bcc_financing: '💰 Finanziamento BCC',
-    bcc_leasing: '🚗 Noleggio BCC'
+    bcc_leasing: '🚗 Noleggio BCC',
+    quickbooks_invoice: '📋 Invoice QuickBooks',
+    stripe_us: '💳 Stripe US (LLC)'
+};
+
+const SHOP_MARKET_BADGE = {
+    IT: { label: '🇮🇹 IT', color: '#0a3a8c', bg: '#dbeafe' },
+    US: { label: '🇺🇸 US', color: '#7c2d12', bg: '#fed7aa' }
 };
 
 function fmtShopEur(n) {
     return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+function fmtShopUsd(n) {
+    return '$' + Math.round(Number(n)).toLocaleString('en-US');
+}
+
+function fmtShopMoney(amount, currency) {
+    if (currency === 'USD') return fmtShopUsd(amount);
+    return fmtShopEur(amount) + ' €';
 }
 
 function fmtShopDate(iso) {
@@ -2272,19 +2291,46 @@ function renderShopOrders(orders) {
     container.innerHTML = orders.map(o => {
         const st = SHOP_STATUS_LABELS[o.status] || { label: o.status, color: '#666', bg: '#eee' };
         const method = SHOP_METHOD_LABELS[o.payment_method] || o.payment_method;
+        const market = (o.market || 'IT').toUpperCase();
+        const marketBadge = SHOP_MARKET_BADGE[market] || SHOP_MARKET_BADGE.IT;
+        const currency = o.currency || 'EUR';
+        const isUS = market === 'US';
+        const isQuote = o.flow === 'customer_service';
+
         const itemsList = (o.items || []).map(it => `
-            <li>${it.qty}× ${it.product_name}${it.is_free_promo ? ' <span style="color:#d4af6a">(OMAGGIO)</span>' : ''} — ${fmtShopEur(it.qty * it.unit_price)} €</li>
+            <li>${it.qty}× ${it.product_name}${it.is_free_promo ? ' <span style="color:#d4af6a">(OMAGGIO)</span>' : ''} — ${fmtShopMoney(it.qty * it.unit_price, currency)}</li>
         `).join('');
 
         const canConfirm = o.status === 'pending' || o.status === 'pending_payment' || o.status === 'pending_financing' || o.status === 'paid';
         const canCancel = o.status !== 'cancelled' && o.status !== 'confirmed';
+        const borderLeft = isUS ? 'border-left:4px solid #ea580c;' : (o.is_test ? 'border-left:4px solid #d4af6a;' : '');
+
+        // Address line (IT uses prov, US uses state)
+        const addressLine = isUS
+            ? `${o.ship_street || ''}, ${o.ship_city || ''}, ${o.ship_state || ''} ${o.ship_zip || ''}`
+            : `${o.ship_street || ''}, ${o.ship_zip || ''} ${o.ship_city || ''} (${o.ship_prov || ''})`;
+
+        // Customer label: practice for US, company for IT
+        const customerName = isUS
+            ? (o.practice_name || o.buyer_contact_name || '—')
+            : (o.buyer_company || '—');
+
+        // Tax label: sales_tax USD vs vat_amount EUR
+        const taxLine = isUS
+            ? `<strong>Sales tax:</strong> ${Number(o.sales_tax) === 0 ? 'None (non-AL)' : fmtShopMoney(o.sales_tax, currency)}`
+            : `<strong>IVA:</strong> ${fmtShopEur(o.vat_amount)} €`;
 
         return `
-        <div class="opportunita-card" style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; ${o.is_test ? 'border-left:4px solid #d4af6a;' : ''}">
+        <div class="opportunita-card" style="background:#fff; border:1px solid #e5e7eb; border-radius:10px; padding:16px; margin-bottom:12px; ${borderLeft}">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap;">
                 <div>
-                    <div style="font-family:monospace; font-weight:700; font-size:16px; color:#1a9e8f">${o.order_number}${o.is_test ? ' <span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;letter-spacing:0.05em">TEST</span>' : ''}</div>
-                    <div style="font-size:13px; color:#6b7280; margin-top:2px">${fmtShopDate(o.created_at)}</div>
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
+                        <span style="background:${marketBadge.bg}; color:${marketBadge.color}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.05em">${marketBadge.label}</span>
+                        ${isQuote ? '<span style="background:#ede9fe;color:#7c3aed;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.05em">QUOTE</span>' : ''}
+                        <span style="font-family:monospace; font-weight:700; font-size:16px; color:#1a9e8f">${o.order_number}</span>
+                        ${o.is_test ? '<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;letter-spacing:0.05em">TEST</span>' : ''}
+                    </div>
+                    <div style="font-size:13px; color:#6b7280; margin-top:4px">${fmtShopDate(o.created_at)}</div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
                     <span style="background:${st.bg}; color:${st.color}; padding:4px 10px; border-radius:999px; font-size:12px; font-weight:600">${st.label}</span>
@@ -2294,27 +2340,29 @@ function renderShopOrders(orders) {
 
             <div style="margin-top:12px; display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div>
-                    <div style="font-size:13px; color:#6b7280; margin-bottom:2px">Cliente</div>
-                    <div style="font-weight:600">${o.buyer_company || '—'}</div>
+                    <div style="font-size:13px; color:#6b7280; margin-bottom:2px">${isUS ? 'Practice / Customer' : 'Cliente'}</div>
+                    <div style="font-weight:600">${customerName}</div>
                     <div style="font-size:13px; color:#444">${o.buyer_contact_name || ''} · ${o.buyer_email || ''}${o.buyer_phone ? ' · ' + o.buyer_phone : ''}</div>
-                    <div style="font-size:12px; color:#6b7280">P.IVA ${o.buyer_vat || '—'}</div>
+                    ${isUS ? '' : `<div style="font-size:12px; color:#6b7280">P.IVA ${o.buyer_vat || '—'}</div>`}
                 </div>
                 <div style="text-align:right">
-                    <div style="font-size:13px; color:#6b7280">Totale ordine</div>
-                    <div style="font-size:22px; font-weight:800; color:#1a9e8f">${fmtShopEur(o.total_gross)} €</div>
-                    <div style="font-size:11px; color:#6b7280">IVA inclusa · ${(o.items || []).length} art.</div>
+                    <div style="font-size:13px; color:#6b7280">${isQuote ? 'Indicative subtotal' : 'Totale ordine'}</div>
+                    <div style="font-size:22px; font-weight:800; color:${isUS ? '#ea580c' : '#1a9e8f'}">${fmtShopMoney(o.total_gross, currency)}</div>
+                    <div style="font-size:11px; color:#6b7280">${isUS ? (isQuote ? 'Final price in invoice' : 'sales tax incl. if AL') : 'IVA inclusa'} · ${(o.items || []).length} art.</div>
                 </div>
             </div>
 
             <details style="margin-top:12px">
-                <summary style="cursor:pointer; font-size:13px; color:#1a9e8f; font-weight:600; user-select:none">Dettaglio articoli e note</summary>
+                <summary style="cursor:pointer; font-size:13px; color:#1a9e8f; font-weight:600; user-select:none">Dettaglio articoli, indirizzo e note</summary>
                 <div style="padding:12px; background:#f9fafb; border-radius:6px; margin-top:8px">
+                    <div style="font-size:12px; color:#6b7280; margin-bottom:6px"><strong>${isUS ? 'Shipping address' : 'Indirizzo consegna'}:</strong> ${addressLine}</div>
                     <ul style="margin:0; padding-left:20px">${itemsList}</ul>
                     <div style="margin-top:10px; font-size:13px; color:#444">
-                        <div><strong>Subtotale netto:</strong> ${fmtShopEur(o.subtotal_net)} € · <strong>Trasporto:</strong> ${Number(o.shipping) === 0 ? 'GRATIS' : fmtShopEur(o.shipping) + ' €'} · <strong>IVA:</strong> ${fmtShopEur(o.vat_amount)} €</div>
+                        <div><strong>${isUS ? 'Subtotal' : 'Subtotale netto'}:</strong> ${fmtShopMoney(o.subtotal_net, currency)} · <strong>${isUS ? 'Shipping' : 'Trasporto'}:</strong> ${Number(o.shipping) === 0 ? (isUS ? 'FREE' : 'GRATIS') : fmtShopMoney(o.shipping, currency)} · ${taxLine}</div>
                     </div>
-                    ${o.customer_notes ? `<div style="margin-top:10px; padding:8px; background:#fff8e1; border-left:3px solid #d4af6a; font-size:13px"><strong>Note cliente:</strong> ${o.customer_notes}</div>` : ''}
-                    ${o.internal_notes ? `<div style="margin-top:6px; padding:8px; background:#eef2ff; border-left:3px solid #6366f1; font-size:13px"><strong>Note interne:</strong> ${o.internal_notes}</div>` : ''}
+                    ${o.customer_notes ? `<div style="margin-top:10px; padding:8px; background:#fff8e1; border-left:3px solid #d4af6a; font-size:13px"><strong>${isUS ? 'Customer notes' : 'Note cliente'}:</strong> ${o.customer_notes}</div>` : ''}
+                    ${o.internal_notes ? `<div style="margin-top:6px; padding:8px; background:#eef2ff; border-left:3px solid #6366f1; font-size:13px"><strong>${isUS ? 'Internal notes' : 'Note interne'}:</strong> ${o.internal_notes}</div>` : ''}
+                    ${o.quickbooks_invoice_url ? `<div style="margin-top:6px; padding:8px; background:#dbeafe; border-left:3px solid #1e40af; font-size:13px"><strong>QuickBooks invoice:</strong> <a href="${o.quickbooks_invoice_url}" target="_blank" rel="noopener" style="color:#1e40af">Open invoice ${o.quickbooks_invoice_id || ''} →</a></div>` : ''}
                 </div>
             </details>
 
