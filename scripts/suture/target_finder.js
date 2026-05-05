@@ -538,10 +538,10 @@ async function getActiveItalianClients2026(pool, odooClient) {
         }
     }
 
-    // 3. Leggi partner: country, email, vat, citta
+    // 3. Leggi partner: country, email, vat, citta, provincia
     const partnerIds = Array.from(byPartner.keys());
     const odooPartners = await odooClient.execute(uid, 'res.partner', 'read', [partnerIds],
-        { fields: ['id', 'email', 'name', 'country_id', 'vat', 'city'] });
+        { fields: ['id', 'email', 'name', 'country_id', 'vat', 'city', 'state_id'] });
 
     const italianIds = new Set();
     const emailByOdooId = new Map();
@@ -553,7 +553,12 @@ async function getActiveItalianClients2026(pool, odooClient) {
         if (!cid || cname === 'italy' || cname === 'italia') {
             italianIds.add(p.id);
             if (p.email) emailByOdooId.set(p.id, String(p.email).toLowerCase().trim());
-            partnerExtra.set(p.id, { vat: p.vat || null, city: p.city || null });
+            const stateName = (p.state_id && Array.isArray(p.state_id)) ? p.state_id[1] : null;
+            partnerExtra.set(p.id, {
+                vat: p.vat || null,
+                city: p.city || null,
+                state_name: stateName, // es. "Milano (MI)" — Odoo Italia ha le province come "states"
+            });
         }
     }
 
@@ -565,6 +570,7 @@ async function getActiveItalianClients2026(pool, odooClient) {
             const extra = partnerExtra.get(pid) || {};
             obj.vat = extra.vat;
             obj.city = extra.city;
+            obj.state_name = extra.state_name;
             return obj;
         });
 
