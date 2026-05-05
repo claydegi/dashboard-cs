@@ -11461,20 +11461,26 @@ app.post('/api/suture/sync-sales-rep-overrides', requireAdmin, async (req, res) 
 // GET /api/suture/clienti-rep-v2/:rep — Nuova vista: { attivi (Odoo 2026), dormienti (CRM senza ordini 2026) }
 // Attivi: certezza 100% via x_studio_agente Odoo
 // Dormienti: assegnazione da regione (best-effort)
+//
+// Query param opzionale ?universo=italiani-2026 → card MyOsseotouch:
+// ritorna i ~275 dentisti italiani con almeno una fattura OSNRGY 2026
+// (qualunque prodotto, non solo suture). Dormienti: vuoti.
 app.get('/api/suture/clienti-rep-v2/:rep', requireAdmin, async (req, res) => {
     try {
         const rep = String(req.params.rep || '').toLowerCase();
         if (!['kim', 'detto', 'admin'].includes(rep)) {
             return res.status(400).json({ error: `rep non valido: ${rep}. Accetto kim|detto|admin` });
         }
+        const universo = String(req.query.universo || '').toLowerCase();
         const odooClient = {
             authenticate: () => odooAuthenticate(),
             execute: (uid, model, method, args, kwargs) => odooExecute(uid, model, method, args, kwargs),
         };
-        const result = await sutureTargetFinder.getClientsForRepV2(rep, pool, odooClient);
+        const result = await sutureTargetFinder.getClientsForRepV2Universo(rep, pool, odooClient, universo);
         res.json({
             ok: true,
             rep,
+            universo: universo || null,
             attivi_count: result.attivi.length,
             dormienti_count: result.dormienti.length,
             attivi: result.attivi,

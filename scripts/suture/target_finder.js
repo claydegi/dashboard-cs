@@ -487,6 +487,166 @@ async function syncSalesRepOverridesFromPayload(pool, clients) {
     };
 }
 
+/**
+ * Restituisce TUTTI i partner Odoo italiani con almeno una fattura cliente
+ * OSNRGY emessa (out_invoice posted) dal 2026-01-01 a oggi, qualunque prodotto.
+ *
+ * Universo del Blocco 1 univocita' MyOSSEOTOUCH (decisione "strada 3" 2026-05-05):
+ * non solo i ~47 clienti suture, ma i ~275 dentisti italiani che hanno fatturato
+ * nel 2026. Permette consolidamento `odoo_partner_id` cross-agente.
+ *
+ * Schema output identico a getActiveSutureClients2026 per riusare la stessa
+ * UI rendering: odoo_partner_id, partner_name, agente_name, agente_internal,
+ * ultima_data_order, total_orders, crm_match, email.
+ *
+ * agente_name letto dall'ULTIMO sale.order 2026 del partner (se esiste);
+ * fallback DIREZIONALE/admin se il partner ha solo fatture senza SO.
+ */
+async function getActiveItalianClients2026(pool, odooClient) {
+    const uid = await odooClient.authenticate();
+    const DATE_FROM = '2026-01-01';
+    const COMPANY_ID = 1; // OSNRGY
+
+    // 1. Fatture clienti OSNRGY 2026 posted
+    const invoiceIds = await odooClient.execute(uid, 'account.move', 'search',
+        [[['move_type', '=', 'out_invoice'],
+          ['state', '=', 'posted'],
+          ['invoice_date', '>=', DATE_FROM],
+          ['company_id', '=', COMPANY_ID]]], {});
+    if (!invoiceIds.length) return [];
+
+    const invoices = await odooClient.execute(uid, 'account.move', 'read', [invoiceIds],
+        { fields: ['id', 'partner_id', 'invoice_date'] });
+
+    // 2. Aggrega per partner: ultima fattura, conta totale
+    const byPartner = new Map();
+    for (const inv of invoices) {
+        const pid = Array.isArray(inv.partner_id) ? inv.partner_id[0] : null;
+        if (!pid) continue;
+        const pname = inv.partner_id[1];
+        const date = inv.invoice_date || '';
+        const ex = byPartner.get(pid);
+        if (!ex || date > ex.ultima_data_order) {
+            byPartner.set(pid, {
+                odoo_partner_id: pid,
+                partner_name: pname,
+                ultima_data_order: date,
+                total_orders: (ex ? ex.total_orders : 0) + 1,
+            });
+        } else {
+            ex.total_orders++;
+        }
+    }
+
+    // 3. Leggi partner: country, email, vat, citta
+    const partnerIds = Array.from(byPartner.keys());
+    const odooPartners = await odooClient.execute(uid, 'res.partner', 'read', [partnerIds],
+        { fields: ['id', 'email', 'name', 'country_id', 'vat', 'city'] });
+
+    const italianIds = new Set();
+    const emailByOdooId = new Map();
+    const partnerExtra = new Map();
+    for (const p of odooPartners) {
+        const cid = p.country_id;
+        const cname = (cid && Array.isArray(cid)) ? String(cid[1]).toLowerCase() : '';
+        // Italia o country mancante (default Italia per Odoo OSNRGY)
+        if (!cid || cname === 'italy' || cname === 'italia') {
+            italianIds.add(p.id);
+            if (p.email) emailByOdooId.set(p.id, String(p.email).toLowerCase().trim());
+            partnerExtra.set(p.id, { vat: p.vat || null, city: p.city || null });
+        }
+    }
+
+    // 4. Lista solo italiani, in ordine di partner_name
+    const italianPartners = partnerIds
+        .filter(pid => italianIds.has(pid))
+        .map(pid => {
+            const obj = byPartner.get(pid);
+            const extra = partnerExtra.get(pid) || {};
+            obj.vat = extra.vat;
+            obj.city = extra.city;
+            return obj;
+        });
+
+    // 5. x_studio_agente dall'ultimo sale.order 2026 di ogni partner (se esiste)
+    if (italianPartners.length) {
+        const ipIds = italianPartners.map(p => p.odoo_partner_id);
+        const orderIds = await odooClient.execute(uid, 'sale.order', 'search',
+            [[['partner_id', 'in', ipIds],
+              ['date_order', '>=', DATE_FROM]]], {});
+        const agenteByPartner = new Map();
+        if (orderIds.length) {
+            const orders = await odooClient.execute(uid, 'sale.order', 'read', [orderIds],
+                { fields: ['partner_id', 'x_studio_agente', 'date_order'] });
+            for (const o of orders) {
+                const pid = Array.isArray(o.partner_id) ? o.partner_id[0] : null;
+                if (!pid) continue;
+                const date = o.date_order || '';
+                const agenteRaw = o.x_studio_agente;
+                const agenteName = (agenteRaw && Array.isArray(agenteRaw)) ? agenteRaw[1] : null;
+                const ex = agenteByPartner.get(pid);
+                if (!ex || date > ex.date) {
+                    agenteByPartner.set(pid, { date, agenteName });
+                }
+            }
+        }
+        for (const p of italianPartners) {
+            const ag = agenteByPartner.get(p.odoo_partner_id);
+            const agenteName = ag ? ag.agenteName : null;
+            p.agente_name = agenteName;
+            p.agente_internal = mapExcelRepToInternal(agenteName);
+        }
+    }
+
+    // 6. Match CRM via email primaria
+    const emails = Array.from(new Set(Array.from(emailByOdooId.values()))).filter(Boolean);
+    let emailToCrm = new Map();
+    if (emails.length) {
+        const { rows: ccRows } = await pool.query(
+            `SELECT id, email, citta, regione, cognome, nome, nome_azienda
+             FROM crm_contatti
+             WHERE LOWER(TRIM(email)) = ANY($1::text[])`,
+            [emails]
+        );
+        for (const r of ccRows) {
+            if (r.email) emailToCrm.set(String(r.email).toLowerCase().trim(), r);
+        }
+    }
+    for (const p of italianPartners) {
+        const em = emailByOdooId.get(p.odoo_partner_id);
+        const crm = em ? emailToCrm.get(em) : null;
+        p.crm_match = crm ? {
+            id: crm.id, email: crm.email, citta: crm.citta, regione: crm.regione,
+            cognome: crm.cognome, nome: crm.nome, nome_azienda: crm.nome_azienda
+        } : null;
+        p.email = em || null;
+    }
+
+    // 7. Ordine alfabetico per nome partner
+    italianPartners.sort((a, b) =>
+        String(a.partner_name || '').localeCompare(String(b.partner_name || ''), 'it', { sensitivity: 'base' })
+    );
+    return italianPartners;
+}
+
+/**
+ * Variante di getClientsForRepV2 con parametro `universo`:
+ *   - universo === 'italiani-2026' → ritorna i 275 partner italiani 2026 in `attivi`,
+ *     `dormienti = []`. Usato dalla card MyOsseotouch (Blocco 1 univocita').
+ *   - default → comportamento esistente (47 clienti suture + dormienti CRM).
+ */
+async function getClientsForRepV2Universo(rep, pool, odooClient, universo) {
+    if (String(universo || '').toLowerCase() === 'italiani-2026') {
+        const allItalian = await getActiveItalianClients2026(pool, odooClient);
+        const repKey = String(rep || '').toLowerCase();
+        const attivi = repKey === 'admin'
+            ? allItalian
+            : allItalian.filter(c => c.agente_internal === repKey);
+        return { attivi, dormienti: [] };
+    }
+    return getClientsForRepV2(rep, pool, odooClient);
+}
+
 module.exports = {
     loadRegionsConfig,
     normalizeRegion,
@@ -499,5 +659,7 @@ module.exports = {
     normalizeNameKey,
     syncSalesRepOverridesFromPayload,
     getActiveSutureClients2026,
+    getActiveItalianClients2026,
     getClientsForRepV2,
+    getClientsForRepV2Universo,
 };

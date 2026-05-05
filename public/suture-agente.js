@@ -16,6 +16,9 @@
     'use strict';
 
     const KEY = new URLSearchParams(window.location.search).get('key') || '';
+    // Universo opzionale: 'italiani-2026' = vista card MyOsseotouch (~275 dentisti italiani 2026, qualunque prodotto)
+    // default = vista suture standard (47 attivi + dormienti CRM)
+    const UNIVERSO = (new URLSearchParams(window.location.search).get('universo') || '').toLowerCase();
     // Mapping nome dashboard → rep logico backend:
     //   'kim' → 'kim', 'massimo' / 'detto' → 'detto', 'admin' → 'admin'
     const REPMAP = { kim: 'kim', massimo: 'detto', detto: 'detto', admin: 'admin' };
@@ -241,7 +244,9 @@
         if (!container) return;
         container.innerHTML = '<p class="empty">Caricamento clienti suture (lettura Odoo…)</p>';
         try {
-            const r = await api(`/api/suture/clienti-rep-v2/${REP}`);
+            const baseUrl = `/api/suture/clienti-rep-v2/${REP}`;
+            const fetchUrl = UNIVERSO ? `${baseUrl}?universo=${encodeURIComponent(UNIVERSO)}` : baseUrl;
+            const r = await api(fetchUrl);
             const attivi = r.attivi || [];
             const dormienti = r.dormienti || [];
             const totale = attivi.length + dormienti.length;
