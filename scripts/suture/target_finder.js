@@ -28,6 +28,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const { lookupProvinciaLabel } = require('../helpers/comune_provincia');
 
 const REGIONS_CONFIG_PATH = path.join(__dirname, '..', '..', 'data', 'sales_rep_regions.json');
 
@@ -553,11 +554,15 @@ async function getActiveItalianClients2026(pool, odooClient) {
         if (!cid || cname === 'italy' || cname === 'italia') {
             italianIds.add(p.id);
             if (p.email) emailByOdooId.set(p.id, String(p.email).toLowerCase().trim());
-            const stateName = (p.state_id && Array.isArray(p.state_id)) ? p.state_id[1] : null;
+            const stateNameOdoo = (p.state_id && Array.isArray(p.state_id)) ? p.state_id[1] : null;
+            // Fallback lookup citta -> provincia via dataset comuni italiani (matteocontrini/comuni-json)
+            // se Odoo non ha state_id valorizzato (~87 partner su 275 al 2026-05-05)
+            const stateNameFallback = (!stateNameOdoo && p.city) ? lookupProvinciaLabel(p.city) : null;
             partnerExtra.set(p.id, {
                 vat: p.vat || null,
                 city: p.city || null,
-                state_name: stateName, // es. "Milano (MI)" — Odoo Italia ha le province come "states"
+                state_name: stateNameOdoo || stateNameFallback || null,
+                state_source: stateNameOdoo ? 'odoo' : (stateNameFallback ? 'lookup_comune' : null),
             });
         }
     }
@@ -571,6 +576,7 @@ async function getActiveItalianClients2026(pool, odooClient) {
             obj.vat = extra.vat;
             obj.city = extra.city;
             obj.state_name = extra.state_name;
+            obj.state_source = extra.state_source; // 'odoo' | 'lookup_comune' | null
             return obj;
         });
 
