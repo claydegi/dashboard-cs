@@ -170,9 +170,10 @@
     function renderRigaAttivo(c) {
         const nome = c.partner_name || (c.crm_match && (c.crm_match.nome_azienda || `${c.crm_match.cognome || ''} ${c.crm_match.nome || ''}`.trim())) || '(senza nome)';
         const nomeAttr = esc(nome);
-        // Fallback Odoo quando manca il match CRM: usa city + state_id (provincia) di res.partner
-        const citta = (c.crm_match && c.crm_match.citta) || c.city || '';
-        const regione = (c.crm_match && c.crm_match.regione) || c.state_name || '';
+        // Odoo come fonte di verita' (decisione 2026-05-05): Odoo prima, CRM solo se Odoo manca.
+        // Vedi MYOSSEOTOUCH/ROADMAP_IMPLEMENTAZIONE.md Blocco 1, "Decisione architetturale — Odoo come fonte di verita'".
+        const citta = c.city || (c.crm_match && c.crm_match.citta) || '';
+        const regione = c.state_name || (c.crm_match && c.crm_match.regione) || '';
         const agenteLabel = c.agente_name || 'NESSUNO (DIREZIONALE)';
         const inCrm = !!c.crm_match;
         const azioniHtml = inCrm
