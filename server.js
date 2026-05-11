@@ -6796,7 +6796,8 @@ app.get('/api/webinar/confirm', async (req, res) => {
     const { email, token, tag } = req.query;
 
     const WEBINAR_TAG = tag || 'WEBINAR_ARCARA_ELEVATE';
-    const confirmPage = (WEBINAR_TAG === 'WEBINAR_BOSCHINI_BLEXO')
+    // Cattura anche tag _TEST (es. WEBINAR_BOSCHINI_BLEXO_TEST dal flusso send_campaign --mode test)
+    const confirmPage = WEBINAR_TAG.startsWith('WEBINAR_BOSCHINI_BLEXO')
         ? '/webinar-conferma-boschini.html'
         : '/webinar-conferma.html';
 
