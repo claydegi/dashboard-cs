@@ -6795,19 +6795,23 @@ app.get('/api/whatsapp-group/stats', requireAdmin, async (req, res) => {
 app.get('/api/webinar/confirm', async (req, res) => {
     const { email, token, tag } = req.query;
 
+    const WEBINAR_TAG = tag || 'WEBINAR_ARCARA_ELEVATE';
+    const confirmPage = (WEBINAR_TAG === 'WEBINAR_BOSCHINI_BLEXO')
+        ? '/webinar-conferma-boschini.html'
+        : '/webinar-conferma.html';
+
     if (!email || !token) {
-        return res.redirect('/webinar-conferma.html?status=error&msg=link-non-valido');
+        return res.redirect(`${confirmPage}?status=error&msg=link-non-valido`);
     }
 
     const emailClean = email.trim().toLowerCase();
-    const WEBINAR_TAG = tag || 'WEBINAR_ARCARA_ELEVATE';
 
     // Verifica token HMAC
     const crypto = require('crypto');
     const expectedToken = crypto.createHmac('sha256', CONFIG.REPORTS_API_KEY).update(emailClean + WEBINAR_TAG).digest('hex').substring(0, 16);
     if (token !== expectedToken) {
         console.warn(`[Webinar ${WEBINAR_TAG}] Token non valido per ${emailClean}`);
-        return res.redirect('/webinar-conferma.html?status=error&msg=link-non-valido');
+        return res.redirect(`${confirmPage}?status=error&msg=link-non-valido`);
     }
 
     const client = await pool.connect();
@@ -6821,7 +6825,7 @@ app.get('/api/webinar/confirm', async (req, res) => {
         );
         if (giaIscritto.rows.length > 0) {
             await client.query('ROLLBACK');
-            return res.redirect(`/webinar-conferma.html?status=gia-iscritto&nome=${encodeURIComponent(emailClean)}`);
+            return res.redirect(`${confirmPage}?status=gia-iscritto&nome=${encodeURIComponent(emailClean)}`);
         }
 
         // Cerca contatto esistente (deve esistere, viene dal mailing)
@@ -6897,12 +6901,12 @@ app.get('/api/webinar/confirm', async (req, res) => {
 
         // Redirect alla pagina di conferma
         const nomeDisplay = contatto.nome || '';
-        res.redirect(`/webinar-conferma.html?status=ok&nome=${encodeURIComponent(nomeDisplay)}`);
+        res.redirect(`${confirmPage}?status=ok&nome=${encodeURIComponent(nomeDisplay)}`);
 
     } catch (err) {
         await client.query('ROLLBACK');
         console.error(`[Webinar ${WEBINAR_TAG}] Errore one-click confirm:`, err);
-        res.redirect('/webinar-conferma.html?status=error&msg=errore-server');
+        res.redirect(`${confirmPage}?status=error&msg=errore-server`);
     } finally {
         client.release();
     }
