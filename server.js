@@ -6103,7 +6103,7 @@ app.post('/api/webinar-boschini/register', async (req, res) => {
         let zoomJoinUrl = null;
         const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
         if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
-        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('WEBINAR_CONFERMA_BOSCHINI', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
     finally { client.release(); }
