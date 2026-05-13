@@ -588,7 +588,7 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_data ON crm_cestino(cancellato_il DESC)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_cestino_contatto ON crm_cestino(contatto_id)`);
 
-        // Tabella WhatsApp clicks (storico click da landing page enrollment)
+        // Tabella WhatsApp clicks (storico click da landing page enrollment - VECCHIA CAMPAGNA)
         await client.query(`
             CREATE TABLE IF NOT EXISTS crm_whatsapp_clicks (
                 id SERIAL PRIMARY KEY,
@@ -600,6 +600,29 @@ async function initDB() {
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_email ON crm_whatsapp_clicks(email)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_wa_clicks_data ON crm_whatsapp_clicks(clicked_at DESC)`);
+
+        // Tabella community signups (signup multi-campagna con dedup per (campagna_tag, email))
+        // Introdotta 2026-05-13 per la campagna "WHATSAPP_MAGNETO_DINAMICA" (YouTube Ads -> landing JAN34
+        // -> POST /api/community/whatsapp-magneto-dinamica/register). Tracciamento signup completi con
+        // metadati (nome/cognome/citta/ha_mallet/azione) e UNIQUE per garantire no doppi a livello DB.
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS crm_community_signups (
+                id BIGSERIAL PRIMARY KEY,
+                campagna_tag TEXT NOT NULL,
+                contatto_id BIGINT NOT NULL REFERENCES crm_contatti(id) ON DELETE CASCADE,
+                email TEXT NOT NULL,
+                nome TEXT,
+                cognome TEXT,
+                citta TEXT,
+                ha_mallet BOOLEAN,
+                azione TEXT,
+                created_at TIMESTAMPTZ DEFAULT NOW(),
+                UNIQUE(campagna_tag, email)
+            )
+        `);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_community_signups_campagna ON crm_community_signups(campagna_tag)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_community_signups_contatto ON crm_community_signups(contatto_id)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_community_signups_created ON crm_community_signups(created_at DESC)`);
 
         // Tabella video tracking (storico eventi visualizzazione video da landing page)
         await client.query(`
@@ -6767,10 +6790,12 @@ app.post('/api/leads/whatsapp-group', async (req, res) => {
 });
 
 // GET /api/whatsapp-group/stats — counter iscrizioni gruppo WhatsApp per dashboard marketing
+// Dal 2026-05-13: la query e' stata migrata dalla vecchia campagna (fonte_sync='lp_whatsapp_group'
+// in crm_contatti) alla nuova campagna "WHATSAPP_MAGNETO_DINAMICA" che traccia signup in
+// crm_community_signups con UNIQUE(campagna_tag, email) e dedup applicativo.
+// Shape JSON identico al precedente per backward compatibility con renderWhatsAppGroupStats() del frontend.
 app.get('/api/whatsapp-group/stats', requireAdmin, async (req, res) => {
     try {
-        // Conta SOLO chi si e' iscritto dalla landing page campagna YouTube Ads
-        // (fonte_sync = 'lp_whatsapp_group'), NON tutti quelli nel gruppo WhatsApp del CRM
         const result = await pool.query(`
             SELECT
                 COUNT(*)::int AS totale,
@@ -6778,14 +6803,285 @@ app.get('/api/whatsapp-group/stats', requireAdmin, async (req, res) => {
                 COUNT(*) FILTER (WHERE c.tipo = 'account')::int AS account,
                 COUNT(*) FILTER (WHERE c.id < 0 AND c.tipo = 'lead')::int AS nuovi_lead,
                 COUNT(*) FILTER (WHERE c.id < 0 AND c.tipo = 'account')::int AS nuovi_account
-            FROM crm_contatti c
-            WHERE c.fonte_sync = 'lp_whatsapp_group'
+            FROM crm_community_signups s
+            JOIN crm_contatti c ON c.id = s.contatto_id
+            WHERE s.campagna_tag = 'WHATSAPP_MAGNETO_DINAMICA'
         `);
         const row = result.rows[0] || { totale: 0, lead: 0, account: 0, nuovi: 0, nuovi_lead: 0, nuovi_account: 0 };
         res.json(row);
     } catch (err) {
         console.error('[WhatsApp Stats]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// ==================== COMMUNITY WHATSAPP MAGNETO-DINAMICA ====================
+// POST /api/community/whatsapp-magneto-dinamica/register
+// Iscrizione community WhatsApp da landing JAN34 (campagna YouTube Ads, 13/05/2026).
+// Pattern derivato da /api/webinar-boschini/register adattato per community.
+//
+// Decisioni 13/05/2026:
+// - Score +50 GENERICO (no PT1/BLEXO)
+// - Endpoint specifico (future community avranno endpoint dedicati)
+// - Email duplicata: reinvia email + success=true track_conversion=false (no insert/counter/score)
+// - Honeypot field "website": se compilato, NO side effects + success=true track_conversion=false
+// - fonte_sync = 'community_whatsapp_magneto_dinamica'
+// - Tracking: crm_community_signups con UNIQUE(campagna_tag, email)
+
+const COMMUNITY_WA_REDIRECT = '/iscrizione-gruppi-whatsapp/grazie/';
+const COMMUNITY_WA_TAG = 'WHATSAPP_MAGNETO_DINAMICA';
+const COMMUNITY_WA_GROUP_URL = 'https://chat.whatsapp.com/JbuTQK5SscO1qJ6EQNi5Ry';
+
+function buildCommunityWelcomeEmailHtml(name) {
+    const safeName = String(name || '').trim() || 'collega';
+    return `<!DOCTYPE html>
+<html lang="it"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Benvenuto nella community Magneto-Dinamica</title></head>
+<body style="margin:0;padding:0;background-color:#0a1224;font-family:Helvetica,Arial,sans-serif;color:#f7f8fa;">
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="background-color:#0a1224;padding:32px 16px;">
+  <tr><td align="center">
+    <table role="presentation" cellpadding="0" cellspacing="0" width="600" style="max-width:600px;background-color:#0a1224;border:1px solid #1a9e8f;border-radius:12px;padding:32px 28px;">
+      <tr><td style="text-align:center;padding-bottom:18px;font-size:14px;letter-spacing:8px;color:#1a9e8f;text-transform:uppercase;font-weight:700;">OSSEOTOUCH</td></tr>
+      <tr><td style="font-size:24px;line-height:1.3;color:#f7f8fa;font-weight:700;padding-bottom:14px;">Ciao ${safeName},</td></tr>
+      <tr><td style="font-size:16px;line-height:1.55;color:#c8d2d7;padding-bottom:18px;">Grazie per l'iscrizione alla community professionale <strong style="color:#f7f8fa;">Gruppo WhatsApp Magneto-Dinamica</strong>.</td></tr>
+      <tr><td style="font-size:16px;line-height:1.55;color:#c8d2d7;padding-bottom:24px;">2.300 odontoiatri italiani si confrontano ogni giorno su casi clinici, tecniche e esperienze. Se non ti sei ancora iscritto/a al gruppo WhatsApp, clicca qui sotto:</td></tr>
+      <tr><td align="center" style="padding-bottom:28px;">
+        <a href="${COMMUNITY_WA_GROUP_URL}" style="display:inline-block;background-color:#25d366;color:#ffffff;font-weight:700;font-size:16px;text-decoration:none;padding:14px 32px;border-radius:8px;">Entra nel gruppo WhatsApp</a>
+      </td></tr>
+      <tr><td style="font-size:14px;line-height:1.5;color:#9aa5ab;padding-top:18px;border-top:1px solid #1a3a4a;">Entrando nel gruppo, il tuo nome e numero saranno visibili agli altri partecipanti. Il gruppo e' ospitato su WhatsApp/Meta; si applicano i loro termini d'uso.</td></tr>
+      <tr><td style="font-size:13px;line-height:1.5;color:#8a949a;padding-top:18px;">A presto nella community.<br>Il team OSSEOTOUCH<br><a href="mailto:contact@osseotouch.com" style="color:#1a9e8f;">contact@osseotouch.com</a></td></tr>
+    </table>
+  </td></tr>
+</table>
+</body></html>`;
+}
+
+app.post('/api/community/whatsapp-magneto-dinamica/register', async (req, res) => {
+    const { name, surname, email, phone, city, has_mallet, gdpr_consent, website } = req.body || {};
+
+    // 1) Honeypot anti-bot: se "website" compilato, rispondi success ma senza side effect
+    if (website && String(website).trim() !== '') {
+        console.log('[Community WA] Honeypot triggered, silent accept');
+        return res.json({
+            success: true,
+            ok: true,
+            already_registered: false,
+            track_conversion: false,
+            redirect: COMMUNITY_WA_REDIRECT
+        });
+    }
+
+    // 2) Validazione campi obbligatori
+    if (!name || !surname || !email || !phone || !city) {
+        return res.status(400).json({ error: 'Tutti i campi sono obbligatori' });
+    }
+    if (typeof has_mallet !== 'boolean') {
+        return res.status(400).json({ error: 'has_mallet deve essere boolean' });
+    }
+    if (gdpr_consent !== true) {
+        return res.status(400).json({ error: 'Consenso privacy obbligatorio' });
+    }
+
+    // 3) Normalizzazione (pattern degli altri endpoint esistenti)
+    const emailClean = String(email).trim().toLowerCase();
+    const nomeClean = String(name).trim();
+    const cognomeClean = String(surname).trim();
+    const cellulareClean = String(phone).trim().replace(/[\s\-\(\)]/g, '');
+    const cittaClean = String(city).trim().toUpperCase();
+    const dichiaraMM = has_mallet === true;
+    const fonteTag = 'community_whatsapp_magneto_dinamica';
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailClean)) {
+        return res.status(400).json({ error: 'Email non valida' });
+    }
+
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+
+        // 4) Dedup email su campagna: se gia' iscritta, reinvia email e basta (no side effect)
+        const giaIscritto = await client.query(
+            'SELECT id, contatto_id FROM crm_community_signups WHERE campagna_tag = $1 AND email = $2',
+            [COMMUNITY_WA_TAG, emailClean]
+        );
+        if (giaIscritto.rows.length > 0) {
+            await client.query('ROLLBACK');
+            console.log(`[Community WA] email gia' iscritta: ${emailClean} - reinvio link via email`);
+            sendMailgunEmail(
+                emailClean,
+                'Il tuo link al gruppo WhatsApp Magneto-Dinamica',
+                buildCommunityWelcomeEmailHtml(nomeClean),
+                'WHATSAPP_COMMUNITY_WELCOME'
+            ).catch(e => console.error('[Community WA] reinvio email err:', e.message));
+            return res.json({
+                success: true,
+                ok: true,
+                already_registered: true,
+                track_conversion: false,
+                redirect: COMMUNITY_WA_REDIRECT
+            });
+        }
+
+        // 5) Lookup contatto esistente: prima per email
+        let existing = await client.query(
+            `SELECT c.id, c.tipo, c.cognome, c.nome, c.email, c.citta, c.cellulare, c.cellulare_secondario
+             FROM crm_contatti c
+             WHERE LOWER(c.email) = $1`,
+            [emailClean]
+        );
+
+        // 6) Fallback: lookup per cellulare normalizzato (compat vecchio endpoint /api/leads/whatsapp-group
+        //    che non raccoglieva email — i suoi contatti li ritroviamo per cellulare)
+        if (existing.rows.length === 0 && cellulareClean) {
+            existing = await client.query(
+                `SELECT c.id, c.tipo, c.cognome, c.nome, c.email, c.citta, c.cellulare, c.cellulare_secondario
+                 FROM crm_contatti c
+                 WHERE REPLACE(REPLACE(REPLACE(REPLACE(c.cellulare, ' ', ''), '-', ''), '(', ''), ')', '') = $1
+                    OR REPLACE(REPLACE(REPLACE(REPLACE(c.cellulare_secondario, ' ', ''), '-', ''), '(', ''), ')', '') = $1`,
+                [cellulareClean]
+            );
+        }
+
+        let contattoId;
+        let azione; // 'nuovo_lead' | 'nuovo_account' | 'promosso' | 'esistente_coerente'
+        const oggi = new Date().toISOString().split('T')[0];
+
+        if (existing.rows.length > 0) {
+            // ========== CONTATTO ESISTENTE ==========
+            const contatto = existing.rows[0];
+            contattoId = contatto.id;
+            const tipo = contatto.tipo || 'lead';
+
+            // Email primaria: solo se mancava (NON sovrascrivere)
+            if (!contatto.email && emailClean) {
+                await client.query('UPDATE crm_contatti SET email = $1 WHERE id = $2', [emailClean, contattoId]);
+            }
+            // Cellulare: se mancava primario lo setto, altrimenti come secondario se diverso
+            if (cellulareClean) {
+                const cellDB = (contatto.cellulare || '').replace(/[\s\-\(\)]/g, '');
+                if (!cellDB) {
+                    await client.query('UPDATE crm_contatti SET cellulare = $1 WHERE id = $2', [cellulareClean, contattoId]);
+                } else if (cellulareClean !== cellDB && !contatto.cellulare_secondario) {
+                    await client.query('UPDATE crm_contatti SET cellulare_secondario = $1 WHERE id = $2', [cellulareClean, contattoId]);
+                }
+            }
+            // Citta + regione: solo se mancavano
+            if (!contatto.citta && cittaClean) {
+                const reg = lookupRegione(cittaClean);
+                await client.query('UPDATE crm_contatti SET citta = $1, regione = COALESCE(regione, $2) WHERE id = $3', [cittaClean, reg, contattoId]);
+            } else if (cittaClean) {
+                const reg = lookupRegione(cittaClean);
+                if (reg) await client.query('UPDATE crm_contatti SET regione = $1 WHERE id = $2 AND regione IS NULL', [reg, contattoId]);
+            }
+            // Flag gruppo_whatsapp = true (pattern legacy mantenuto)
+            await client.query('UPDATE crm_contatti SET gruppo_whatsapp = true WHERE id = $1', [contattoId]);
+
+            // Promozione lead -> account se dichiara MM
+            const haMMnelDB = await client.query("SELECT id FROM crm_prodotti WHERE contatto_id = $1 AND prodotto = 'MM'", [contattoId]);
+            if (tipo === 'lead' && dichiaraMM) {
+                await client.query("UPDATE crm_contatti SET tipo = 'account' WHERE id = $1", [contattoId]);
+                if (haMMnelDB.rows.length === 0) {
+                    await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)', [contattoId, 'MM', oggi, fonteTag]);
+                }
+                await client.query('INSERT INTO crm_promozioni_log (contatto_id, prodotti) VALUES ($1, $2)', [contattoId, 'MM']);
+                // Clear score GENERICO esistente (pattern standard pre-promozione)
+                await client.query("DELETE FROM crm_score_manuali WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                await client.query("DELETE FROM crm_score_prodotti WHERE contatto_id = $1 AND linea_prodotto = 'GENERICO'", [contattoId]);
+                azione = 'promosso';
+            } else {
+                azione = 'esistente_coerente';
+            }
+
+        } else {
+            // ========== CONTATTO NUOVO ==========
+            const minId = await client.query('SELECT COALESCE(MIN(id), 0) as min_id FROM crm_contatti WHERE id < 0');
+            contattoId = Math.min(minId.rows[0].min_id, 0) - 1;
+            const regione = lookupRegione(cittaClean);
+            const tipoNuovo = dichiaraMM ? 'account' : 'lead';
+
+            await client.query(`
+                INSERT INTO crm_contatti (id, cognome, nome, email, cellulare, citta, regione, fonte_sync, data_inserimento, score, tipo, mercato, gruppo_whatsapp)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 0, $10, 'ITALY', true)
+            `, [contattoId, cognomeClean, nomeClean, emailClean, cellulareClean, cittaClean, regione, fonteTag, oggi, tipoNuovo]);
+
+            if (dichiaraMM) {
+                await client.query('INSERT INTO crm_prodotti (contatto_id, prodotto, data_inserimento, fonte) VALUES ($1, $2, $3, $4)', [contattoId, 'MM', oggi, fonteTag]);
+            }
+
+            // Log new_contatto per sync bidirezionale Odoo
+            await client.query(
+                `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('new_contatto', $1, $2)`,
+                [contattoId, JSON.stringify({
+                    cognome: cognomeClean, nome: nomeClean,
+                    email: emailClean, cellulare: cellulareClean,
+                    citta: cittaClean, regione,
+                    tipo: tipoNuovo, mercato: 'ITALY',
+                    prodotti: dichiaraMM ? ['MM'] : [],
+                    fonte: fonteTag
+                })]
+            );
+
+            azione = dichiaraMM ? 'nuovo_account' : 'nuovo_lead';
+        }
+
+        // 7) Score +50 GENERICO (decisione 13/05/2026: sempre GENERICO)
+        const scoreResult = await client.query(
+            `INSERT INTO crm_score_manuali (contatto_id, linea_prodotto, tipo_attivita, punti, data_evento)
+             VALUES ($1, $2, $3, $4, $5) RETURNING id`,
+            [contattoId, 'GENERICO', 'iscrizione_community_whatsapp', 50, oggi]
+        );
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli) VALUES ('add_score', $1, $2)`,
+            [contattoId, JSON.stringify({
+                linea_prodotto: 'GENERICO',
+                tipo_attivita: 'iscrizione_community_whatsapp',
+                punti: 50, data_evento: oggi,
+                label: 'Iscrizione community WhatsApp Magneto-Dinamica',
+                score_manuale_id: scoreResult.rows[0].id
+            })]
+        );
+
+        // 8) Log consenso GDPR
+        await client.query(
+            `INSERT INTO crm_consensi_log (contatto_id, email, azione, fonte, campagna)
+             VALUES ($1, $2, 'consenso_privacy_form', $3, 'whatsapp_magneto_dinamica')`,
+            [contattoId, emailClean, fonteTag]
+        );
+
+        // 9) Insert signup tracking (UNIQUE(campagna_tag, email) garantito a livello DB)
+        await client.query(
+            `INSERT INTO crm_community_signups (campagna_tag, contatto_id, email, nome, cognome, citta, ha_mallet, azione)
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+            [COMMUNITY_WA_TAG, contattoId, emailClean, nomeClean, cognomeClean, cittaClean, dichiaraMM, azione]
+        );
+
+        await client.query('COMMIT');
+
+        console.log(`[Community WA] ${cognomeClean} ${nomeClean} <${emailClean}> | azione=${azione} | score +50 GENERICO | id=${contattoId}`);
+
+        // 10) Email Mailgun (fire-and-forget, non blocca la response)
+        sendMailgunEmail(
+            emailClean,
+            'Benvenuto nella community Magneto-Dinamica',
+            buildCommunityWelcomeEmailHtml(nomeClean),
+            'WHATSAPP_COMMUNITY_WELCOME'
+        ).catch(e => console.error('[Community WA] email err:', e.message));
+
+        // 11) Response success: track_conversion=true SOLO per nuove iscrizioni reali
+        return res.json({
+            success: true,
+            ok: true,
+            action: azione,
+            contatto_id: contattoId,
+            track_conversion: true,
+            redirect: COMMUNITY_WA_REDIRECT
+        });
+
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[Community WA] Errore:', err);
+        return res.status(500).json({ error: 'Errore server. Riprova.' });
+    } finally {
+        client.release();
     }
 });
 
