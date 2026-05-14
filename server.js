@@ -6254,7 +6254,7 @@ app.post('/api/webinar-boschini-en/register', async (req, res) => {
         await client.query('COMMIT');
         console.log(`[Webinar ${WEBINAR_TAG}] Registration: ${cognomeClean} ${nomeClean} <${emailClean}> | action=${azione} | score +30 ${lineaScore} | id=${contattoId} | country=${countryClean}`);
         // No Zoom for recorded webinar — send email with recording access
-        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, null, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('WEBINAR_CONFERMA_BOSCHINI_EN', WEBINAR_TAG, emailClean, null, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, messaggio: 'Registration completed successfully' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Error:`, err); res.status(500).json({error:'Registration failed. Please try again.'}); }
     finally { client.release(); }
