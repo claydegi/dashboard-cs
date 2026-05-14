@@ -64,12 +64,29 @@ function lookupRegione(citta) {
 
 // ==================== MAILGUN EMAIL HELPER ====================
 
-// Dati webinar per i template email (futuro: da DB o config)
+// Dati webinar per i template email.
+// Schema esteso (FASE 2 refactor template neutri):
+//   nome_webinar, data_webinar, relatore           — dati base
+//   bio_relatore, image_bg_url                     — dati visuali template
+//   lang        ('it' | 'en')                      — scelta stringhe UI da WEBINAR_I18N
+//   tipo        ('live' | 'recorded')              — scelta variante template (live vs recorded)
+//   orario_live (es. '21:00' o null)               — orario live, null se recorded
+//   subject_*                                       — oggetti email per ogni tipo
+//   link_webinar, link_followup                     — URL specifici webinar
+//   video_campagna                                  — tag campagna video tracking
+//   cta_followup_label, cta_followup_sub            — CTA dell'email follow-up (variabile per linea prodotto)
+//   cta_replay_label, cta_replay_courseinfo         — CTA dell'email replay accesso
+//   invito_titolo, invito_sottotitolo, invito_data_full, invito_bullets[] — contenuti email invito
 const WEBINAR_DATA = {
     'WEBINAR_MALAVASI_PT1': {
         nome_webinar: 'Magnetic Mallet in implantologia pterigoidea',
         data_webinar: '9 marzo 2026',
         relatore: 'Dr. Alberto Malavasi',
+        bio_relatore: '',
+        image_bg_url: '',
+        lang: 'it',
+        tipo: 'live',
+        orario_live: '21:00',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Malavasi, 9 marzo ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Malavasi',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
@@ -77,12 +94,25 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Impianti pterigoidei con Magnetic Mallet, 9 marzo ore 21:00',
         link_webinar: 'https://app.osseotouch.com/webinar',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Malavasi',
-        video_campagna: 'PT1_SF_WEBINAR_MALAVASI_REC'
+        video_campagna: 'PT1_SF_WEBINAR_MALAVASI_REC',
+        cta_followup_label: 'SCOPRI LE OPPORTUNITÀ',
+        cta_followup_sub: 'Corso in presenza con il Dr. Malavasi + Kit PT1',
+        cta_replay_label: 'GUARDA LA REGISTRAZIONE',
+        cta_replay_courseinfo: 'Corso in presenza del Dr. Malavasi — 13 giugno 2026, Lonato (BS) + Kit PT1 per Magnetic Mallet',
+        invito_titolo: 'Impianti Pterigoidei con Magnetic Mallet',
+        invito_sottotitolo: '',
+        invito_data_full: 'Lunedì 9 marzo 2026 — ore 21:00',
+        invito_bullets: []
     },
     'WEBINAR_ARCARA_ELEVATE': {
         nome_webinar: 'Sinus Lift con Magnetic Mallet: come massimizzare la stabilita\' implantare',
         data_webinar: '7 aprile 2026',
         relatore: 'Dr. Carlo Arcara',
+        bio_relatore: 'Odontoiatra • Dottorato in Parodontologia Sperimentale • Clinica Arcara, Termini Imerese',
+        image_bg_url: 'https://dashboard-cs-production.up.railway.app/img/webinar-arcara-bg.jpg',
+        lang: 'it',
+        tipo: 'live',
+        orario_live: '21:00',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Arcara, 7 aprile ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Arcara',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
@@ -90,12 +120,25 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Sinus Lift con Magnetic Mallet, 7 aprile ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-arcara-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Arcara',
-        video_campagna: 'ELEVATE_SF_WEBINAR_ARCARA_REC'
+        video_campagna: 'ELEVATE_SF_WEBINAR_ARCARA_REC',
+        cta_followup_label: 'SCOPRI LE OPPORTUNITÀ',
+        cta_followup_sub: 'Kit Elevate per Magnetic Mallet',
+        cta_replay_label: 'GUARDA LA REGISTRAZIONE',
+        cta_replay_courseinfo: 'Kit Elevate per Magnetic Mallet — il rialzo del seno crestale sotto controllo',
+        invito_titolo: 'Sinus Lift con Magnetic Mallet',
+        invito_sottotitolo: 'Come massimizzare la stabilità implantare',
+        invito_data_full: 'Lunedì 7 aprile 2026 — ore 21:00',
+        invito_bullets: []
     },
     'WEBINAR_TARDANI_GUIDATA': {
         nome_webinar: 'La chirurgia guidata con il Magnetic Mallet',
         data_webinar: '20 aprile 2026',
         relatore: 'Dr. Alessandro Tardani',
+        bio_relatore: '',
+        image_bg_url: 'https://www.osseotouch.com/images/webinar-tardani/bg-surgical.jpg',
+        lang: 'it',
+        tipo: 'live',
+        orario_live: '21:00',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Tardani, 20 aprile ore 21:00',
         subject_reminder: 'Dr. Tardani — il tuo link personale per il webinar di stasera',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
@@ -103,12 +146,30 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Chirurgia guidata con Magnetic Mallet, 20 aprile ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-tardani-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Tardani',
-        video_campagna: 'GUIDATA_SF_WEBINAR_TARDANI_REC'
+        video_campagna: 'GUIDATA_SF_WEBINAR_TARDANI_REC',
+        cta_followup_label: 'SCOPRI LE OPPORTUNITÀ',
+        cta_followup_sub: 'Kit Dynamic Guided per Magnetic Mallet',
+        cta_replay_label: 'GUARDA LA REGISTRAZIONE',
+        cta_replay_courseinfo: 'Kit Dynamic Guided per Magnetic Mallet — 5 osteotomi al posto di decine di frese',
+        invito_titolo: 'La Chirurgia Guidata con il Magnetic Mallet',
+        invito_sottotitolo: 'Dima digitale e osteotomi magnetodinamici',
+        invito_data_full: 'Lunedì 20 aprile 2026 — ore 21:00',
+        invito_bullets: [
+            'Protocollo chirurgia guidata con osteotomi al posto delle frese',
+            'Zero surriscaldamento sotto la guida chirurgica',
+            'Stabilità primaria superiore grazie alla condensazione ossea',
+            '5 osteotomi al posto di decine di frese: il Kit Dynamic Guided'
+        ]
     },
     'WEBINAR_BOSCHINI_BLEXO': {
         nome_webinar: '18 Mesi di Blexo — Estrattori di nuova generazione',
         data_webinar: '18 maggio 2026',
         relatore: 'Dr. Luca Boschini',
+        bio_relatore: 'Odontoiatra • 18 mesi di pratica clinica quotidiana con i Blexo OSSEOTOUCH',
+        image_bg_url: 'https://www.osseotouch.com/images/webinar-boschini/bg-surgical.jpg',
+        lang: 'it',
+        tipo: 'live',
+        orario_live: '21:00',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Boschini, 18 maggio ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Boschini',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
@@ -116,12 +177,25 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — 18 Mesi di Blexo, 18 maggio ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-boschini-blexo/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Boschini',
-        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_REC'
+        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_REC',
+        cta_followup_label: 'SCOPRI LE OPPORTUNITÀ',
+        cta_followup_sub: 'Kit Blexo per Magnetic Mallet',
+        cta_replay_label: 'GUARDA LA REGISTRAZIONE',
+        cta_replay_courseinfo: 'Kit Blexo — estrattori magnetodinamici di nuova generazione per Magnetic Mallet',
+        invito_titolo: '18 Mesi di Blexo',
+        invito_sottotitolo: 'Estrattori di nuova generazione per estrazioni atraumatiche',
+        invito_data_full: 'Lunedì 18 maggio 2026 — ore 21:00',
+        invito_bullets: []
     },
     'WEBINAR_BOSCHINI_BLEXO_EN': {
         nome_webinar: '18 Months of Blexo — Next-Generation Extractors',
         data_webinar: 'May 25, 2026',
         relatore: 'Dr. Luca Boschini',
+        bio_relatore: 'Dentist • 18 months of daily clinical practice with Blexo OSSEOTOUCH extractors',
+        image_bg_url: 'https://www.osseotouch.com/images/webinar-boschini/bg-surgical.jpg',
+        lang: 'en',
+        tipo: 'recorded',
+        orario_live: null,
         subject_conferma: 'Registration confirmed — Webinar Dr. Boschini, 18 Months of Blexo',
         subject_reminder: 'Your webinar is available — Dr. Boschini',
         subject_followup: 'Thank you for watching — Next steps',
@@ -129,12 +203,25 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — 18 Months of Blexo, next-generation extractors',
         link_webinar: 'https://www.osseotouch.com/webinar-boschini-blexo-english/',
         subject_replay_accesso: 'Watch the webinar recording — Dr. Boschini, 18 Months of Blexo',
-        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_EN_REC'
+        video_campagna: 'BLEXO_SF_WEBINAR_BOSCHINI_EN_REC',
+        cta_followup_label: 'DISCOVER MORE',
+        cta_followup_sub: 'Blexo Kit for Magnetic Mallet',
+        cta_replay_label: 'WATCH THE RECORDING',
+        cta_replay_courseinfo: 'Blexo Kit — next-generation magnetodynamic extractors for Magnetic Mallet',
+        invito_titolo: '18 Months of Blexo',
+        invito_sottotitolo: 'Next-generation extractors for atraumatic dental extractions',
+        invito_data_full: 'May 25, 2026',
+        invito_bullets: []
     },
     'WEBINAR_ABUNDO_ELEVATE': {
         nome_webinar: 'Kit Elevate: il rialzo del seno crestale sotto controllo',
         data_webinar: '6 luglio 2026',
         relatore: 'Dr. Roberto Abundo',
+        bio_relatore: '',
+        image_bg_url: 'https://www.osseotouch.com/images/webinar-abundo/bg-surgical.jpg',
+        lang: 'it',
+        tipo: 'live',
+        orario_live: '21:00',
         subject_conferma: 'Iscrizione confermata — Webinar Dr. Abundo, 6 luglio ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Abundo',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
@@ -142,7 +229,126 @@ const WEBINAR_DATA = {
         subject_invito: 'Webinar — Kit Elevate con Dr. Abundo, 6 luglio ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-abundo-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Abundo',
-        video_campagna: 'ELEVATE_SF_WEBINAR_ABUNDO_REC'
+        video_campagna: 'ELEVATE_SF_WEBINAR_ABUNDO_REC',
+        cta_followup_label: 'SCOPRI LE OPPORTUNITÀ',
+        cta_followup_sub: 'Kit Elevate per Magnetic Mallet',
+        cta_replay_label: 'GUARDA LA REGISTRAZIONE',
+        cta_replay_courseinfo: 'Kit Elevate per Magnetic Mallet — rialzo del seno crestale sotto controllo',
+        invito_titolo: 'Kit Elevate',
+        invito_sottotitolo: 'Il rialzo del seno crestale sotto controllo',
+        invito_data_full: 'Lunedì 6 luglio 2026 — ore 21:00',
+        invito_bullets: []
+    }
+};
+
+// Stringhe UI ricorrenti localizzate. Scelte via WEBINAR_DATA[tag].lang in sendWebinarEmail.
+// I template usano {{i18n.<chiave>}}.
+const WEBINAR_I18N = {
+    it: {
+        registration_confirmed_badge: 'ISCRIZIONE CONFERMATA',
+        speaker_label: 'RELATORE',
+        speaker_label_inline: 'Relatore',
+        available_from: 'Disponibile dal',
+        date_at_time_separator: 'ore',
+        link_will_arrive: 'Il link per accedere al webinar le arriverà via email il giorno dell\'evento.',
+        no_need_save_live: 'Non deve salvare nulla — pensiamo a tutto noi.',
+        no_need_save_recorded: 'Non deve salvare nulla — glielo invieremo direttamente in casella.',
+        how_it_works: 'Come funziona',
+        conferma_live_bullet_1: 'Il giorno del webinar riceverà un\'email con il link personale',
+        conferma_live_bullet_2: 'La stanza Zoom sarà attiva 5 minuti prima dell\'inizio',
+        conferma_live_bullet_3: 'Non serve un account Zoom — basta cliccare sul link',
+        conferma_recorded_main_msg: 'Riceverà il link per accedere alla registrazione il',
+        conferma_recorded_bullet_1: 'Il giorno indicato riceverà un\'email con il link personale alla registrazione',
+        conferma_recorded_bullet_2: 'La guardi quando vuole — la registrazione resta disponibile',
+        conferma_recorded_bullet_3: 'La può condividere col suo team — un link per indirizzo registrato',
+        questions_write_to: 'Domande? Scrivici a',
+        copyright_line: '© 2026 OSSEOTOUCH — OSNRGY SRL',
+        webinar_osseotouch_badge: 'WEBINAR OSSEOTOUCH',
+        almost_ready: 'Ci siamo quasi',
+        webinar_starts_at: 'Il webinar inizia <strong>stasera alle',
+        access_webinar_btn: 'ACCEDI AL WEBINAR',
+        zoom_room_opens_early: 'La stanza Zoom sarà attiva 5 minuti prima. Non serve un account Zoom.',
+        access_issues_reply: 'Se ha problemi di accesso, risponda a questa email.',
+        a_presto: 'A presto,',
+        webinar_online_badge: 'WEBINAR ONLINE',
+        partecipo_btn: 'PARTECIPO',
+        one_click_subscribed: 'Un click e sei iscritto. Il link Zoom arriverà il giorno del webinar.',
+        what_youll_learn: 'Cosa imparerai',
+        consenso_intro: 'Per inviarle contenuti sempre più utili — casi clinici mirati, tutorial su misura, offerte dedicate — ci serve capire cosa le interessa davvero. Ci dia il suo ok e personalizzeremo tutto per lei.',
+        consenso_si_btn: '✓ Sì, voglio contenuti personalizzati',
+        consenso_solo_email_btn: 'Preferisco solo le email, senza personalizzazione',
+        consenso_no_btn: 'Non mi interessa più',
+        grazie_partecipato: 'Grazie per aver partecipato!',
+        grazie_guardato: 'Grazie per aver guardato!',
+        speranza_utile_live_prefix: 'Ci auguriamo che il webinar',
+        speranza_utile_live_mid: 'con',
+        speranza_utile_live_suffix: 'sia stato utile e stimolante.',
+        speranza_utile_recorded_prefix: 'Ci auguriamo che la registrazione del webinar',
+        speranza_utile_recorded_suffix: 'sia stata utile e stimolante.',
+        vuole_seguito_live: 'Vuole dare seguito a quanto visto oggi?',
+        vuole_seguito_recorded: 'Vuole approfondire?',
+        domande_contattaci: 'Domande? Ci scriva a',
+        oppure_whatsapp: 'oppure su WhatsApp al',
+        registrazione_pronta_title: 'La registrazione è pronta per te',
+        grazie_registrazione_sub: 'Grazie per la tua registrazione',
+        webinar_label_card: 'Webinar',
+        webinar_disponibile_msg: 'Il webinar completo è disponibile per la visione. Clicchi sul pulsante qui sotto per accedere alla registrazione, al forum di discussione e ai contenuti di approfondimento.',
+        conserva_email_note: 'Conservi questa email: il link è personale e le permetterà di accedere alla registrazione in qualsiasi momento.',
+        vuole_approfondire: 'Vuole approfondire?',
+        per_informazioni: 'Per informazioni:'
+    },
+    en: {
+        registration_confirmed_badge: 'REGISTRATION CONFIRMED',
+        speaker_label: 'SPEAKER',
+        speaker_label_inline: 'Speaker',
+        available_from: 'Available from',
+        date_at_time_separator: 'at',
+        link_will_arrive: 'You will receive the link to access the webinar by email on the event day.',
+        no_need_save_live: 'No need to save anything — we will take care of it.',
+        no_need_save_recorded: 'No need to save anything — we will send it directly to your inbox.',
+        how_it_works: 'How it works',
+        conferma_live_bullet_1: 'On the webinar day you will receive an email with the personal link',
+        conferma_live_bullet_2: 'The Zoom room will be active 5 minutes before the start',
+        conferma_live_bullet_3: 'No Zoom account needed — just click the link',
+        conferma_recorded_main_msg: 'You will receive the recording link on',
+        conferma_recorded_bullet_1: 'On the date above you will receive an email with the personal link to the webinar recording',
+        conferma_recorded_bullet_2: 'Watch it on your own schedule — the recording stays available',
+        conferma_recorded_bullet_3: 'Share it with your team if you wish — one link per registered address',
+        questions_write_to: 'Questions? Write to',
+        copyright_line: '© 2026 OSSEOTOUCH — OSNRGY SRL',
+        webinar_osseotouch_badge: 'OSSEOTOUCH WEBINAR',
+        almost_ready: 'Almost ready',
+        webinar_starts_at: 'The webinar starts <strong>tonight at',
+        access_webinar_btn: 'JOIN THE WEBINAR',
+        zoom_room_opens_early: 'The Zoom room opens 5 minutes early. No Zoom account needed.',
+        access_issues_reply: 'If you have access issues, just reply to this email.',
+        a_presto: 'Best regards,',
+        webinar_online_badge: 'ONLINE WEBINAR',
+        partecipo_btn: 'JOIN',
+        one_click_subscribed: 'One click and you are registered. The Zoom link will arrive on the webinar day.',
+        what_youll_learn: 'What you will learn',
+        consenso_intro: 'To send you increasingly useful content — targeted clinical cases, tailored tutorials, dedicated offers — we need to understand what really matters to you. Give us your consent and we will personalize everything for you.',
+        consenso_si_btn: '✓ Yes, I want personalized content',
+        consenso_solo_email_btn: 'I prefer only emails, no personalization',
+        consenso_no_btn: 'I am no longer interested',
+        grazie_partecipato: 'Thank you for joining!',
+        grazie_guardato: 'Thank you for watching!',
+        speranza_utile_live_prefix: 'We hope the webinar',
+        speranza_utile_live_mid: 'with',
+        speranza_utile_live_suffix: 'was useful and inspiring.',
+        speranza_utile_recorded_prefix: 'We hope the recording of',
+        speranza_utile_recorded_suffix: 'was useful and inspiring.',
+        vuole_seguito_live: 'Would you like to take the next step?',
+        vuole_seguito_recorded: 'Want to learn more?',
+        domande_contattaci: 'Questions? Write to us at',
+        oppure_whatsapp: 'or on WhatsApp at',
+        registrazione_pronta_title: 'Your recording is ready',
+        grazie_registrazione_sub: 'Thanks for registering',
+        webinar_label_card: 'Webinar',
+        webinar_disponibile_msg: 'The full webinar is available for viewing. Click the button below to access the recording, the discussion forum, and additional content.',
+        conserva_email_note: 'Keep this email: the link is personal and gives you access to the recording at any time.',
+        vuole_approfondire: 'Want to learn more?',
+        per_informazioni: 'For information:'
     }
 };
 
@@ -194,20 +400,40 @@ async function sendMailgunEmail(to, subject, html, tag, fromOverride) {
 
 /**
  * Compila template email webinar sostituendo i placeholder e invia.
- * @param {string} templateName - 'WEBINAR_CONFERMA' o 'WEBINAR_REMINDER'
- * @param {string} webinarTag - es. 'WEBINAR_MALAVASI_PT1'
- * @param {string} to - email destinatario
- * @param {string} zoomLink - link Zoom personale
- * @param {string} tag - tag Mailgun
+ *
+ * API (FASE 2 refactor): emailType è ora il TIPO logico di email, non più il nome file.
+ * Il template fisico viene scelto in base a WEBINAR_DATA[tag].tipo (live/recorded).
+ * Le stringhe UI ricorrenti (badge, label, bullets) vengono risolte da WEBINAR_I18N[lang].
+ *
+ * @param {string} emailType  - 'CONFERMA' | 'REMINDER' | 'INVITO' | 'FOLLOWUP' | 'REPLAY_ACCESSO'
+ * @param {string} webinarTag - es. 'WEBINAR_BOSCHINI_BLEXO_EN' (deve esistere in WEBINAR_DATA)
+ * @param {string} to         - email destinatario
+ * @param {string} zoomLink   - link Zoom personale (per CONFERMA live e REMINDER) / link confirm one-click (per INVITO)
+ * @param {string} tag        - tag Mailgun
  */
-async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
+async function sendWebinarEmail(emailType, webinarTag, to, zoomLink, tag) {
     const data = WEBINAR_DATA[webinarTag];
     if (!data) {
         console.warn(`[Mailgun] Dati webinar non trovati per tag ${webinarTag}`);
         return;
     }
 
-    const templatePath = path.join(__dirname, 'templates', `${templateName}.html`);
+    // --- Risoluzione template fisico in base a emailType + tipo (live/recorded) ---
+    const tipo = data.tipo || 'live';
+    const TEMPLATE_MAP = {
+        'CONFERMA':       tipo === 'recorded' ? 'WEBINAR_CONFERMA_RECORDED.html' : 'WEBINAR_CONFERMA_LIVE.html',
+        'REMINDER':       'WEBINAR_REMINDER_LIVE.html',
+        'INVITO':         'WEBINAR_INVITO_LIVE.html',
+        'FOLLOWUP':       tipo === 'recorded' ? 'WEBINAR_FOLLOWUP_RECORDED.html' : 'WEBINAR_FOLLOWUP_LIVE.html',
+        'REPLAY_ACCESSO': 'WEBINAR_REPLAY_ACCESSO_RECORDED.html'
+    };
+    const templateFile = TEMPLATE_MAP[emailType];
+    if (!templateFile) {
+        console.warn(`[Mailgun] emailType non riconosciuto: ${emailType}`);
+        return;
+    }
+
+    const templatePath = path.join(__dirname, 'templates', templateFile);
     let html;
     try {
         html = fs.readFileSync(templatePath, 'utf-8');
@@ -216,29 +442,63 @@ async function sendWebinarEmail(templateName, webinarTag, to, zoomLink, tag) {
         return;
     }
 
-    // Sostituisci placeholder
-    html = html.replace(/\{\{nome_webinar\}\}/g, data.nome_webinar);
-    html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
-    html = html.replace(/\{\{relatore\}\}/g, data.relatore);
-    html = html.replace(/\{\{link_zoom\}\}/g, zoomLink || '#');
-    // Per follow-up: aggiungi ?e=base64(email) per autenticazione forum
+    // --- Subject lookup ---
+    const SUBJECT_MAP = {
+        'CONFERMA':       data.subject_conferma,
+        'REMINDER':       data.subject_reminder,
+        'INVITO':         data.subject_invito,
+        'FOLLOWUP':       data.subject_followup,
+        'REPLAY_ACCESSO': data.subject_replay_accesso
+    };
+    const subject = SUBJECT_MAP[emailType] || '';
+
+    // --- Risoluzione i18n ---
+    const lang = data.lang || 'it';
+    const i18n = WEBINAR_I18N[lang] || WEBINAR_I18N.it;
+
+    // --- Sostituzione placeholder dati webinar ---
+    const placeholders = {
+        nome_webinar: data.nome_webinar || '',
+        data_webinar: data.data_webinar || '',
+        relatore: data.relatore || '',
+        bio_relatore: data.bio_relatore || '',
+        image_bg_url: data.image_bg_url || '',
+        orario_live: data.orario_live || '',
+        cta_followup_label: data.cta_followup_label || '',
+        cta_followup_sub: data.cta_followup_sub || '',
+        cta_replay_label: data.cta_replay_label || '',
+        cta_replay_courseinfo: data.cta_replay_courseinfo || '',
+        invito_titolo: data.invito_titolo || data.nome_webinar || '',
+        invito_sottotitolo: data.invito_sottotitolo || '',
+        invito_data_full: data.invito_data_full || '',
+        invito_bullet_1: (data.invito_bullets || [])[0] || '',
+        invito_bullet_2: (data.invito_bullets || [])[1] || '',
+        invito_bullet_3: (data.invito_bullets || [])[2] || '',
+        invito_bullet_4: (data.invito_bullets || [])[3] || '',
+        link_zoom: zoomLink || '#'
+    };
+    for (const [k, v] of Object.entries(placeholders)) {
+        html = html.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v));
+    }
+
+    // --- Link follow-up con base64 email (autenticazione forum) ---
     const followupUrl = (data.link_followup || '#') + (to ? '?e=' + Buffer.from(to.toLowerCase()).toString('base64') : '');
     html = html.replace(/\{\{link_followup\}\}/g, followupUrl);
     html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
-    // Per invito one-click: link_confirm viene passato come parametro opzionale (generato per-contatto con HMAC)
+
+    // --- Link confirm one-click (passato dal chiamante via zoomLink in fase INVITO) ---
     html = html.replace(/\{\{link_confirm\}\}/g, zoomLink || data.link_webinar || '#');
-    // Link consenso GDPR (per-contatto, basati su email destinatario)
-    const consentBase = `https://dashboard-cs-production.up.railway.app/consent?email=${encodeURIComponent(to)}&campagna=${encodeURIComponent(tag || templateName)}`;
+
+    // --- Link consenso GDPR (per-contatto, basati su email destinatario) ---
+    const consentBase = `https://dashboard-cs-production.up.railway.app/consent?email=${encodeURIComponent(to)}&campagna=${encodeURIComponent(tag || emailType)}`;
     html = html.replace(/\{\{link_consenso_si\}\}/g, `${consentBase}&risposta=si`);
     html = html.replace(/\{\{link_consenso_solo_email\}\}/g, `${consentBase}&risposta=solo_email`);
     html = html.replace(/\{\{link_consenso_no\}\}/g, `${consentBase}&risposta=no`);
 
-    let subject;
-    if (templateName.startsWith('WEBINAR_CONFERMA')) subject = data.subject_conferma;
-    else if (templateName === 'WEBINAR_FOLLOWUP') subject = data.subject_followup;
-    else if (templateName === 'WEBINAR_INVITO') subject = data.subject_invito;
-    else if (templateName.startsWith('WEBINAR_REPLAY_ACCESSO')) subject = data.subject_replay_accesso;
-    else subject = data.subject_reminder;
+    // --- i18n: sostituisce {{i18n.<chiave>}} con stringhe localizzate ---
+    for (const [k, v] of Object.entries(i18n)) {
+        html = html.replace(new RegExp(`\\{\\{i18n\\.${k}\\}\\}`, 'g'), String(v));
+    }
 
     await sendMailgunEmail(to, subject, html, tag);
 }
@@ -5973,11 +6233,11 @@ app.post('/api/webinar/register', async (req, res) => {
 
         // 5. Invio email conferma iscrizione (fire-and-forget)
         if (!replay) {
-            sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
+            sendWebinarEmail('CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_' + WEBINAR_TAG)
                 .catch(err => console.error(`[Webinar ${WEBINAR_TAG}] Errore invio email conferma:`, err.message));
         } else {
             // Replay: invia email con link alla registrazione
-            sendWebinarEmail('WEBINAR_REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+            sendWebinarEmail('REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
                 .then(async () => {
                     try {
                         await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE email = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
@@ -6062,7 +6322,7 @@ app.post('/api/webinar-tardani/register', async (req, res) => {
         let zoomJoinUrl = null;
         const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
         if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
-        sendWebinarEmail('WEBINAR_CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
     finally { client.release(); }
@@ -6126,7 +6386,7 @@ app.post('/api/webinar-boschini/register', async (req, res) => {
         let zoomJoinUrl = null;
         const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
         if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
-        sendWebinarEmail('WEBINAR_CONFERMA_BOSCHINI', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
     finally { client.release(); }
@@ -6191,7 +6451,7 @@ app.post('/api/webinar-abundo/register', async (req, res) => {
         let zoomJoinUrl = null;
         const zoomId = ZOOM_WEBINAR_IDS[WEBINAR_TAG];
         if (zoomId) { try { const zr = await registerZoomWebinarParticipant(zoomId, emailClean, nomeClean, cognomeClean); if (zr && zr.join_url) { zoomJoinUrl = zr.join_url; await pool.query('UPDATE crm_webinar_registrazioni SET zoom_link = $1 WHERE webinar_tag = $2 AND email = $3', [zoomJoinUrl, WEBINAR_TAG, emailClean]); } } catch(e) { console.error(`[Webinar ${WEBINAR_TAG}] Zoom err:`, e.message); } }
-        sendWebinarEmail('WEBINAR_CONFERMA_ABUNDO', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('CONFERMA', WEBINAR_TAG, emailClean, zoomJoinUrl, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, zoom_join_url: zoomJoinUrl, messaggio: 'Iscrizione completata con successo' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Errore:`, err); res.status(500).json({error:'Errore durante l\'iscrizione. Riprova.'}); }
     finally { client.release(); }
@@ -6254,7 +6514,7 @@ app.post('/api/webinar-boschini-en/register', async (req, res) => {
         await client.query('COMMIT');
         console.log(`[Webinar ${WEBINAR_TAG}] Registration: ${cognomeClean} ${nomeClean} <${emailClean}> | action=${azione} | score +30 ${lineaScore} | id=${contattoId} | country=${countryClean}`);
         // No Zoom for recorded webinar — send email with recording access
-        sendWebinarEmail('WEBINAR_CONFERMA_BOSCHINI_EN', WEBINAR_TAG, emailClean, null, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
+        sendWebinarEmail('CONFERMA', WEBINAR_TAG, emailClean, null, 'WEBINAR_CONFERMA_'+WEBINAR_TAG).catch(e => console.error(`[Webinar ${WEBINAR_TAG}] Email err:`, e.message));
         res.json({ ok: true, azione, contatto_id: contattoId, score_linea: lineaScore, messaggio: 'Registration completed successfully' });
     } catch(err) { await client.query('ROLLBACK'); console.error(`[Webinar ${WEBINAR_TAG}] Error:`, err); res.status(500).json({error:'Registration failed. Please try again.'}); }
     finally { client.release(); }
@@ -6393,7 +6653,7 @@ app.post('/api/webinar-arcara/access', async (req, res) => {
         console.log(`[Webinar Arcara REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId})`);
 
         // 6. Invio email con link alla registrazione (fire-and-forget, stessa logica di /api/webinar/register replay=true)
-        sendWebinarEmail('WEBINAR_REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+        sendWebinarEmail('REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
             .then(async () => {
                 try {
                     await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE LOWER(email) = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
@@ -6543,7 +6803,7 @@ app.post('/api/webinar-tardani/access', async (req, res) => {
         console.log(`[Webinar Tardani REC] Accesso registrato: ${emailClean} (contatto_id=${contattoId}, azione=${azione})`);
 
         // 5. Invio email con link alla registrazione (fire-and-forget)
-        sendWebinarEmail('WEBINAR_REPLAY_ACCESSO_TARDANI', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
+        sendWebinarEmail('REPLAY_ACCESSO', WEBINAR_TAG, emailClean, null, 'WEBINAR_REPLAY_' + WEBINAR_TAG)
             .then(async () => {
                 try {
                     await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE LOWER(email) = $1 AND webinar_tag = $2', [emailClean, WEBINAR_TAG]);
@@ -7702,7 +7962,7 @@ app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
         let errori = 0;
         for (const row of result.rows) {
             try {
-                await sendWebinarEmail('WEBINAR_REMINDER', tag, row.email, row.zoom_link, 'WEBINAR_REMINDER_' + tag);
+                await sendWebinarEmail('REMINDER', tag, row.email, row.zoom_link, 'WEBINAR_REMINDER_' + tag);
                 // Marca come inviato
                 await pool.query('UPDATE crm_webinar_registrazioni SET reminder_inviato = TRUE WHERE id = $1', [row.id]);
                 inviati++;
@@ -7845,7 +8105,7 @@ app.post('/api/webinar/send-test-followup', requireAdmin, async (req, res) => {
     } catch (e) {}
 
     try {
-        await sendWebinarEmail('WEBINAR_FOLLOWUP', webinar_tag, emailClean, null,
+        await sendWebinarEmail('FOLLOWUP', webinar_tag, emailClean, null,
             'WEBINAR_FOLLOWUP_TEST_' + webinar_tag);
         res.json({
             ok: true,
@@ -7929,7 +8189,7 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
         let errori = 0;
         for (const row of result.rows) {
             try {
-                await sendWebinarEmail('WEBINAR_FOLLOWUP', tag, row.email, null, 'WEBINAR_FOLLOWUP_' + tag);
+                await sendWebinarEmail('FOLLOWUP', tag, row.email, null, 'WEBINAR_FOLLOWUP_' + tag);
                 await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE id = $1', [row.id]);
                 inviati++;
                 if (inviati % 10 === 0) {
@@ -8034,7 +8294,7 @@ app.post('/api/webinar/send-invito-test', requireAdmin, async (req, res) => {
     try {
         // Per il test: genera link confirm di test che mostra la pagina di conferma
         const testConfirmLink = `https://dashboard-cs-production.up.railway.app/webinar-conferma.html?status=ok&nome=Test`;
-        await sendWebinarEmail('WEBINAR_INVITO', tag, to, testConfirmLink, 'WEBINAR_INVITO_TEST');
+        await sendWebinarEmail('INVITO', tag, to, testConfirmLink, 'WEBINAR_INVITO_TEST');
         console.log(`[Webinar Invito Test] Email di test inviata a ${to}`);
         res.json({ ok: true, email: to, messaggio: `Email invito test inviata a ${to}` });
     } catch (err) {

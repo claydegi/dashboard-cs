@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{i18n.registration_confirmed_badge}} &mdash; {{nome_webinar}}</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; background-color: #0d1117;">
+    <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #0d1117;">
+        <tr>
+            <td align="center" style="padding: 0;">
+                <!--[if gte mso 9]>
+                <v:rect xmlns:v="urn:schemas-microsoft-com:vml" fill="true" stroke="false" style="width:600px;">
+                <v:fill type="frame" src="{{image_bg_url}}" />
+                <v:textbox style="mso-fit-shape-to-text:true" inset="0,0,0,0">
+                <![endif]-->
+                <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%; background-image: url('{{image_bg_url}}'); background-size: cover; background-position: center top; background-color: #151a24;">
+
+                    <tr>
+                        <td style="background: linear-gradient(180deg, rgba(13,17,23,0.82) 0%, rgba(21,26,36,0.96) 25%, rgba(21,26,36,0.98) 100%);">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+
+                    <!-- Confirmation badge -->
+                    <tr>
+                        <td align="center" style="padding: 36px 24px 0 24px;">
+                            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="background-color: #2e7d32; border-radius: 4px; padding: 5px 18px;">
+                                        <p style="margin: 0; font-size: 11px; color: #ffffff; letter-spacing: 3px; text-transform: uppercase; font-weight: bold;">
+                                            &#10003; {{i18n.registration_confirmed_badge}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Title -->
+                    <tr>
+                        <td align="center" style="padding: 18px 24px 6px 24px;">
+                            <h1 style="margin: 0; font-size: 30px; font-weight: bold; color: #ffffff; line-height: 1.3;">
+                                {{nome_webinar}}
+                            </h1>
+                        </td>
+                    </tr>
+
+                    <!-- Date box -->
+                    <tr>
+                        <td align="center" style="padding: 10px 24px 28px 24px;">
+                            <table cellpadding="0" cellspacing="0" style="margin: 0 auto;">
+                                <tr>
+                                    <td style="border: 1px solid rgba(123,163,201,0.35); border-radius: 6px; padding: 10px 24px;">
+                                        <p style="margin: 0; font-size: 17px; color: #ffffff; font-weight: bold;">
+                                            &#128197; {{data_webinar}} &mdash; {{i18n.date_at_time_separator}} {{orario_live}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Steel line -->
+                    <tr>
+                        <td style="padding: 0 40px 24px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid rgba(123,163,201,0.25); font-size: 0; height: 1px;">&nbsp;</td></tr></table>
+                        </td>
+                    </tr>
+
+                    <!-- Speaker -->
+                    <tr>
+                        <td align="center" style="padding: 0 30px 4px 30px;">
+                            <p style="margin: 0; font-size: 13px; color: #7ba3c9; letter-spacing: 2px; text-transform: uppercase; font-weight: bold;">
+                                {{i18n.speaker_label}}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 4px 30px 4px 30px;">
+                            <p style="margin: 0; font-size: 21px; color: #ffffff; font-weight: bold;">
+                                {{relatore}}
+                            </p>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td align="center" style="padding: 2px 40px 26px 40px;">
+                            <p style="margin: 0; font-size: 13px; color: #9bb0c4; line-height: 1.5;">
+                                {{bio_relatore}}
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Main message: link arrives on event day -->
+                    <tr>
+                        <td style="padding: 0 24px 28px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: rgba(123,163,201,0.08); border: 1px solid rgba(123,163,201,0.2); border-radius: 8px;">
+                                <tr>
+                                    <td style="padding: 24px 24px; text-align: center;">
+                                        <p style="margin: 0; font-size: 18px; color: #ffffff; font-weight: bold; line-height: 1.5;">
+                                            &#128231; {{i18n.link_will_arrive}}
+                                        </p>
+                                        <p style="margin: 12px 0 0 0; font-size: 14px; color: #9bb0c4; line-height: 1.5;">
+                                            {{i18n.no_need_save_live}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- How it works -->
+                    <tr>
+                        <td style="padding: 0 24px 28px 24px;">
+                            <table width="100%" cellpadding="0" cellspacing="0">
+                                <tr>
+                                    <td width="3" style="background-color: #7ba3c9; border-radius: 2px;"></td>
+                                    <td style="padding: 16px 0 16px 20px;">
+                                        <p style="margin: 0 0 14px 0; font-size: 14px; color: #7ba3c9; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px;">
+                                            {{i18n.how_it_works}}
+                                        </p>
+                                        <p style="margin: 0 0 10px 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; {{i18n.conferma_live_bullet_1}}
+                                        </p>
+                                        <p style="margin: 0 0 10px 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; {{i18n.conferma_live_bullet_2}}
+                                        </p>
+                                        <p style="margin: 0; font-size: 16px; color: #d4627a; line-height: 1.6; font-weight: bold;">
+                                            &#9670;&nbsp; {{i18n.conferma_live_bullet_3}}
+                                        </p>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Separator -->
+                    <tr>
+                        <td style="padding: 0 40px 12px 40px;">
+                            <table width="100%" cellpadding="0" cellspacing="0"><tr><td style="border-top: 1px solid rgba(123,163,201,0.2); font-size: 0; height: 1px;">&nbsp;</td></tr></table>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 16px 24px 22px 24px;">
+                            <p style="color: #9bb0c4; font-size: 13px; line-height: 1.6; margin: 0; text-align: center;">
+                                {{i18n.questions_write_to}} contact@osseotouch.com
+                            </p>
+                            <p style="color: #4a5a6a; font-size: 11px; line-height: 1.6; margin: 8px 0 0 0; text-align: center;">
+                                Osseotouch &mdash; contact@osseotouch.com
+                            </p>
+                            <p style="color: #3a4a5a; font-size: 10px; line-height: 1.4; margin: 6px 0 0 0; text-align: center;">
+                                {{i18n.copyright_line}}
+                            </p>
+                        </td>
+                    </tr>
+
+                            </table>
+                        </td>
+                    </tr>
+                </table>
+                <!--[if gte mso 9]>
+                </v:textbox>
+                </v:rect>
+                <![endif]-->
+            </td>
+        </tr>
+    </table>
+</body>
+</html>
