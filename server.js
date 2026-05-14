@@ -384,13 +384,13 @@ async function sendMailgunEmail(to, subject, html, tag, fromOverride) {
             body: formData
         });
 
+        const text = await response.text();
         if (response.ok) {
             console.log(`[Mailgun] Email inviata a ${to} (tag: ${tag})`);
-            return { ok: true };
+            return { ok: true, status: response.status, response: text };
         } else {
-            const text = await response.text();
             console.error(`[Mailgun] Errore ${response.status}: ${text.substring(0, 200)}`);
-            return { ok: false, error: `HTTP ${response.status}: ${text.substring(0, 200)}` };
+            return { ok: false, status: response.status, response: text, error: `HTTP ${response.status}: ${text.substring(0, 200)}` };
         }
     } catch (err) {
         console.error(`[Mailgun] Errore invio a ${to}:`, err.message);
@@ -500,7 +500,7 @@ async function sendWebinarEmail(emailType, webinarTag, to, zoomLink, tag) {
         html = html.replace(new RegExp(`\\{\\{i18n\\.${k}\\}\\}`, 'g'), String(v));
     }
 
-    await sendMailgunEmail(to, subject, html, tag);
+    return await sendMailgunEmail(to, subject, html, tag);
 }
 
 // Middleware
@@ -7897,40 +7897,14 @@ app.post('/api/webinar/send-reminder-test', requireAdmin, async (req, res) => {
             return res.json({ ok: false, error: `Nessun link Zoom trovato per ${to}. Verificare che sia iscritto al webinar.` });
         }
 
-        // Carica template
-        const templatePath = path.join(__dirname, 'templates', 'WEBINAR_REMINDER.html');
-        let html = fs.readFileSync(templatePath, 'utf-8');
-        html = html.replace(/\{\{nome_webinar\}\}/g, data.nome_webinar);
-        html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
-        html = html.replace(/\{\{relatore\}\}/g, data.relatore);
-        html = html.replace(/\{\{link_zoom\}\}/g, zoomLink);
-        html = html.replace(/\{\{link_followup\}\}/g, (data.link_followup || '#') + '?e=' + Buffer.from(to.toLowerCase()).toString('base64'));
-        html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
+        // Invio via sendWebinarEmail (sistema unificato: sceglie WEBINAR_REMINDER_LIVE.html + i18n da WEBINAR_DATA[tag])
+        const result = await sendWebinarEmail('REMINDER', tag, to, zoomLink, 'WEBINAR_REMINDER_' + tag);
+        console.log(`[Webinar Reminder Test] Mailgun status=${result && result.status}, response=${result && result.response}`);
 
-        // Invio diretto Mailgun con risposta completa
-        const url = `${CONFIG.MAILGUN_BASE_URL}/${CONFIG.MAILGUN_DOMAIN}/messages`;
-        const formData = new URLSearchParams();
-        formData.append('from', CONFIG.MAILGUN_FROM);
-        formData.append('to', to);
-        formData.append('subject', data.subject_reminder);
-        formData.append('html', html);
-        formData.append('o:tag', 'WEBINAR_REMINDER_' + tag);
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Basic ' + Buffer.from('api:' + CONFIG.MAILGUN_API_KEY).toString('base64')
-            },
-            body: formData
-        });
-
-        const responseText = await response.text();
-        console.log(`[Webinar Reminder Test] Mailgun status=${response.status}, response=${responseText}`);
-
-        if (response.ok) {
-            res.json({ ok: true, email: to, zoom_link: zoomLink, mailgun_status: response.status, mailgun_response: responseText });
+        if (result && result.ok) {
+            res.json({ ok: true, email: to, zoom_link: zoomLink, mailgun_status: result.status, mailgun_response: result.response });
         } else {
-            res.json({ ok: false, email: to, mailgun_status: response.status, mailgun_response: responseText });
+            res.json({ ok: false, email: to, mailgun_status: result && result.status, mailgun_response: result && result.response, error: result && result.error });
         }
     } catch (err) {
         console.error('[Webinar Reminder Test]', err);
@@ -8315,43 +8289,14 @@ app.post('/api/webinar/send-followup-test', requireAdmin, async (req, res) => {
     }
 
     try {
-        // Carica template
-        const templatePath = path.join(__dirname, 'templates', 'WEBINAR_FOLLOWUP.html');
-        let html = fs.readFileSync(templatePath, 'utf-8');
+        // Invio via sendWebinarEmail (sceglie WEBINAR_FOLLOWUP_LIVE.html o _RECORDED.html in base a WEBINAR_DATA[tag].tipo)
+        const result = await sendWebinarEmail('FOLLOWUP', tag, to, null, 'WEBINAR_FOLLOWUP_' + tag);
+        console.log(`[Webinar Followup Test] Mailgun status=${result && result.status}, response=${result && result.response}`);
 
-        // Sostituisci placeholder
-        html = html.replace(/\{\{nome_webinar\}\}/g, data.nome_webinar);
-        html = html.replace(/\{\{data_webinar\}\}/g, data.data_webinar);
-        html = html.replace(/\{\{relatore\}\}/g, data.relatore);
-        html = html.replace(/\{\{link_zoom\}\}/g, '#');
-        const followupUrl = (data.link_followup || '#') + '?e=' + Buffer.from(to.toLowerCase()).toString('base64');
-        html = html.replace(/\{\{link_followup\}\}/g, followupUrl);
-        html = html.replace(/\{\{link_webinar\}\}/g, data.link_webinar || '#');
-
-        // Invio diretto Mailgun con risposta completa
-        const url = `${CONFIG.MAILGUN_BASE_URL}/${CONFIG.MAILGUN_DOMAIN}/messages`;
-        const formData = new URLSearchParams();
-        formData.append('from', CONFIG.MAILGUN_FROM);
-        formData.append('to', to);
-        formData.append('subject', data.subject_followup);
-        formData.append('html', html);
-        formData.append('o:tag', 'WEBINAR_FOLLOWUP_' + tag);
-
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: {
-                'Authorization': 'Basic ' + Buffer.from('api:' + CONFIG.MAILGUN_API_KEY).toString('base64')
-            },
-            body: formData
-        });
-
-        const responseText = await response.text();
-        console.log(`[Webinar Followup Test] Mailgun status=${response.status}, response=${responseText}`);
-
-        if (response.ok) {
-            res.json({ ok: true, email: to, mailgun_status: response.status, mailgun_response: responseText });
+        if (result && result.ok) {
+            res.json({ ok: true, email: to, mailgun_status: result.status, mailgun_response: result.response });
         } else {
-            res.json({ ok: false, email: to, mailgun_status: response.status, mailgun_response: responseText });
+            res.json({ ok: false, email: to, mailgun_status: result && result.status, mailgun_response: result && result.response, error: result && result.error });
         }
     } catch (err) {
         console.error('[Webinar Followup Test]', err);
