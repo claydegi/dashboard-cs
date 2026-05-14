@@ -6393,7 +6393,7 @@ app.post('/api/webinar-boschini/register', async (req, res) => {
 });
 
 // ==================== WEBINAR ABUNDO ELEVATE (6 luglio 2026) ====================
-// Email conferma: usa template dedicato WEBINAR_CONFERMA_ABUNDO.html (bio Arcara rimossa)
+// Webinar live IT — usa WEBINAR_CONFERMA_LIVE.html via TEMPLATE_MAP in sendWebinarEmail
 app.post('/api/webinar-abundo/register', async (req, res) => {
     const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
     if (!nome || !cognome || !email || !citta || !ha_mm) {

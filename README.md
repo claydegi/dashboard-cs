@@ -414,16 +414,35 @@ server-side (SUTURE).
 
 ### Templates Mailgun (`templates/`)
 
-Sei template HTML per email transazionali webinar:
+Sette template HTML neutri per email transazionali webinar, parametrizzati
+via placeholder `{{...}}` e stringhe i18n:
 
-| File | Uso |
+| File | Quando viene usato |
 |---|---|
-| `WEBINAR_INVITO.html` | Invito alla registrazione |
-| `WEBINAR_CONFERMA.html` | Conferma post-registrazione (link Zoom) |
-| `WEBINAR_REMINDER.html` | Reminder pre-evento |
-| `WEBINAR_FOLLOWUP.html` | Follow-up post-webinar |
-| `WEBINAR_REPLAY_ACCESSO.html` | Accesso replay generico |
-| `WEBINAR_REPLAY_ACCESSO_TARDANI.html` | Accesso replay specifico per webinar Tardani |
+| `WEBINAR_CONFERMA_LIVE.html` | Conferma post-registrazione, webinar **live** |
+| `WEBINAR_CONFERMA_RECORDED.html` | Conferma post-registrazione, webinar **recorded** |
+| `WEBINAR_INVITO_LIVE.html` | Invito alla registrazione, webinar **live** |
+| `WEBINAR_REMINDER_LIVE.html` | Reminder pre-evento, webinar **live** |
+| `WEBINAR_FOLLOWUP_LIVE.html` | Follow-up dopo evento live |
+| `WEBINAR_FOLLOWUP_RECORDED.html` | Follow-up dopo visione registrazione |
+| `WEBINAR_REPLAY_ACCESSO_RECORDED.html` | Accesso recording, webinar **recorded** |
+
+La scelta del file giusto è automatica:
+- `sendWebinarEmail(emailType, webinarTag, ...)` usa `WEBINAR_DATA[tag].tipo`
+  (`'live'` o `'recorded'`) per scegliere la variante.
+- Le stringhe UI ricorrenti (badge, label, bullets, footer) vivono in
+  `WEBINAR_I18N` (`it`, `en`), risolte via `{{i18n.<chiave>}}` in base a
+  `WEBINAR_DATA[tag].lang`.
+- I dati specifici (nome webinar, relatore, bio, data, immagine sfondo,
+  orario, CTA, bullets invito, link follow-up, ecc.) vivono in
+  `WEBINAR_DATA[tag]`.
+
+Per **aggiungere un nuovo webinar** basta una entry in `WEBINAR_DATA` con
+i campi: `nome_webinar`, `data_webinar`, `relatore`, `bio_relatore`,
+`image_bg_url`, `lang`, `tipo`, `orario_live`, i cinque `subject_*`,
+`link_webinar`, `link_followup`, `video_campagna`, i `cta_*` e gli
+`invito_*` (titolo/sottotitolo/data_full/bullets). **Nessun nuovo file
+HTML.**
 
 Convenzione: `MAIUSCOLO_SNAKE_CASE.html`. Niente template engine: il
 codice esegue raw string-replace dei placeholder. Template per altri
@@ -600,7 +619,6 @@ file archiviati. **Nessuno è runtime**, nessuno è importato da `server.js`.
 | Tema | Descrizione | Direzione futura |
 |---|---|---|
 | BLOB nel DB | `fatture.pdf_base64`, `freelancer_attachments.file_base64`, `forum_topics.immagine_base64`, `forum_replies.immagine_base64` crescono nel tempo | Quando il volume diventa rilevante: valutare migrazione a Cloudflare R2 |
-| Template duplication | `WEBINAR_REPLAY_ACCESSO_TARDANI.html` è copia personalizzata del generico | Quando un terzo webinar richiederà il proprio template: introdurre placeholder + parametrizzazione, oppure template engine minimale |
 | Viste duplicate con JAN34 | `magnetic-mallet.html`, `cadaver-lab-verona.html`, `privacy-policy.html` coesistono con equivalenti su `osseotouch.com` | Decidere la versione canonica e impostare redirect |
 | Schema DB inline in `server.js` | `initDB()` cresce a ogni nuova tabella; nessun migration tool | Estrazione a file dedicato e/o introduzione tool tipo Knex/Prisma migrate quando il dolore lo giustifica |
 
