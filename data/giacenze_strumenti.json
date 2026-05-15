@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-14T08:15:10.458164",
+  "timestamp": "2026-05-15T08:16:18.624701",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -18,8 +18,8 @@
         },
         "FPCEXTR3-RVS": {
           "meta": 162,
-          "osnrgy": 32,
-          "totale": 194,
+          "osnrgy": 31,
+          "totale": 193,
           "found": true
         },
         "FPCEXTR4": {
@@ -168,8 +168,8 @@
         },
         "FPCEXTR3-RVS": {
           "meta": 162,
-          "osnrgy": 32,
-          "totale": 194,
+          "osnrgy": 31,
+          "totale": 193,
           "found": true
         },
         "FPCEXTR4": {
@@ -383,43 +383,43 @@
       "nome": "Kit Easy-in 20°",
       "componenti": {
         "AZ100-20": {
-          "meta": 20,
+          "meta": 19,
           "osnrgy": 50,
-          "totale": 70,
+          "totale": 69,
           "found": true
         },
         "AZ100P-20": {
-          "meta": 8,
+          "meta": 7,
           "osnrgy": 49,
-          "totale": 57,
+          "totale": 56,
           "found": true
         },
         "AZ160-20": {
-          "meta": 36,
+          "meta": 35,
           "osnrgy": 48,
-          "totale": 84,
+          "totale": 83,
           "found": true
         },
         "AZ200-20": {
-          "meta": 27,
+          "meta": 26,
           "osnrgy": 44,
-          "totale": 71,
+          "totale": 70,
           "found": true
         },
         "AZ230-20": {
-          "meta": 25,
+          "meta": 24,
           "osnrgy": 46,
-          "totale": 71,
+          "totale": 70,
           "found": true
         },
         "AZ300-20": {
-          "meta": 20,
+          "meta": 19,
           "osnrgy": 46,
-          "totale": 66,
+          "totale": 65,
           "found": true
         }
       },
-      "disponibilita": 57,
+      "disponibilita": 56,
       "bottleneck": "AZ100P-20"
     },
     "black_ruby": {
