@@ -652,6 +652,10 @@ async function initDB() {
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS email_odoo TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS odoo_match_method TEXT`);
         await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS odoo_match_at TIMESTAMPTZ`);
+        // Migrazione 2026-05-18: flag timestamp migrazione verso KESSEL Bronze
+        // Vedi KESSEL/skills/migrazione-iniziale-kessel-bronze.md § "Chiusura migrazione"
+        await client.query(`ALTER TABLE crm_contatti ADD COLUMN IF NOT EXISTS migrato_in_kessel_at TIMESTAMPTZ`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_migrato_in_kessel ON crm_contatti(migrato_in_kessel_at) WHERE migrato_in_kessel_at IS NOT NULL`);
         // UNIQUE su odoo_partner_id (impedisce 2 record CRM con stesso partner Odoo) + indice email_odoo per lookup veloce
         await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS idx_crm_contatti_odoo_partner_id ON crm_contatti(odoo_partner_id) WHERE odoo_partner_id IS NOT NULL`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_crm_contatti_email_odoo ON crm_contatti(email_odoo) WHERE email_odoo IS NOT NULL`);
@@ -4036,6 +4040,58 @@ app.put('/api/crm/contatti/:id/whatsapp', requireAdmin, async (req, res) => {
     } catch (err) {
         console.error('[CRM WhatsApp Toggle]', err);
         res.status(500).json({ error: 'Errore server' });
+    }
+});
+
+// PUT /api/crm/contatti/:id/migrato-in-kessel
+// Imposta il timestamp di migrazione verso KESSEL Bronze.
+// Usato dalla skill `migrazione-iniziale-kessel-bronze` a fine ingest.
+// Body opzionale: { "timestamp": "ISO_DATE" } per timestamp esplicito,
+// altrimenti usa NOW(). Transazione atomica: UPDATE + INSERT audit log.
+app.put('/api/crm/contatti/:id/migrato-in-kessel', requireAdmin, async (req, res) => {
+    const contattoId = parseInt(req.params.id, 10);
+    if (!Number.isInteger(contattoId) || contattoId <= 0) {
+        return res.status(400).json({ error: 'id non valido (deve essere intero positivo)' });
+    }
+    let timestampEsplicito = null;
+    if (req.body && req.body.timestamp !== undefined) {
+        const parsed = new Date(req.body.timestamp);
+        if (isNaN(parsed.getTime())) {
+            return res.status(400).json({ error: 'timestamp non valido (formato ISO atteso)' });
+        }
+        timestampEsplicito = parsed;
+    }
+    const client = await pool.connect();
+    try {
+        await client.query('BEGIN');
+        const updateResult = timestampEsplicito
+            ? await client.query(
+                `UPDATE crm_contatti SET migrato_in_kessel_at = $1 WHERE id = $2 RETURNING id, migrato_in_kessel_at`,
+                [timestampEsplicito, contattoId]
+              )
+            : await client.query(
+                `UPDATE crm_contatti SET migrato_in_kessel_at = NOW() WHERE id = $1 RETURNING id, migrato_in_kessel_at`,
+                [contattoId]
+              );
+        if (updateResult.rows.length === 0) {
+            await client.query('ROLLBACK');
+            return res.status(404).json({ error: 'Contatto non trovato' });
+        }
+        const newTs = updateResult.rows[0].migrato_in_kessel_at;
+        await client.query(
+            `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
+             VALUES ('migrato_in_kessel', $1, $2)`,
+            [contattoId, JSON.stringify({ migrato_in_kessel_at: newTs })]
+        );
+        await client.query('COMMIT');
+        console.log(`[KESSEL] Contatto ${contattoId} marcato come migrato in KESSEL at ${newTs}`);
+        res.json({ ok: true, id: contattoId, migrato_in_kessel_at: newTs });
+    } catch (err) {
+        await client.query('ROLLBACK');
+        console.error('[KESSEL Migrazione Flag]', err);
+        res.status(500).json({ error: 'Errore server' });
+    } finally {
+        client.release();
     }
 });
 
