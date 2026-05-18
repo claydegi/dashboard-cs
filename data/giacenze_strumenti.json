@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-05-15T08:16:18.624701",
+  "timestamp": "2026-05-18T08:15:10.300186",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -88,8 +88,8 @@
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 72,
-          "totale": 72,
+          "osnrgy": 71,
+          "totale": 71,
           "found": true
         },
         "BXO-DISTAL": {
@@ -99,7 +99,7 @@
           "found": true
         }
       },
-      "disponibilita": 72,
+      "disponibilita": 71,
       "bottleneck": "BXO-MESIAL",
       "note": "4 strumenti vendibili separatamente o con Pathfinder"
     },
@@ -144,8 +144,8 @@
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 72,
-          "totale": 72,
+          "osnrgy": 71,
+          "totale": 71,
           "found": true
         },
         "BXO-DISTAL": {
