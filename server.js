@@ -5971,6 +5971,10 @@ app.get('/webinar-tardani-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-followup.html'));
 });
 
+app.get('/webinar-boschini-followup', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-boschini-followup.html'));
+});
+
 app.get('/webinar-tardani-registrazione', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-registrazione.html'));
 });
