@@ -5734,7 +5734,8 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
             return res.json({ ok: true, messaggio: 'Nessun partecipante trovato su Zoom', totale: 0 });
         }
 
-        // Aggrega per email: somma durate, prendi primo join e ultimo leave
+        // Aggrega per email: wallclock duration = max(leave_time) - min(join_time)
+        // Evita overcounting da multi-device parallelo (es. utente con PC + smartphone aperti insieme).
         const aggregated = {};
         for (const p of allParticipants) {
             const email = (p.user_email || '').toLowerCase().trim();
@@ -5751,9 +5752,6 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
                 };
             }
 
-            // Somma durata (Zoom la da in secondi)
-            aggregated[email].durata_minuti += Math.round((p.duration || 0) / 60);
-
             // Primo join
             if (p.join_time && (!aggregated[email].join_time || p.join_time < aggregated[email].join_time)) {
                 aggregated[email].join_time = p.join_time;
@@ -5761,6 +5759,16 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
             // Ultimo leave
             if (p.leave_time && (!aggregated[email].leave_time || p.leave_time > aggregated[email].leave_time)) {
                 aggregated[email].leave_time = p.leave_time;
+            }
+        }
+
+        // Calcola durata wallclock per ogni partecipante (no overcounting multi-device)
+        for (const email in aggregated) {
+            const a = aggregated[email];
+            if (a.join_time && a.leave_time) {
+                const start = new Date(a.join_time);
+                const end = new Date(a.leave_time);
+                a.durata_minuti = Math.max(0, Math.round((end - start) / 60000));
             }
         }
 
