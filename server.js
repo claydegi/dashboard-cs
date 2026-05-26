@@ -5967,6 +5967,10 @@ app.get('/webinar-arcara-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-arcara-followup.html'));
 });
 
+app.get('/webinar-followup-boschini-en', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'webinar-followup-boschini-en.html'));
+});
+
 app.get('/webinar-tardani-followup', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'webinar-tardani-followup.html'));
 });
