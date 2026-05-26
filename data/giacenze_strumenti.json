@@ -1,19 +1,19 @@
 {
-  "timestamp": "2026-05-25T08:15:13.050142",
+  "timestamp": "2026-05-26T08:15:06.896388",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
-          "meta": 88,
-          "osnrgy": 0,
-          "totale": 88,
+          "meta": 21,
+          "osnrgy": 66,
+          "totale": 87,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 162,
-          "osnrgy": 17,
-          "totale": 179,
+          "osnrgy": 16,
+          "totale": 178,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -35,7 +35,7 @@
           "found": true
         }
       },
-      "disponibilita": 88,
+      "disponibilita": 87,
       "bottleneck": "FPCEXTR1",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -155,15 +155,15 @@
           "found": true
         },
         "FPCEXTR1": {
-          "meta": 88,
-          "osnrgy": 0,
-          "totale": 88,
+          "meta": 21,
+          "osnrgy": 66,
+          "totale": 87,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 162,
-          "osnrgy": 17,
-          "totale": 179,
+          "osnrgy": 16,
+          "totale": 178,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -361,20 +361,20 @@
         },
         "FPCGENOA2": {
           "meta": 179,
-          "osnrgy": 25,
-          "totale": 204,
+          "osnrgy": 24,
+          "totale": 203,
           "found": true
         },
         "FPCGENOA3": {
           "meta": 149,
-          "osnrgy": 24,
-          "totale": 173,
+          "osnrgy": 23,
+          "totale": 172,
           "found": true
         }
       },
       "configurazioni": {
         "Base (5pcs)": 86,
-        "Genoa (3pcs)": 173,
+        "Genoa (3pcs)": 172,
         "Plus (8pcs)": 86
       },
       "note": "Plus = Base + Genoa venduti insieme"
@@ -433,30 +433,30 @@
         },
         "FPCBLKR2": {
           "meta": 17,
-          "osnrgy": 29,
-          "totale": 46,
+          "osnrgy": 31,
+          "totale": 48,
           "found": true
         },
         "FPCBLKR3": {
           "meta": 19,
-          "osnrgy": 15,
-          "totale": 34,
+          "osnrgy": 14,
+          "totale": 33,
           "found": true
         },
         "FPCBLKR4": {
           "meta": 19,
-          "osnrgy": 24,
-          "totale": 43,
+          "osnrgy": 23,
+          "totale": 42,
           "found": true
         },
         "FPCBLKR5": {
           "meta": 19,
-          "osnrgy": 39,
-          "totale": 58,
+          "osnrgy": 40,
+          "totale": 59,
           "found": true
         }
       },
-      "disponibilita": 34,
+      "disponibilita": 33,
       "bottleneck": "FPCBLKR3"
     },
     "elevate": {
@@ -598,8 +598,8 @@
         },
         "OSPT1": {
           "meta": 0,
-          "osnrgy": 29,
-          "totale": 29,
+          "osnrgy": 28,
+          "totale": 28,
           "found": true
         },
         "OSPT2": {
@@ -653,7 +653,7 @@
       },
       "configurazioni": {
         "Kit completo (10 componenti)": 0,
-        "Set 3 osteotomi (vendita separata)": 29
+        "Set 3 osteotomi (vendita separata)": 28
       },
       "bottleneck": {
         "kit_completo": "PT1FR22",
@@ -807,8 +807,8 @@
         },
         "CEP3.5": {
           "meta": -5,
-          "osnrgy": 390,
-          "totale": 385,
+          "osnrgy": 375,
+          "totale": 370,
           "found": true
         }
       },
@@ -819,7 +819,7 @@
       "pins_disponibili": {
         "CEP2.7 (2.7mm - 5pcs)": 0,
         "CEP3.1 (3.1mm - 5pcs)": 165,
-        "CEP3.5 (3.5mm - 5pcs)": 385
+        "CEP3.5 (3.5mm - 5pcs)": 370
       },
       "note": "Pin venduti separatamente in confezioni da 5"
     },
