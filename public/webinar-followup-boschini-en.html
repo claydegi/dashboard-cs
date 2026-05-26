@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>18 Months of Blexo — Next-Generation Extractors | OSSEOTOUCH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background: #061220;
+            overflow-x: hidden;
+        }
+
+        .bg-waves {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0; opacity: 0.45;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(6,18,32,0.3) 0%, rgba(6,18,32,0.65) 40%, rgba(6,18,32,0.9) 100%);
+            z-index: 1;
+        }
+        .page-content { position: relative; z-index: 2; }
+
+        .header {
+            padding: 18px 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header img { height: 52px; filter: brightness(0) invert(1); }
+
+        /* Hero */
+        .hero {
+            max-width: 900px;
+            margin: 20px auto 0;
+            padding: 0 40px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 32px; font-weight: 800; line-height: 1.3;
+            margin-bottom: 12px;
+        }
+        .hero h1 .highlight { color: #00b4d8; }
+        .hero p {
+            font-size: 16px; color: #b0bec5; line-height: 1.7;
+        }
+
+        /* Sections container */
+        .sections {
+            max-width: 1100px;
+            margin: 40px auto 0;
+            padding: 0 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 36px;
+            align-items: stretch;
+        }
+
+        /* Video card */
+        .video-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .video-card .card-label { color: #00b4d8; }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            border-radius: 10px;
+        }
+
+        /* Card section */
+        .offer-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 36px 32px;
+            display: flex;
+            gap: 28px;
+            align-items: center;
+        }
+        .offer-card .card-icon {
+            flex-shrink: 0;
+            width: 80px; height: 80px;
+            border-radius: 14px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 40px;
+        }
+        .offer-card .card-body { flex: 1; }
+        .card-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; margin-bottom: 6px;
+        }
+        .card-title {
+            font-size: 22px; font-weight: 800; line-height: 1.3;
+            margin-bottom: 8px;
+        }
+        .card-desc {
+            font-size: 15px; color: #b0bec5; line-height: 1.7;
+            margin-bottom: 20px;
+        }
+
+        /* Buttons */
+        .cta-buttons {
+            display: flex; gap: 14px; flex-wrap: wrap; align-items: center;
+        }
+
+        .btn-stripe-kit {
+            display: inline-flex; align-items: center; gap: 10px;
+            padding: 16px 32px;
+            background: linear-gradient(135deg, #8b5cf6, #6d28d9);
+            color: #ffffff; border: none; border-radius: 8px;
+            font-size: 16px; font-weight: 700; text-decoration: none;
+            transition: transform 0.2s, box-shadow 0.2s;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .btn-stripe-kit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(139, 92, 246, 0.35);
+        }
+
+        .btn-email {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 14px 24px;
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #ffffff; border-radius: 8px;
+            font-size: 14px; font-weight: 600;
+            text-decoration: none; transition: transform 0.2s, background 0.2s;
+            letter-spacing: 0.3px;
+        }
+        .btn-email:hover {
+            transform: translateY(-2px);
+            background: rgba(255,255,255,0.12);
+        }
+
+        /* Kit card with image */
+        .kit-card-layout {
+            display: flex; gap: 28px; align-items: center;
+        }
+        .kit-image {
+            flex: 0 0 280px;
+            border-radius: 12px; overflow: hidden;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .kit-image img {
+            width: 100%; display: block;
+            border-radius: 12px;
+        }
+        .kit-card-body { flex: 1; }
+
+        .kit-accent .card-label { color: #8b5cf6; }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 36px 24px 24px;
+            color: #37474f; font-size: 11px;
+        }
+
+        /* Responsive */
+        @media (max-width: 700px) {
+            .hero { padding: 0 20px; }
+            .hero h1 { font-size: 24px; }
+            .sections { padding: 0 20px; }
+            .offer-card {
+                flex-direction: column; text-align: center;
+                padding: 28px 22px;
+            }
+            .cta-buttons { justify-content: center; }
+            .kit-card-layout {
+                flex-direction: column;
+            }
+            .kit-image { flex: none; width: 100%; max-width: 300px; margin: 0 auto; }
+            .kit-card-body { text-align: center; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="page-content">
+
+        <!-- Header -->
+        <div class="header">
+            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+
+        <!-- Hero -->
+        <div class="hero">
+            <h1>18 Months of <span class="highlight">BLEXO</span> &mdash; Next-Generation Extractors</h1>
+            <p>
+                Watch the full recording of Dr. Luca Boschini's webinar and discover the Blexo Kit
+                designed for atraumatic tooth extractions with Magnetic Mallet.
+            </p>
+        </div>
+
+        <!-- Sections -->
+        <div class="sections">
+
+            <!-- Video del webinar (con tracking watch time) -->
+            <div class="video-card">
+                <div class="card-label" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:2px;margin-bottom:0;">Watch the webinar</div>
+                <div class="card-title" style="font-size:20px;font-weight:800;line-height:1.3;">18 Months of Blexo &mdash; Atraumatic Extractions with Magnetic Mallet</div>
+                <div class="video-wrapper">
+                    <div id="ytPlayer"></div>
+                </div>
+                <p style="font-size:14px;color:#b0bec5;line-height:1.6;margin:0;">
+                    Dr. Luca Boschini shares 18 months of daily clinical practice with the Blexo line:
+                    Micro, Slim, Long Root, Angle Fit and Pathfinders. Real cases, recommended power settings,
+                    autotransplantation, and how to preserve the alveolus for immediate implants.
+                </p>
+            </div>
+
+            <!-- Kit Blexo -->
+            <div class="offer-card kit-accent" style="padding: 0; overflow: hidden;">
+                <div class="kit-card-layout" style="width: 100%;">
+                    <div class="kit-image">
+                        <img src="https://www.osseotouch.com/images/blexo/bxo-kit-hero.webp" alt="Blexo Kit for Magnetic Mallet">
+                    </div>
+                    <div class="kit-card-body" style="padding: 32px 28px 32px 0;">
+                        <div class="card-label">For your practice</div>
+                        <div class="card-title">BLEXO Complete Kit</div>
+                        <p class="card-desc">
+                            8 next-generation extractors (4 Pathfinders + 4 AngleFit) &mdash;
+                            Micro, Slim, Long Root, Arch, Mesial, Distal, RightSide, LeftSide.
+                            Includes a free All-In Box (Radel, 12 instruments) worth $240.
+                        </p>
+
+                        <div style="display:inline-block;background:rgba(139,92,246,0.12);border:1px solid rgba(139,92,246,0.3);border-radius:8px;padding:8px 18px;margin-bottom:22px;">
+                            <span style="font-size:28px;font-weight:800;color:#a78bfa;">$1,080</span>
+                            <span style="font-size:13px;color:#78909c;margin-left:4px;">USD</span>
+                        </div>
+
+                        <div class="cta-buttons">
+                            <a href="https://www.osseotouch.com/en/shop/#blexo-complete" class="btn-stripe-kit" target="_blank" rel="noopener">
+                                &#128722;&nbsp; Get the kit
+                            </a>
+                            <a href="https://www.osseotouch.com/en/devices/magnetic-mallet/blexo/" class="btn-email" target="_blank" rel="noopener">
+                                &#128279;&nbsp; Visit product page
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </div>
+
+    </div>
+
+    <script>
+    (function() {
+        // === Video Tracking (YouTube IFrame API) ===
+        var VIDEO_ID = 'C6fdcYbgwx8';
+        var CAMPAGNA = 'BLEXO_SF_WEBINAR_BOSCHINI_EN_REC';
+        var WEBINAR_TAG = 'WEBINAR_BOSCHINI_BLEXO_EN';
+        var trackingEmail = null;
+        var ytPlayer = null;
+        var trackingInterval = null;
+        var params = new URLSearchParams(window.location.search);
+
+        // Decode email from base64 param
+        try {
+            var eParam = params.get('e');
+            if (eParam) trackingEmail = atob(eParam).trim().toLowerCase();
+        } catch(ex) {}
+
+        // Track followup page open (if email present)
+        if (trackingEmail) {
+            fetch('/api/video-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA, evento: 'landing_open',
+                    secondi_visti: 0, durata_totale: 0, percentuale: 0
+                })
+            }).catch(function(){});
+        }
+
+        // Track click-through: registra visita landing + 20 punti score (skip per replay)
+        var fromReplay = params.get('from') === 'replay';
+        if (trackingEmail && !fromReplay) {
+            fetch('/api/webinar/track-followup-click', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: trackingEmail, webinar_tag: WEBINAR_TAG })
+            }).catch(function(){});
+        }
+
+        function inviaVideoEvento(evento, secondi, durata, pct) {
+            if (!trackingEmail) return;
+            try {
+                fetch('/api/video-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: trackingEmail, campagna: CAMPAGNA, evento: evento,
+                        secondi_visti: secondi || 0, durata_totale: durata || 0, percentuale: pct || 0
+                    })
+                });
+            } catch(e) {}
+        }
+
+        // Load YouTube IFrame API
+        var ytTag = document.createElement('script');
+        ytTag.src = 'https://www.youtube.com/iframe_api';
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(ytTag, firstScript);
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayer = new YT.Player('ytPlayer', {
+                videoId: VIDEO_ID,
+                playerVars: { rel: 0, modestbranding: 1 },
+                events: { 'onStateChange': onYTStateChange }
+            });
+        };
+
+        function onYTStateChange(event) {
+            if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+            var secondi = Math.floor(ytPlayer.getCurrentTime());
+            var durata = Math.floor(ytPlayer.getDuration());
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaVideoEvento('play', secondi, durata, pct);
+                if (!trackingInterval) {
+                    trackingInterval = setInterval(function() {
+                        if (ytPlayer && ytPlayer.getPlayerState && ytPlayer.getPlayerState() === YT.PlayerState.PLAYING) {
+                            var s = Math.floor(ytPlayer.getCurrentTime());
+                            var d = Math.floor(ytPlayer.getDuration());
+                            var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                            inviaVideoEvento('progress', s, d, p);
+                        }
+                    }, 5000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                inviaVideoEvento('pause', secondi, durata, pct);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                inviaVideoEvento('ended', durata, durata, 100);
+                if (trackingInterval) { clearInterval(trackingInterval); trackingInterval = null; }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (ytPlayer && ytPlayer.getCurrentTime) {
+                var s = Math.floor(ytPlayer.getCurrentTime());
+                var d = Math.floor(ytPlayer.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
