@@ -1,0 +1,51 @@
+#!/bin/bash
+# pre-commit guardrail - DASHBOARD CS - disciplina Git OSSEOTOUCH (FU-3)
+# Scopo: BLOCCARE errori (staging vuoto, commit troppo largo, .env/secret, ambiente non sano).
+#        NON automatizza nulla. Eccezione reale per un singolo commit: git commit --no-verify
+set -u
+MAX_FILES=25
+
+blocca() {
+    echo ""
+    echo "=================================================================="
+    echo " COMMIT BLOCCATO - guardrail pre-commit (DASHBOARD CS)"
+    echo "=================================================================="
+    echo " Motivo: $1"
+    if [ -n "${2:-}" ]; then
+        echo ""
+        echo " $2"
+    fi
+    echo "=================================================================="
+    exit 1
+}
+
+# (1) Deve esserci almeno un file staged
+STAGED="$(git -c core.quotepath=false diff --cached --name-only)"
+if [ -z "$STAGED" ]; then
+    blocca "nessun file in staging." "Aggiungi i file con 'git add <file specifico>' (mai 'git add .')."
+fi
+NUM_FILES="$(printf '%s\n' "$STAGED" | grep -c .)"
+
+# (2) Commit troppo largo
+if [ "$NUM_FILES" -gt "$MAX_FILES" ] && [ "${DASHBOARD_ALLOW_WIDE_COMMIT:-}" != "1" ]; then
+    blocca "commit troppo largo: $NUM_FILES file staged (limite $MAX_FILES)." "Se davvero intenzionale: DASHBOARD_ALLOW_WIDE_COMMIT=1 git commit ..."
+fi
+
+# (3) File .env in staging (mai committare credenziali)
+ENVHIT="$(printf '%s\n' "$STAGED" | grep -E '(^|/)\.env($|\.)' || true)"
+if [ -n "$ENVHIT" ]; then
+    blocca "lo staging contiene file .env (credenziali)." "Rimuovi dallo staging: $ENVHIT"
+fi
+
+# (4) Possibile secret/token nel diff staged (NON stampa il valore)
+if git diff --cached -U0 -- . | grep -aEi 'sk_live_[A-Za-z0-9]{8}|sk_test_[A-Za-z0-9]{8}|ghp_[A-Za-z0-9]{20}|AKIA[0-9A-Z]{16}|AIza[0-9A-Za-z_-]{20}|-----BEGIN [A-Z ]*PRIVATE KEY|whsec_[A-Za-z0-9]{16}|xox[bpas]-[0-9A-Za-z-]{10}' >/dev/null 2>&1; then
+    blocca "possibile SECRET/token nel diff staged." "Rimuovi la credenziale prima del commit (il valore NON viene stampato). Override estremo: git commit --no-verify"
+fi
+
+# (5) origin/HEAD deve puntare a origin/main
+OH="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
+if [ "$OH" != "refs/remotes/origin/main" ]; then
+    blocca "origin/HEAD non punta a origin/main (attuale: '${OH:-non impostato}')." "Sistema con: git remote set-head origin main"
+fi
+
+exit 0

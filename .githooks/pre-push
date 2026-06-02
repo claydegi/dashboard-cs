@@ -1,0 +1,50 @@
+#!/bin/bash
+# pre-push guardrail - DASHBOARD CS - disciplina Git OSSEOTOUCH (FU-3)
+# Scopo: BLOCCARE push pericolosi su main (= DEPLOY Railway) e ambiente git non sano.
+#        NON blocca i push su branch dedicati (salvo errori strutturali).
+set -u
+
+blocca() {
+    echo ""
+    echo "=================================================================="
+    echo " PUSH BLOCCATO - guardrail pre-push (DASHBOARD CS)"
+    echo "=================================================================="
+    echo " Motivo: $1"
+    if [ -n "${2:-}" ]; then
+        echo ""
+        echo " $2"
+    fi
+    echo "=================================================================="
+    exit 1
+}
+
+# (3) Strutturale: origin/HEAD deve puntare a origin/main (vale per QUALSIASI push)
+OH="$(git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null || true)"
+if [ "$OH" != "refs/remotes/origin/main" ]; then
+    blocca "origin/HEAD non punta a origin/main (attuale: '${OH:-non impostato}')." "Errore strutturale. Sistema con: git remote set-head origin main"
+fi
+
+# Le ref da pushare arrivano da stdin: <local_ref> <local_sha> <remote_ref> <remote_sha>
+while read -r local_ref local_sha remote_ref remote_sha; do
+    [ -z "${remote_ref:-}" ] && continue
+
+    if [ "$remote_ref" = "refs/heads/main" ]; then
+        # (2) "comunque": blocca se il locale e' behind/divergente vs origin/main.
+        #     Questo blocco NON si aggira con DASHBOARD_ALLOW_MAIN_PUSH.
+        if ! [[ "$local_sha" =~ ^0+$ ]]; then
+            if git rev-parse --verify -q refs/remotes/origin/main >/dev/null; then
+                BEHIND="$(git rev-list --count "${local_sha}..refs/remotes/origin/main" 2>/dev/null || echo 0)"
+                if [ "${BEHIND:-0}" -gt 0 ]; then
+                    blocca "push su main ma il locale e' indietro/divergente di ${BEHIND} commit rispetto a origin/main." "Allinea il branch (senza reset --hard/clean/stash) prima di pushare. Blocco NON aggirabile con override."
+                fi
+            fi
+        fi
+        # (1) policy: niente push diretto su main (ogni push su main = DEPLOY Railway) salvo override
+        if [ "${DASHBOARD_ALLOW_MAIN_PUSH:-}" != "1" ]; then
+            blocca "push diretto su 'main' non consentito (ogni push su main fa DEPLOY Railway)." "Usa un branch dedicato + PR. Solo se sicuro e fast-forward: DASHBOARD_ALLOW_MAIN_PUSH=1 git push ..."
+        fi
+    fi
+    # (4) branch dedicati: nessun blocco oltre allo strutturale
+done
+
+exit 0

@@ -1,0 +1,3 @@
+# Line-ending LF per gli script Git di disciplina (bash hook + checker python). FU-3.
+.githooks/** text eol=lf
+tools/*.py text eol=lf
