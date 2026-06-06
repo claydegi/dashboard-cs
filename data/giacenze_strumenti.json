@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-05T08:34:09.990167",
+  "timestamp": "2026-06-06T08:39:39.126761",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -257,8 +257,8 @@
         },
         "FPC160": {
           "meta": 5,
-          "osnrgy": 11,
-          "totale": 16,
+          "osnrgy": 8,
+          "totale": 13,
           "found": true
         },
         "AZ160-C": {
@@ -316,7 +316,7 @@
           "found": true
         }
       },
-      "disponibilita": 120,
+      "disponibilita": 117,
       "bottleneck": "Slot 2 (FPC160+AZ160-C)",
       "note": "FPC e AZ intercambiabili per slot. Slot 6: priorità FPC300>FPC330"
     },
@@ -427,36 +427,36 @@
       "componenti": {
         "FPCBLKR1": {
           "meta": 41,
-          "osnrgy": 14,
-          "totale": 55,
+          "osnrgy": 13,
+          "totale": 54,
           "found": true
         },
         "FPCBLKR2": {
           "meta": 17,
-          "osnrgy": 31,
-          "totale": 48,
+          "osnrgy": 30,
+          "totale": 47,
           "found": true
         },
         "FPCBLKR3": {
           "meta": 19,
-          "osnrgy": 14,
-          "totale": 33,
+          "osnrgy": 13,
+          "totale": 32,
           "found": true
         },
         "FPCBLKR4": {
           "meta": 19,
-          "osnrgy": 23,
-          "totale": 42,
+          "osnrgy": 22,
+          "totale": 41,
           "found": true
         },
         "FPCBLKR5": {
           "meta": 19,
-          "osnrgy": 40,
-          "totale": 59,
+          "osnrgy": 39,
+          "totale": 58,
           "found": true
         }
       },
-      "disponibilita": 33,
+      "disponibilita": 32,
       "bottleneck": "FPCBLKR3"
     },
     "elevate": {
