@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bone Intelligence &mdash; Webinar Dr. Igor Dogocki &mdash; OSSEOTOUCH</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+            color: #ffffff;
+            min-height: 100vh;
+            background: #061220;
+            overflow-x: hidden;
+        }
+
+        .bg-waves {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: url('img/osseotouch-bg.png') center center / cover no-repeat;
+            z-index: 0; opacity: 0.45;
+        }
+        .bg-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: linear-gradient(180deg, rgba(6,18,32,0.3) 0%, rgba(6,18,32,0.65) 40%, rgba(6,18,32,0.9) 100%);
+            z-index: 1;
+        }
+        .page-content { position: relative; z-index: 2; }
+
+        .header {
+            padding: 18px 40px;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .header img { height: 52px; filter: brightness(0) invert(1); }
+
+        /* Hero */
+        .hero {
+            max-width: 900px;
+            margin: 20px auto 0;
+            padding: 0 40px;
+            text-align: center;
+        }
+        .hero h1 {
+            font-size: 32px; font-weight: 800; line-height: 1.3;
+            margin-bottom: 12px;
+        }
+        .hero h1 .highlight { color: #4DB6AC; }
+        .hero p {
+            font-size: 16px; color: #b0bec5; line-height: 1.7;
+        }
+        .hero .subs-note {
+            font-size: 13px; color: #78909c; margin-top: 8px;
+        }
+
+        /* Video container */
+        .video-section {
+            max-width: 960px;
+            margin: 36px auto 0;
+            padding: 0 40px;
+        }
+        .video-card {
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 16px;
+            padding: 28px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .video-card .card-label {
+            font-size: 11px; font-weight: 700; text-transform: uppercase;
+            letter-spacing: 2px; color: #4DB6AC;
+        }
+        .video-card .card-title {
+            font-size: 22px; font-weight: 800; line-height: 1.3;
+        }
+        .video-wrapper {
+            position: relative;
+            padding-bottom: 56.25%;
+            height: 0;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .video-wrapper iframe {
+            position: absolute;
+            top: 0; left: 0;
+            width: 100%; height: 100%;
+            border: none;
+            border-radius: 10px;
+        }
+        .video-card p.video-desc {
+            font-size: 14px; color: #b0bec5; line-height: 1.6; margin: 0;
+        }
+
+        /* CTA consulente */
+        .cta-section {
+            max-width: 960px;
+            margin: 28px auto 0;
+            padding: 0 40px;
+        }
+        .cta-card {
+            background: rgba(77, 182, 172, 0.08);
+            border: 1px solid rgba(77, 182, 172, 0.35);
+            border-radius: 16px;
+            padding: 28px;
+            text-align: center;
+        }
+        .cta-card h2 {
+            font-size: 22px; font-weight: 800; margin-bottom: 8px;
+        }
+        .cta-card p {
+            font-size: 14px; color: #b0bec5; line-height: 1.6;
+            max-width: 560px; margin: 0 auto 18px;
+        }
+        .cta-buttons {
+            display: flex; justify-content: center; gap: 14px; flex-wrap: wrap;
+        }
+        .btn {
+            display: inline-block;
+            padding: 13px 26px;
+            border-radius: 8px;
+            font-size: 15px; font-weight: 700;
+            text-decoration: none;
+            transition: opacity 0.15s ease;
+        }
+        @media (hover: hover) {
+            .btn:hover { opacity: 0.85; }
+        }
+        .btn-whatsapp { background: #25D366; color: #062016; }
+        .btn-email { background: rgba(255,255,255,0.1); color: #ffffff; border: 1px solid rgba(255,255,255,0.25); }
+
+        /* Footer */
+        .footer {
+            text-align: center; padding: 36px 24px 24px;
+            color: #37474f; font-size: 11px;
+        }
+
+        @media (max-width: 700px) {
+            .hero { padding: 0 20px; }
+            .hero h1 { font-size: 24px; }
+            .video-section { padding: 0 20px; }
+            .video-card { padding: 20px; }
+            .cta-section { padding: 0 20px; }
+            .cta-card { padding: 22px 18px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-waves"></div>
+    <div class="bg-overlay"></div>
+
+    <div class="page-content">
+
+        <!-- Header -->
+        <div class="header">
+            <img src="img/osseotouch-logo.png" alt="Osseotouch">
+        </div>
+
+        <!-- Hero -->
+        <div class="hero">
+            <h1><span class="highlight">BONE INTELLIGENCE</span><br>con il Dr. Igor Dogocki</h1>
+            <p>
+                Smetti di rimuovere osso. Inizia ad attivarlo. Il Dr. Igor Dogocki &mdash; chirurgo orale
+                e pioniere dell'odontoiatria biologica &mdash; racconta perch&eacute; il Magnetic Mallet
+                &egrave; parte del protocollo quotidiano nella sua rete di cliniche.
+            </p>
+            <p class="subs-note">Webinar in lingua inglese, con sottotitoli in italiano.</p>
+        </div>
+
+        <!-- Video -->
+        <div class="video-section">
+            <div class="video-card">
+                <div class="card-label">Rivedi il webinar</div>
+                <div class="card-title">Stop Removing Bone. Start Activating.</div>
+                <div class="video-wrapper">
+                    <div id="ytPlayer"></div>
+                </div>
+                <p class="video-desc">
+                    Trattare l'osso come tessuto vivo: niente surriscaldamento, stimolazione della rigenerazione
+                    con micro-impulsi controllati &mdash; dalle estrazioni al rialzo del seno per via crestale,
+                    fino al posizionamento di impianti in zirconia. Con casi clinici e la storia di un paziente
+                    con precedenti fallimenti implantari.
+                </p>
+            </div>
+        </div>
+
+        <!-- CTA consulente -->
+        <div class="cta-section">
+            <div class="cta-card">
+                <h2>Vuole provare il Magnetic Mallet?</h2>
+                <p>
+                    Se non ha ancora il Magnetic Mallet nel suo studio e vuole vederlo all'opera,
+                    parli direttamente con il nostro consulente: nessun impegno, solo risposte.
+                </p>
+                <div class="cta-buttons">
+                    <a class="btn btn-whatsapp" href="https://wa.me/393277947530" target="_blank" rel="noopener">WhatsApp 327 794 7530</a>
+                    <a class="btn btn-email" href="mailto:contact@osseotouch.com">contact@osseotouch.com</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="footer">
+            &copy; 2026 OSSEOTOUCH &mdash; OSNRGY SRL
+        </div>
+
+    </div>
+
+    <script>
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+
+        // === Video Tracking (YouTube IFrame API) ===
+        var VIDEO_ID_IGOR = '48TiwjrzDuU';
+        var CAMPAGNA_IGOR = 'GENERICO_SF_WEBINAR_IGOR_REC';
+        var trackingEmail = null;
+        var ytPlayerIgor = null;
+        var trackingIntervalIgor = null;
+
+        // Decode email from base64 param
+        try {
+            var eParam = params.get('e');
+            if (eParam) trackingEmail = atob(eParam).trim().toLowerCase();
+        } catch(ex) {}
+
+        // Track followup page open (if email present)
+        if (trackingEmail) {
+            fetch('/api/video-tracking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_IGOR, evento: 'landing_open',
+                    secondi_visti: 0, durata_totale: 0, percentuale: 0
+                })
+            }).catch(function(){});
+        }
+
+        function inviaVideoEvento(evento, secondi, durata, pct) {
+            if (!trackingEmail) return;
+            try {
+                fetch('/api/video-tracking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: trackingEmail, campagna: CAMPAGNA_IGOR, evento: evento,
+                        secondi_visti: secondi || 0, durata_totale: durata || 0, percentuale: pct || 0
+                    })
+                });
+            } catch(e) {}
+        }
+
+        // Load YouTube IFrame API
+        var ytTag = document.createElement('script');
+        ytTag.src = 'https://www.youtube.com/iframe_api';
+        var firstScript = document.getElementsByTagName('script')[0];
+        firstScript.parentNode.insertBefore(ytTag, firstScript);
+
+        window.onYouTubeIframeAPIReady = function() {
+            ytPlayerIgor = new YT.Player('ytPlayer', {
+                videoId: VIDEO_ID_IGOR,
+                playerVars: { rel: 0, modestbranding: 1, cc_load_policy: 1, cc_lang_pref: 'it', hl: 'it' },
+                events: { 'onStateChange': onYTStateChange }
+            });
+        };
+
+        function onYTStateChange(event) {
+            if (!ytPlayerIgor || !ytPlayerIgor.getCurrentTime) return;
+            var secondi = Math.floor(ytPlayerIgor.getCurrentTime());
+            var durata = Math.floor(ytPlayerIgor.getDuration());
+            var pct = durata > 0 ? Math.round((secondi / durata) * 100) : 0;
+
+            if (event.data === YT.PlayerState.PLAYING) {
+                inviaVideoEvento('play', secondi, durata, pct);
+                if (!trackingIntervalIgor) {
+                    trackingIntervalIgor = setInterval(function() {
+                        if (ytPlayerIgor && ytPlayerIgor.getPlayerState && ytPlayerIgor.getPlayerState() === YT.PlayerState.PLAYING) {
+                            var s = Math.floor(ytPlayerIgor.getCurrentTime());
+                            var d = Math.floor(ytPlayerIgor.getDuration());
+                            var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                            inviaVideoEvento('progress', s, d, p);
+                        }
+                    }, 5000);
+                }
+            } else if (event.data === YT.PlayerState.PAUSED) {
+                inviaVideoEvento('pause', secondi, durata, pct);
+            } else if (event.data === YT.PlayerState.ENDED) {
+                inviaVideoEvento('ended', durata, durata, 100);
+                if (trackingIntervalIgor) {
+                    clearInterval(trackingIntervalIgor);
+                    trackingIntervalIgor = null;
+                }
+            }
+        }
+
+        window.addEventListener('beforeunload', function() {
+            if (ytPlayerIgor && ytPlayerIgor.getCurrentTime) {
+                var s = Math.floor(ytPlayerIgor.getCurrentTime());
+                var d = Math.floor(ytPlayerIgor.getDuration());
+                var p = d > 0 ? Math.round((s / d) * 100) : 0;
+                navigator.sendBeacon('/api/video-tracking', JSON.stringify({
+                    email: trackingEmail, campagna: CAMPAGNA_IGOR, evento: 'leave',
+                    secondi_visti: s, durata_totale: d, percentuale: p
+                }));
+            }
+        });
+    })();
+    </script>
+</body>
+</html>
