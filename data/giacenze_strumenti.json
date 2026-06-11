@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-10T08:19:17.519416",
+  "timestamp": "2026-06-11T08:15:03.743218",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -427,20 +427,20 @@
       "componenti": {
         "FPCBLKR1": {
           "meta": 41,
-          "osnrgy": 11,
-          "totale": 52,
+          "osnrgy": 10,
+          "totale": 51,
           "found": true
         },
         "FPCBLKR2": {
           "meta": 17,
-          "osnrgy": 28,
-          "totale": 45,
+          "osnrgy": 27,
+          "totale": 44,
           "found": true
         },
         "FPCBLKR3": {
           "meta": 19,
-          "osnrgy": 11,
-          "totale": 30,
+          "osnrgy": 10,
+          "totale": 29,
           "found": true
         },
         "FPCBLKR4": {
@@ -456,7 +456,7 @@
           "found": true
         }
       },
-      "disponibilita": 30,
+      "disponibilita": 29,
       "bottleneck": "FPCBLKR3"
     },
     "elevate": {
@@ -470,14 +470,14 @@
         },
         "FPCELEV2": {
           "meta": 4,
-          "osnrgy": 61,
-          "totale": 65,
+          "osnrgy": 60,
+          "totale": 64,
           "found": true
         },
         "FPCELEV3": {
           "meta": 4,
-          "osnrgy": 49,
-          "totale": 53,
+          "osnrgy": 48,
+          "totale": 52,
           "found": true
         },
         "FPCELEV4": {
@@ -598,20 +598,20 @@
         },
         "OSPT1": {
           "meta": 0,
-          "osnrgy": 28,
-          "totale": 28,
+          "osnrgy": 27,
+          "totale": 27,
           "found": true
         },
         "OSPT2": {
           "meta": 0,
-          "osnrgy": 44,
-          "totale": 44,
+          "osnrgy": 43,
+          "totale": 43,
           "found": true
         },
         "OSPT3": {
           "meta": 0,
-          "osnrgy": 48,
-          "totale": 48,
+          "osnrgy": 47,
+          "totale": 47,
           "found": true
         },
         "PT1PP": {
@@ -653,7 +653,7 @@
       },
       "configurazioni": {
         "Kit completo (10 componenti)": 0,
-        "Set 3 osteotomi (vendita separata)": 28
+        "Set 3 osteotomi (vendita separata)": 27
       },
       "bottleneck": {
         "kit_completo": "PT1FR22",
