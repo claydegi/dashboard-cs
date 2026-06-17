@@ -3054,6 +3054,52 @@ app.get('/api/crm/stats', requireAdmin, async (req, res) => {
     }
 });
 
+// Stats migrazione CRM -> KESSEL per la card della Gold Console Admin.
+// READ-ONLY, protetto come gli altri endpoint admin (requireAdmin). Fonte unica
+// e coerente: una sola query (stesso snapshot) su crm_contatti + crm_kessel_migration_map.
+// Nessun dato personale. Se la tabella mappa non esiste -> risposta controllata
+// (ok:false), niente crash. is_counted_in_active_card e' deterministico lato DB,
+// quindi qui NON si fanno conteggi/logiche: si sommano flag/stati gia' coerenti.
+app.get('/api/crm/migration-stats', requireAdmin, async (req, res) => {
+    try {
+        const exists = await pool.query("SELECT to_regclass('crm_kessel_migration_map') AS t");
+        if (!exists.rows[0].t) {
+            const crm = await pool.query('SELECT COUNT(*) AS n FROM crm_contatti');
+            return res.json({
+                ok: false, error: 'mappa_non_inizializzata',
+                crm_attivi: parseInt(crm.rows[0].n),
+                migrati_attivi: 0, doppioni_assorbiti: 0, da_verificare: 0, odoo_only: 0,
+                percentuale_attivi: 0, generated_at: new Date().toISOString()
+            });
+        }
+        const r = await pool.query(`
+            SELECT
+              (SELECT COUNT(*) FROM crm_contatti)                                                 AS crm_attivi,
+              (SELECT COUNT(*) FROM crm_kessel_migration_map WHERE is_counted_in_active_card)      AS migrati_attivi,
+              (SELECT COUNT(*) FROM crm_kessel_migration_map WHERE stato = 'merge_migrato')        AS doppioni_assorbiti,
+              (SELECT COUNT(*) FROM crm_kessel_migration_map WHERE stato = 'da_verificare')        AS da_verificare,
+              (SELECT COUNT(*) FROM crm_kessel_migration_map WHERE stato = 'odoo_only')            AS odoo_only
+        `);
+        const row = r.rows[0];
+        const crmAttivi = parseInt(row.crm_attivi);
+        const migratiAttivi = parseInt(row.migrati_attivi);
+        const pct = crmAttivi > 0 ? Math.round((migratiAttivi / crmAttivi) * 1000) / 10 : 0;
+        res.json({
+            ok: true,
+            crm_attivi: crmAttivi,
+            migrati_attivi: migratiAttivi,
+            doppioni_assorbiti: parseInt(row.doppioni_assorbiti),
+            da_verificare: parseInt(row.da_verificare),
+            odoo_only: parseInt(row.odoo_only),
+            percentuale_attivi: pct,
+            generated_at: new Date().toISOString()
+        });
+    } catch (err) {
+        console.error('[CRM Migration Stats]', err);
+        res.status(500).json({ ok: false, error: 'Errore server' });
+    }
+});
+
 // Crea nuovo contatto (da dashboard)
 app.post('/api/crm/contatti', requireAdmin, async (req, res) => {
     const { cognome, nome, email, telefono, cellulare, citta, regione, tipo, prodotti } = req.body;
