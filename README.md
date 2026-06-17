@@ -289,6 +289,29 @@ le route sono raggruppate per prefisso.
 | `/api/shop/*` | 6 | Shop B2B |
 | Pagine HTML (route GET) | ~29 | `/admin`, `/cs`, `/storico`, `/crm*`, `/report*`, `/webinar*`, `/portale/:token`, ecc. |
 
+### `GET /api/crm/migration-stats` — stats migrazione CRM → KESSEL (LIVE 17/06/2026)
+
+Endpoint **read-only** che alimenta la card "Migrazione CRM → KESSEL" della **Gold
+Console Admin** di KESSEL (`kessel-gold-web` lo chiama server-side).
+
+- **Auth:** `requireAdmin` (header `x-admin-key` = `ADMIN_KEY`); senza key → **401**.
+- **Read-only**, **nessun dato personale** (solo conteggi aggregati).
+- **Fonte unica/coerente:** una sola query (stesso snapshot) su `crm_contatti` +
+  `crm_kessel_migration_map`. Nessun conteggio lato chiamante.
+- **Risposta:**
+  ```json
+  {"ok": true, "crm_attivi": 7990, "migrati_attivi": 256, "doppioni_assorbiti": 10,
+   "da_verificare": 0, "odoo_only": 0, "percentuale_attivi": 3.2, "generated_at": "..."}
+  ```
+  - `crm_attivi` = `COUNT(*) crm_contatti`
+  - `migrati_attivi` = `COUNT(*) WHERE is_counted_in_active_card` (= `migrato_diretto` + `crm_only_migrato`)
+  - `doppioni_assorbiti` = `COUNT(*) WHERE stato='merge_migrato'`
+  - `da_verificare` / `odoo_only` = `COUNT(*)` per stato
+- **Tabella assente** (`crm_kessel_migration_map` non ancora creata) → risposta
+  controllata `{"ok": false, "error": "mappa_non_inizializzata", ...}` (niente crash).
+- La tabella `crm_kessel_migration_map` (mappa contabile CRM→KESSEL, additiva) e la
+  roadmap vivono nel repo OSSEOTOUCH AI: `KESSEL/ROADMAP_CRM_KESSEL_MIGRATION_MAP.md`.
+
 ### Quattro livelli di autenticazione
 
 | Livello | Sorgente | Usato da |
