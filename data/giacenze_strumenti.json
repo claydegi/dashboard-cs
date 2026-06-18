@@ -1,19 +1,19 @@
 {
-  "timestamp": "2026-06-16T08:15:03.585903",
+  "timestamp": "2026-06-18T08:15:09.366015",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
           "meta": 161,
-          "osnrgy": 55,
-          "totale": 216,
+          "osnrgy": 52,
+          "totale": 213,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 162,
-          "osnrgy": 8,
-          "totale": 170,
+          "osnrgy": 6,
+          "totale": 168,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -30,12 +30,12 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 42,
-          "totale": 163,
+          "osnrgy": 40,
+          "totale": 161,
           "found": true
         }
       },
-      "disponibilita": 170,
+      "disponibilita": 168,
       "bottleneck": "FPCEXTR2",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -156,14 +156,14 @@
         },
         "FPCEXTR1": {
           "meta": 161,
-          "osnrgy": 55,
-          "totale": 216,
+          "osnrgy": 52,
+          "totale": 213,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 162,
-          "osnrgy": 8,
-          "totale": 170,
+          "osnrgy": 6,
+          "totale": 168,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -180,8 +180,8 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 42,
-          "totale": 163,
+          "osnrgy": 40,
+          "totale": 161,
           "found": true
         },
         "BOX-W": {
@@ -343,8 +343,8 @@
         },
         "FPCEXP2": {
           "meta": 480,
-          "osnrgy": 87,
-          "totale": 567,
+          "osnrgy": 85,
+          "totale": 565,
           "found": true
         },
         "FPCEXP3A": {
@@ -355,26 +355,26 @@
         },
         "FPCGENOA1": {
           "meta": 154,
-          "osnrgy": 23,
-          "totale": 177,
+          "osnrgy": 21,
+          "totale": 175,
           "found": true
         },
         "FPCGENOA2": {
           "meta": 179,
-          "osnrgy": 23,
-          "totale": 202,
+          "osnrgy": 22,
+          "totale": 201,
           "found": true
         },
         "FPCGENOA3": {
           "meta": 149,
-          "osnrgy": 22,
-          "totale": 171,
+          "osnrgy": 21,
+          "totale": 170,
           "found": true
         }
       },
       "configurazioni": {
         "Base (5pcs)": 80,
-        "Genoa (3pcs)": 171,
+        "Genoa (3pcs)": 170,
         "Plus (8pcs)": 80
       },
       "note": "Plus = Base + Genoa venduti insieme"
@@ -864,11 +864,11 @@
       "nome": "FPDFIRST (strumento singolo)",
       "stock": {
         "meta": 20,
-        "osnrgy": 39,
-        "totale": 59,
+        "osnrgy": 38,
+        "totale": 58,
         "found": true
       },
-      "disponibilita": 59
+      "disponibilita": 58
     }
   }
 }
