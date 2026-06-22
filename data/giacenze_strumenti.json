@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-06-18T08:15:09.366015",
+  "timestamp": "2026-06-22T08:15:15.687791",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -275,8 +275,8 @@
         },
         "AZ200-C": {
           "meta": 91,
-          "osnrgy": 20,
-          "totale": 111,
+          "osnrgy": 19,
+          "totale": 110,
           "found": true
         },
         "FPC230": {
@@ -287,8 +287,8 @@
         },
         "AZ230-C": {
           "meta": 143,
-          "osnrgy": 16,
-          "totale": 159,
+          "osnrgy": 15,
+          "totale": 158,
           "found": true
         },
         "FPC300": {
@@ -299,8 +299,8 @@
         },
         "AZ300-C": {
           "meta": 36,
-          "osnrgy": 25,
-          "totale": 61,
+          "osnrgy": 24,
+          "totale": 60,
           "found": true
         },
         "FPC330": {
@@ -828,8 +828,8 @@
       "componenti": {
         "MAOSFLC": {
           "meta": 0,
-          "osnrgy": 47,
-          "totale": 47,
+          "osnrgy": 46,
+          "totale": 46,
           "found": true
         },
         "RACLC-NEW": {
