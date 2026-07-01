@@ -215,18 +215,18 @@ const WEBINAR_DATA = {
     },
     'WEBINAR_ABUNDO_ELEVATE': {
         nome_webinar: 'Kit Elevate: il rialzo del seno crestale sotto controllo',
-        data_webinar: '6 luglio 2026',
+        data_webinar: '7 luglio 2026',
         relatore: 'Dr. Roberto Abundo',
         bio_relatore: '',
         image_bg_url: 'https://www.osseotouch.com/images/webinar-abundo/bg-surgical.jpg',
         lang: 'it',
         tipo: 'live',
         orario_live: '21:00',
-        subject_conferma: 'Iscrizione confermata — Webinar Dr. Abundo, 6 luglio ore 21:00',
+        subject_conferma: 'Iscrizione confermata — Webinar Dr. Abundo, 7 luglio ore 21:00',
         subject_reminder: 'Stasera alle 21:00 — Webinar Dr. Abundo',
         subject_followup: 'Grazie per aver partecipato — Ecco come proseguire',
         link_followup: 'https://app.osseotouch.com/webinar-abundo-followup',
-        subject_invito: 'Webinar — Kit Elevate con Dr. Abundo, 6 luglio ore 21:00',
+        subject_invito: 'Webinar — Kit Elevate con Dr. Abundo, 7 luglio ore 21:00',
         link_webinar: 'https://www.osseotouch.com/webinar-abundo-iscrizione/',
         subject_replay_accesso: 'Ecco la registrazione del webinar — Dr. Abundo',
         video_campagna: 'ELEVATE_SF_WEBINAR_ABUNDO_REC',
@@ -236,7 +236,7 @@ const WEBINAR_DATA = {
         cta_replay_courseinfo: 'Kit Elevate per Magnetic Mallet — rialzo del seno crestale sotto controllo',
         invito_titolo: 'Kit Elevate',
         invito_sottotitolo: 'Il rialzo del seno crestale sotto controllo',
-        invito_data_full: 'Lunedì 6 luglio 2026 — ore 21:00',
+        invito_data_full: 'Martedì 7 luglio 2026 — ore 21:00',
         invito_bullets: []
     }
 };
@@ -6525,7 +6525,7 @@ app.post('/api/webinar-boschini/register', async (req, res) => {
     finally { client.release(); }
 });
 
-// ==================== WEBINAR ABUNDO ELEVATE (6 luglio 2026) ====================
+// ==================== WEBINAR ABUNDO ELEVATE (7 luglio 2026) ====================
 // Webinar live IT — usa WEBINAR_CONFERMA_LIVE.html via TEMPLATE_MAP in sendWebinarEmail
 app.post('/api/webinar-abundo/register', async (req, res) => {
     const { nome, cognome, email, cellulare, citta, ha_mm } = req.body;
