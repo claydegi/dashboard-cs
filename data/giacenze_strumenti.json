@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-01T08:15:09.793385",
+  "timestamp": "2026-07-03T08:15:08.221383",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -186,8 +186,8 @@
         },
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 208,
-          "totale": 213,
+          "osnrgy": 207,
+          "totale": 212,
           "found": true
         },
         "PALLIN-W": {
@@ -205,8 +205,8 @@
       "componenti": {
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 208,
-          "totale": 213,
+          "osnrgy": 207,
+          "totale": 212,
           "found": true
         },
         "PALLIN-W": {
@@ -225,18 +225,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 208,
-          "totale": 213,
+          "osnrgy": 207,
+          "totale": 212,
           "found": true
         },
         "PELEV-W": {
           "meta": 4,
-          "osnrgy": 82,
-          "totale": 86,
+          "osnrgy": 81,
+          "totale": 85,
           "found": true
         }
       },
-      "disponibilita": 86,
+      "disponibilita": 85,
       "bottleneck": "PELEV-W",
       "note": "BOX-W condiviso con Kit ALL-IN e Kit Elevate completo"
     },
@@ -464,126 +464,126 @@
       "componenti": {
         "FPCELEV1": {
           "meta": 10,
-          "osnrgy": 28,
-          "totale": 38,
+          "osnrgy": 27,
+          "totale": 37,
           "found": true
         },
         "FPCELEV2": {
           "meta": 10,
-          "osnrgy": 37,
-          "totale": 47,
+          "osnrgy": 36,
+          "totale": 46,
           "found": true
         },
         "FPCELEV3": {
           "meta": 10,
-          "osnrgy": 25,
-          "totale": 35,
+          "osnrgy": 24,
+          "totale": 34,
           "found": true
         },
         "FPCELEV4": {
           "meta": 8,
-          "osnrgy": 24,
-          "totale": 32,
+          "osnrgy": 23,
+          "totale": 31,
           "found": true
         },
         "FPCELEV5": {
           "meta": 8,
-          "osnrgy": 29,
-          "totale": 37,
+          "osnrgy": 28,
+          "totale": 36,
           "found": true
         },
         "STELEV1": {
           "meta": 6,
-          "osnrgy": 33,
-          "totale": 39,
+          "osnrgy": 32,
+          "totale": 38,
           "found": true
         },
         "STELEV2": {
-          "meta": 6,
-          "osnrgy": 31,
-          "totale": 37,
-          "found": true
-        },
-        "STELEV3": {
-          "meta": 6,
-          "osnrgy": 24,
-          "totale": 30,
-          "found": true
-        },
-        "STELEV4": {
           "meta": 6,
           "osnrgy": 30,
           "totale": 36,
           "found": true
         },
+        "STELEV3": {
+          "meta": 6,
+          "osnrgy": 23,
+          "totale": 29,
+          "found": true
+        },
+        "STELEV4": {
+          "meta": 6,
+          "osnrgy": 29,
+          "totale": 35,
+          "found": true
+        },
         "STELEV5": {
           "meta": 6,
-          "osnrgy": 36,
-          "totale": 42,
+          "osnrgy": 35,
+          "totale": 41,
           "found": true
         },
         "STELEV6": {
           "meta": 6,
-          "osnrgy": 34,
-          "totale": 40,
+          "osnrgy": 33,
+          "totale": 39,
           "found": true
         },
         "STELEV7": {
           "meta": 6,
-          "osnrgy": 31,
-          "totale": 37,
+          "osnrgy": 30,
+          "totale": 36,
           "found": true
         },
         "STELEV8": {
           "meta": 6,
-          "osnrgy": 33,
-          "totale": 39,
+          "osnrgy": 32,
+          "totale": 38,
           "found": true
         },
         "STELEV9": {
           "meta": 6,
-          "osnrgy": 31,
-          "totale": 37,
+          "osnrgy": 30,
+          "totale": 36,
           "found": true
         },
         "STELEV10": {
           "meta": 6,
-          "osnrgy": 33,
-          "totale": 39,
+          "osnrgy": 32,
+          "totale": 38,
           "found": true
         },
         "STELEV11": {
           "meta": 6,
-          "osnrgy": 33,
-          "totale": 39,
+          "osnrgy": 32,
+          "totale": 38,
           "found": true
         },
         "STELEV12": {
           "meta": 6,
-          "osnrgy": 33,
-          "totale": 39,
+          "osnrgy": 32,
+          "totale": 38,
           "found": true
         },
         "STELEV13": {
           "meta": 6,
-          "osnrgy": 31,
-          "totale": 37,
+          "osnrgy": 30,
+          "totale": 36,
           "found": true
         },
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 208,
-          "totale": 213,
+          "osnrgy": 207,
+          "totale": 212,
           "found": true
         },
         "PELEV-W": {
           "meta": 4,
-          "osnrgy": 82,
-          "totale": 86,
+          "osnrgy": 81,
+          "totale": 85,
           "found": true
         }
       },
-      "disponibilita": 30,
+      "disponibilita": 29,
       "bottleneck": "STELEV3",
       "note": "19 componenti: 5 osteotomi + 13 stop + BOX-W + PELEV-W"
     },
@@ -827,9 +827,9 @@
       "nome": "Kit Leva Corone",
       "componenti": {
         "MAOSFLC": {
-          "meta": 0,
+          "meta": 1,
           "osnrgy": 45,
-          "totale": 45,
+          "totale": 46,
           "found": true
         },
         "RACLC-NEW": {
