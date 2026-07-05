@@ -1,19 +1,19 @@
 {
-  "timestamp": "2026-07-03T08:15:08.221383",
+  "timestamp": "2026-07-05T08:15:05.751172",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
-          "meta": 161,
-          "osnrgy": 33,
-          "totale": 194,
+          "meta": 158,
+          "osnrgy": 29,
+          "totale": 187,
           "found": true
         },
         "FPCEXTR2": {
-          "meta": 117,
-          "osnrgy": 33,
-          "totale": 150,
+          "meta": 114,
+          "osnrgy": 29,
+          "totale": 143,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -30,12 +30,12 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 29,
-          "totale": 150,
+          "osnrgy": 26,
+          "totale": 147,
           "found": true
         }
       },
-      "disponibilita": 150,
+      "disponibilita": 143,
       "bottleneck": "FPCEXTR2",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -155,15 +155,15 @@
           "found": true
         },
         "FPCEXTR1": {
-          "meta": 161,
-          "osnrgy": 33,
-          "totale": 194,
+          "meta": 158,
+          "osnrgy": 29,
+          "totale": 187,
           "found": true
         },
         "FPCEXTR2": {
-          "meta": 117,
-          "osnrgy": 33,
-          "totale": 150,
+          "meta": 114,
+          "osnrgy": 29,
+          "totale": 143,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -180,20 +180,20 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 29,
-          "totale": 150,
+          "osnrgy": 26,
+          "totale": 147,
           "found": true
         },
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 207,
-          "totale": 212,
+          "osnrgy": 204,
+          "totale": 209,
           "found": true
         },
         "PALLIN-W": {
           "meta": 1,
-          "osnrgy": 133,
-          "totale": 134,
+          "osnrgy": 130,
+          "totale": 131,
           "found": true
         }
       },
@@ -205,18 +205,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 207,
-          "totale": 212,
+          "osnrgy": 204,
+          "totale": 209,
           "found": true
         },
         "PALLIN-W": {
           "meta": 1,
-          "osnrgy": 133,
-          "totale": 134,
+          "osnrgy": 130,
+          "totale": 131,
           "found": true
         }
       },
-      "disponibilita": 134,
+      "disponibilita": 131,
       "bottleneck": "PALLIN-W",
       "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
     },
@@ -225,8 +225,8 @@
       "componenti": {
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 207,
-          "totale": 212,
+          "osnrgy": 204,
+          "totale": 209,
           "found": true
         },
         "PELEV-W": {
@@ -245,8 +245,8 @@
       "componenti": {
         "FPC100P": {
           "meta": 276,
-          "osnrgy": 90,
-          "totale": 366,
+          "osnrgy": 88,
+          "totale": 364,
           "found": true
         },
         "AZ100P-C": {
@@ -257,8 +257,8 @@
         },
         "FPC160": {
           "meta": 5,
-          "osnrgy": 1,
-          "totale": 6,
+          "osnrgy": -2,
+          "totale": 3,
           "found": true
         },
         "AZ160-C": {
@@ -269,8 +269,8 @@
         },
         "FPC200": {
           "meta": 597,
-          "osnrgy": 74,
-          "totale": 671,
+          "osnrgy": 71,
+          "totale": 668,
           "found": true
         },
         "AZ200-C": {
@@ -293,8 +293,8 @@
         },
         "FPC300": {
           "meta": 14,
-          "osnrgy": 88,
-          "totale": 102,
+          "osnrgy": 86,
+          "totale": 100,
           "found": true
         },
         "AZ300-C": {
@@ -305,18 +305,18 @@
         },
         "FPC330": {
           "meta": 864,
-          "osnrgy": 136,
-          "totale": 1000,
+          "osnrgy": 135,
+          "totale": 999,
           "found": true
         },
         "FPC360": {
           "meta": 183,
-          "osnrgy": 30,
-          "totale": 213,
+          "osnrgy": 29,
+          "totale": 212,
           "found": true
         }
       },
-      "disponibilita": 104,
+      "disponibilita": 101,
       "bottleneck": "Slot 2 (FPC160+AZ160-C)",
       "note": "FPC e AZ intercambiabili per slot. Slot 6: priorità FPC300>FPC330"
     },
@@ -331,8 +331,8 @@
         },
         "FPCCUT": {
           "meta": 51,
-          "osnrgy": 18,
-          "totale": 69,
+          "osnrgy": 16,
+          "totale": 67,
           "found": true
         },
         "FPCEXP1": {
@@ -343,14 +343,14 @@
         },
         "FPCEXP2": {
           "meta": 480,
-          "osnrgy": 75,
-          "totale": 555,
+          "osnrgy": 72,
+          "totale": 552,
           "found": true
         },
         "FPCEXP3A": {
           "meta": 364,
-          "osnrgy": 124,
-          "totale": 488,
+          "osnrgy": 121,
+          "totale": 485,
           "found": true
         },
         "FPCGENOA1": {
@@ -373,9 +373,9 @@
         }
       },
       "configurazioni": {
-        "Base (5pcs)": 69,
+        "Base (5pcs)": 67,
         "Genoa (3pcs)": 163,
-        "Plus (8pcs)": 69
+        "Plus (8pcs)": 67
       },
       "note": "Plus = Base + Genoa venduti insieme"
     },
@@ -572,8 +572,8 @@
         },
         "BOX-W": {
           "meta": 5,
-          "osnrgy": 207,
-          "totale": 212,
+          "osnrgy": 204,
+          "totale": 209,
           "found": true
         },
         "PELEV-W": {
@@ -731,8 +731,8 @@
         },
         "GFR20-8": {
           "meta": 0,
-          "osnrgy": 4,
-          "totale": 4,
+          "osnrgy": 3,
+          "totale": 3,
           "found": true
         },
         "GFR20-10": {
@@ -801,8 +801,8 @@
         },
         "CEP3.1": {
           "meta": 0,
-          "osnrgy": 120,
-          "totale": 120,
+          "osnrgy": 105,
+          "totale": 105,
           "found": true
         },
         "CEP3.5": {
@@ -818,7 +818,7 @@
       },
       "pins_disponibili": {
         "CEP2.7 (2.7mm - 5pcs)": 0,
-        "CEP3.1 (3.1mm - 5pcs)": 120,
+        "CEP3.1 (3.1mm - 5pcs)": 105,
         "CEP3.5 (3.5mm - 5pcs)": 320
       },
       "note": "Pin venduti separatamente in confezioni da 5"
@@ -828,36 +828,36 @@
       "componenti": {
         "MAOSFLC": {
           "meta": 1,
-          "osnrgy": 45,
-          "totale": 46,
+          "osnrgy": 39,
+          "totale": 40,
           "found": true
         },
         "RACLC-NEW": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": 3,
+          "totale": 3,
           "found": true
         },
         "GL2306-NEW": {
           "meta": 0,
-          "osnrgy": 19,
-          "totale": 19,
+          "osnrgy": 23,
+          "totale": 23,
           "found": true
         },
         "GL2307-NEW": {
           "meta": 0,
-          "osnrgy": 11,
-          "totale": 11,
+          "osnrgy": 15,
+          "totale": 15,
           "found": true
         },
         "GL2308-NEW": {
           "meta": 0,
-          "osnrgy": 0,
-          "totale": 0,
+          "osnrgy": 2,
+          "totale": 2,
           "found": true
         }
       },
-      "disponibilita": 0,
+      "disponibilita": 2,
       "bottleneck": "GL2308-NEW"
     },
     "fpdfirst": {
