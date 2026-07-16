@@ -1,19 +1,19 @@
 {
-  "timestamp": "2026-07-13T08:15:15.708259",
+  "timestamp": "2026-07-16T08:15:03.919266",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 24,
-          "totale": 152,
+          "osnrgy": 23,
+          "totale": 151,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 87,
-          "osnrgy": 27,
-          "totale": 114,
+          "osnrgy": 26,
+          "totale": 113,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -35,7 +35,7 @@
           "found": true
         }
       },
-      "disponibilita": 114,
+      "disponibilita": 113,
       "bottleneck": "FPCEXTR2",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -44,30 +44,30 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 100,
-          "osnrgy": 48,
-          "totale": 148,
+          "osnrgy": 45,
+          "totale": 145,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 62,
-          "totale": 122,
+          "osnrgy": 59,
+          "totale": 119,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 100,
-          "osnrgy": 39,
-          "totale": 139,
+          "osnrgy": 36,
+          "totale": 136,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 52,
-          "totale": 114,
+          "osnrgy": 49,
+          "totale": 111,
           "found": true
         }
       },
-      "disponibilita": 114,
+      "disponibilita": 111,
       "bottleneck": "BXO-MICRO",
       "note": "4 strumenti vendibili separatamente o con Anglefit"
     },
@@ -76,30 +76,30 @@
       "componenti": {
         "BXO-LEFTS": {
           "meta": 0,
-          "osnrgy": 78,
-          "totale": 78,
+          "osnrgy": 76,
+          "totale": 76,
           "found": true
         },
         "BXO-RIGHTS": {
           "meta": 0,
-          "osnrgy": 79,
-          "totale": 79,
+          "osnrgy": 77,
+          "totale": 77,
           "found": true
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 54,
-          "totale": 54,
+          "osnrgy": 52,
+          "totale": 52,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 60,
-          "totale": 60,
+          "osnrgy": 58,
+          "totale": 58,
           "found": true
         }
       },
-      "disponibilita": 54,
+      "disponibilita": 52,
       "bottleneck": "BXO-MESIAL",
       "note": "4 strumenti vendibili separatamente o con Pathfinder"
     },
@@ -108,62 +108,62 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 100,
-          "osnrgy": 48,
-          "totale": 148,
+          "osnrgy": 45,
+          "totale": 145,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 62,
-          "totale": 122,
+          "osnrgy": 59,
+          "totale": 119,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 100,
-          "osnrgy": 39,
-          "totale": 139,
+          "osnrgy": 36,
+          "totale": 136,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 52,
-          "totale": 114,
+          "osnrgy": 49,
+          "totale": 111,
           "found": true
         },
         "BXO-LEFTS": {
           "meta": 0,
-          "osnrgy": 78,
-          "totale": 78,
+          "osnrgy": 76,
+          "totale": 76,
           "found": true
         },
         "BXO-RIGHTS": {
           "meta": 0,
-          "osnrgy": 79,
-          "totale": 79,
+          "osnrgy": 77,
+          "totale": 77,
           "found": true
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 54,
-          "totale": 54,
+          "osnrgy": 52,
+          "totale": 52,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 60,
-          "totale": 60,
+          "osnrgy": 58,
+          "totale": 58,
           "found": true
         },
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 24,
-          "totale": 152,
+          "osnrgy": 23,
+          "totale": 151,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 87,
-          "osnrgy": 27,
-          "totale": 114,
+          "osnrgy": 26,
+          "totale": 113,
           "found": true
         },
         "FPCEXTR3-RVS": {
@@ -186,18 +186,18 @@
         },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 202,
-          "totale": 202,
+          "osnrgy": 198,
+          "totale": 198,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 130,
-          "totale": 130,
+          "osnrgy": 128,
+          "totale": 128,
           "found": true
         }
       },
-      "disponibilita": 54,
+      "disponibilita": 52,
       "bottleneck": "Anglefit"
     },
     "box_allin": {
@@ -205,18 +205,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 202,
-          "totale": 202,
+          "osnrgy": 198,
+          "totale": 198,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 130,
-          "totale": 130,
+          "osnrgy": 128,
+          "totale": 128,
           "found": true
         }
       },
-      "disponibilita": 130,
+      "disponibilita": 128,
       "bottleneck": "PALLIN-W",
       "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
     },
@@ -225,18 +225,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 202,
-          "totale": 202,
+          "osnrgy": 198,
+          "totale": 198,
           "found": true
         },
         "PELEV-W": {
           "meta": 0,
-          "osnrgy": 80,
-          "totale": 80,
+          "osnrgy": 79,
+          "totale": 79,
           "found": true
         }
       },
-      "disponibilita": 80,
+      "disponibilita": 79,
       "bottleneck": "PELEV-W",
       "note": "BOX-W condiviso con Kit ALL-IN e Kit Elevate completo"
     },
@@ -355,26 +355,26 @@
         },
         "FPCGENOA1": {
           "meta": 154,
-          "osnrgy": 15,
-          "totale": 169,
+          "osnrgy": 14,
+          "totale": 168,
           "found": true
         },
         "FPCGENOA2": {
           "meta": 179,
-          "osnrgy": 16,
-          "totale": 195,
+          "osnrgy": 15,
+          "totale": 194,
           "found": true
         },
         "FPCGENOA3": {
           "meta": 149,
-          "osnrgy": 15,
-          "totale": 164,
+          "osnrgy": 14,
+          "totale": 163,
           "found": true
         }
       },
       "configurazioni": {
         "Base (5pcs)": 58,
-        "Genoa (3pcs)": 164,
+        "Genoa (3pcs)": 163,
         "Plus (8pcs)": 58
       },
       "note": "Plus = Base + Genoa venduti insieme"
@@ -427,8 +427,8 @@
       "componenti": {
         "FPCBLKR1": {
           "meta": 0,
-          "osnrgy": 37,
-          "totale": 37,
+          "osnrgy": 35,
+          "totale": 35,
           "found": true
         },
         "FPCBLKR2": {
@@ -439,8 +439,8 @@
         },
         "FPCBLKR3": {
           "meta": 0,
-          "osnrgy": 15,
-          "totale": 15,
+          "osnrgy": 13,
+          "totale": 13,
           "found": true
         },
         "FPCBLKR4": {
@@ -456,7 +456,7 @@
           "found": true
         }
       },
-      "disponibilita": 15,
+      "disponibilita": 13,
       "bottleneck": "FPCBLKR3"
     },
     "elevate": {
@@ -464,126 +464,126 @@
       "componenti": {
         "FPCELEV1": {
           "meta": 4,
-          "osnrgy": 27,
-          "totale": 31,
+          "osnrgy": 26,
+          "totale": 30,
           "found": true
         },
         "FPCELEV2": {
           "meta": 4,
-          "osnrgy": 36,
-          "totale": 40,
+          "osnrgy": 35,
+          "totale": 39,
           "found": true
         },
         "FPCELEV3": {
           "meta": 4,
-          "osnrgy": 24,
-          "totale": 28,
+          "osnrgy": 23,
+          "totale": 27,
           "found": true
         },
         "FPCELEV4": {
           "meta": 2,
-          "osnrgy": 23,
-          "totale": 25,
+          "osnrgy": 22,
+          "totale": 24,
           "found": true
         },
         "FPCELEV5": {
           "meta": 2,
-          "osnrgy": 28,
-          "totale": 30,
+          "osnrgy": 27,
+          "totale": 29,
           "found": true
         },
         "STELEV1": {
-          "meta": 2,
-          "osnrgy": 32,
-          "totale": 34,
-          "found": true
-        },
-        "STELEV2": {
-          "meta": 2,
-          "osnrgy": 29,
-          "totale": 31,
-          "found": true
-        },
-        "STELEV3": {
-          "meta": 2,
-          "osnrgy": 23,
-          "totale": 25,
-          "found": true
-        },
-        "STELEV4": {
-          "meta": 2,
-          "osnrgy": 29,
-          "totale": 31,
-          "found": true
-        },
-        "STELEV5": {
-          "meta": 2,
-          "osnrgy": 35,
-          "totale": 37,
-          "found": true
-        },
-        "STELEV6": {
-          "meta": 2,
-          "osnrgy": 33,
-          "totale": 35,
-          "found": true
-        },
-        "STELEV7": {
-          "meta": 2,
-          "osnrgy": 30,
-          "totale": 32,
-          "found": true
-        },
-        "STELEV8": {
-          "meta": 2,
-          "osnrgy": 32,
-          "totale": 34,
-          "found": true
-        },
-        "STELEV9": {
-          "meta": 2,
-          "osnrgy": 30,
-          "totale": 32,
-          "found": true
-        },
-        "STELEV10": {
           "meta": 2,
           "osnrgy": 31,
           "totale": 33,
           "found": true
         },
-        "STELEV11": {
+        "STELEV2": {
+          "meta": 2,
+          "osnrgy": 28,
+          "totale": 30,
+          "found": true
+        },
+        "STELEV3": {
+          "meta": 2,
+          "osnrgy": 22,
+          "totale": 24,
+          "found": true
+        },
+        "STELEV4": {
+          "meta": 2,
+          "osnrgy": 28,
+          "totale": 30,
+          "found": true
+        },
+        "STELEV5": {
+          "meta": 2,
+          "osnrgy": 34,
+          "totale": 36,
+          "found": true
+        },
+        "STELEV6": {
           "meta": 2,
           "osnrgy": 32,
           "totale": 34,
           "found": true
         },
-        "STELEV12": {
+        "STELEV7": {
           "meta": 2,
-          "osnrgy": 32,
-          "totale": 34,
+          "osnrgy": 29,
+          "totale": 31,
           "found": true
         },
-        "STELEV13": {
+        "STELEV8": {
+          "meta": 2,
+          "osnrgy": 31,
+          "totale": 33,
+          "found": true
+        },
+        "STELEV9": {
+          "meta": 2,
+          "osnrgy": 29,
+          "totale": 31,
+          "found": true
+        },
+        "STELEV10": {
           "meta": 2,
           "osnrgy": 30,
           "totale": 32,
           "found": true
         },
+        "STELEV11": {
+          "meta": 2,
+          "osnrgy": 31,
+          "totale": 33,
+          "found": true
+        },
+        "STELEV12": {
+          "meta": 2,
+          "osnrgy": 31,
+          "totale": 33,
+          "found": true
+        },
+        "STELEV13": {
+          "meta": 2,
+          "osnrgy": 29,
+          "totale": 31,
+          "found": true
+        },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 202,
-          "totale": 202,
+          "osnrgy": 198,
+          "totale": 198,
           "found": true
         },
         "PELEV-W": {
           "meta": 0,
-          "osnrgy": 80,
-          "totale": 80,
+          "osnrgy": 79,
+          "totale": 79,
           "found": true
         }
       },
-      "disponibilita": 25,
+      "disponibilita": 24,
       "bottleneck": "FPCELEV4",
       "note": "19 componenti: 5 osteotomi + 13 stop + BOX-W + PELEV-W"
     },
@@ -755,8 +755,8 @@
         },
         "3DM00626.1": {
           "meta": 0,
-          "osnrgy": 2,
-          "totale": 2,
+          "osnrgy": 1,
+          "totale": 1,
           "found": true
         },
         "3DM00626.1,5": {
@@ -774,7 +774,7 @@
       },
       "configurazioni": {
         "Con frese (18 componenti)": 0,
-        "Senza frese (13 componenti)": 2
+        "Senza frese (13 componenti)": 1
       },
       "note": "Molti clienti comprano senza frese GFR20-*"
     },
@@ -782,15 +782,15 @@
       "nome": "Kit Easy Pin",
       "componenti": {
         "FCINSEP": {
-          "meta": -1,
-          "osnrgy": 58,
-          "totale": 57,
+          "meta": 0,
+          "osnrgy": 55,
+          "totale": 55,
           "found": true
         },
         "BOX.EP": {
-          "meta": -1,
-          "osnrgy": 16,
-          "totale": 15,
+          "meta": 0,
+          "osnrgy": 12,
+          "totale": 12,
           "found": true
         },
         "CEP2.7": {
@@ -806,20 +806,20 @@
           "found": true
         },
         "CEP3.5": {
-          "meta": -5,
-          "osnrgy": 315,
-          "totale": 310,
+          "meta": 0,
+          "osnrgy": 295,
+          "totale": 295,
           "found": true
         }
       },
       "configurazioni": {
-        "Kit completo (FCINSEP + BOX.EP)": 15,
-        "Solo FCINSEP (vendita separata)": 57
+        "Kit completo (FCINSEP + BOX.EP)": 12,
+        "Solo FCINSEP (vendita separata)": 55
       },
       "pins_disponibili": {
         "CEP2.7 (2.7mm - 5pcs)": 0,
         "CEP3.1 (3.1mm - 5pcs)": 95,
-        "CEP3.5 (3.5mm - 5pcs)": 310
+        "CEP3.5 (3.5mm - 5pcs)": 295
       },
       "note": "Pin venduti separatamente in confezioni da 5"
     },
@@ -864,11 +864,11 @@
       "nome": "FPDFIRST (strumento singolo)",
       "stock": {
         "meta": 20,
-        "osnrgy": 24,
-        "totale": 44,
+        "osnrgy": 22,
+        "totale": 42,
         "found": true
       },
-      "disponibilita": 44
+      "disponibilita": 42
     }
   }
 }
