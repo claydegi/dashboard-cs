@@ -1,13 +1,13 @@
 {
-  "timestamp": "2026-07-20T08:15:59.535313",
+  "timestamp": "2026-07-21T08:15:39.417200",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 17,
-          "totale": 145,
+          "osnrgy": 13,
+          "totale": 141,
           "found": true
         },
         "FPCEXTR2": {
@@ -50,8 +50,8 @@
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 59,
-          "totale": 119,
+          "osnrgy": 57,
+          "totale": 117,
           "found": true
         },
         "BXO-LONGRT": {
@@ -62,12 +62,12 @@
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 49,
-          "totale": 111,
+          "osnrgy": 48,
+          "totale": 110,
           "found": true
         }
       },
-      "disponibilita": 111,
+      "disponibilita": 110,
       "bottleneck": "BXO-MICRO",
       "note": "4 strumenti vendibili separatamente o con Anglefit"
     },
@@ -114,8 +114,8 @@
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 59,
-          "totale": 119,
+          "osnrgy": 57,
+          "totale": 117,
           "found": true
         },
         "BXO-LONGRT": {
@@ -126,8 +126,8 @@
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 49,
-          "totale": 111,
+          "osnrgy": 48,
+          "totale": 110,
           "found": true
         },
         "BXO-LEFTS": {
@@ -156,8 +156,8 @@
         },
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 17,
-          "totale": 145,
+          "osnrgy": 13,
+          "totale": 141,
           "found": true
         },
         "FPCEXTR2": {
@@ -598,8 +598,8 @@
         },
         "OSPT1": {
           "meta": 0,
-          "osnrgy": 25,
-          "totale": 25,
+          "osnrgy": 24,
+          "totale": 24,
           "found": true
         },
         "OSPT2": {
@@ -653,7 +653,7 @@
       },
       "configurazioni": {
         "Kit completo (10 componenti)": 0,
-        "Set 3 osteotomi (vendita separata)": 25
+        "Set 3 osteotomi (vendita separata)": 24
       },
       "bottleneck": {
         "kit_completo": "PT1FR22",
@@ -665,116 +665,116 @@
       "componenti": {
         "FPCGUID100P": {
           "meta": 0,
-          "osnrgy": 31,
-          "totale": 31,
+          "osnrgy": 30,
+          "totale": 30,
           "found": true
         },
         "FPCGUID200": {
-          "meta": 0,
-          "osnrgy": 31,
-          "totale": 31,
-          "found": true
-        },
-        "FPCGUID230": {
-          "meta": 0,
-          "osnrgy": 31,
-          "totale": 31,
-          "found": true
-        },
-        "FPCGUID300": {
-          "meta": 0,
-          "osnrgy": 36,
-          "totale": 36,
-          "found": true
-        },
-        "FPCGUID330": {
-          "meta": 0,
-          "osnrgy": 32,
-          "totale": 32,
-          "found": true
-        },
-        "STGUID6": {
-          "meta": 0,
-          "osnrgy": 25,
-          "totale": 25,
-          "found": true
-        },
-        "STGUID8": {
-          "meta": 0,
-          "osnrgy": 34,
-          "totale": 34,
-          "found": true
-        },
-        "STGUID10": {
           "meta": 0,
           "osnrgy": 30,
           "totale": 30,
           "found": true
         },
-        "STGUID12": {
+        "FPCGUID230": {
+          "meta": 0,
+          "osnrgy": 30,
+          "totale": 30,
+          "found": true
+        },
+        "FPCGUID300": {
+          "meta": 0,
+          "osnrgy": 35,
+          "totale": 35,
+          "found": true
+        },
+        "FPCGUID330": {
+          "meta": 0,
+          "osnrgy": 31,
+          "totale": 31,
+          "found": true
+        },
+        "STGUID6": {
+          "meta": 0,
+          "osnrgy": 24,
+          "totale": 24,
+          "found": true
+        },
+        "STGUID8": {
           "meta": 0,
           "osnrgy": 33,
           "totale": 33,
           "found": true
         },
+        "STGUID10": {
+          "meta": 0,
+          "osnrgy": 29,
+          "totale": 29,
+          "found": true
+        },
+        "STGUID12": {
+          "meta": 0,
+          "osnrgy": 32,
+          "totale": 32,
+          "found": true
+        },
         "STGUID14": {
           "meta": 0,
-          "osnrgy": 28,
-          "totale": 28,
+          "osnrgy": 27,
+          "totale": 27,
           "found": true
         },
         "GFR20-6": {
+          "meta": 0,
+          "osnrgy": -1,
+          "totale": -1,
+          "found": true
+        },
+        "GFR20-8": {
           "meta": 0,
           "osnrgy": 0,
           "totale": 0,
           "found": true
         },
-        "GFR20-8": {
-          "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
-          "found": true
-        },
         "GFR20-10": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": 0,
+          "totale": 0,
           "found": true
         },
         "GFR20-11.5": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": 0,
+          "totale": 0,
           "found": true
         },
         "GFR20-13": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": 0,
+          "totale": 0,
           "found": true
         },
         "3DM00626.1": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": 0,
+          "totale": 0,
           "found": true
         },
         "3DM00626.1,5": {
           "meta": 0,
-          "osnrgy": 7,
-          "totale": 7,
+          "osnrgy": 6,
+          "totale": 6,
           "found": true
         },
         "BOX.GUIDED-NEW": {
           "meta": 0,
-          "osnrgy": 3,
-          "totale": 3,
+          "osnrgy": 2,
+          "totale": 2,
           "found": true
         }
       },
       "configurazioni": {
-        "Con frese (18 componenti)": 0,
-        "Senza frese (13 componenti)": 1
+        "Con frese (18 componenti)": -1,
+        "Senza frese (13 componenti)": 0
       },
       "note": "Molti clienti comprano senza frese GFR20-*"
     },
