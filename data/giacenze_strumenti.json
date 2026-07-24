@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-21T08:15:39.417200",
+  "timestamp": "2026-07-24T08:15:09.771882",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
@@ -186,8 +186,8 @@
         },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 190,
-          "totale": 190,
+          "osnrgy": 189,
+          "totale": 189,
           "found": true
         },
         "PALLIN-W": {
@@ -205,8 +205,8 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 190,
-          "totale": 190,
+          "osnrgy": 189,
+          "totale": 189,
           "found": true
         },
         "PALLIN-W": {
@@ -225,18 +225,18 @@
       "componenti": {
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 190,
-          "totale": 190,
+          "osnrgy": 189,
+          "totale": 189,
           "found": true
         },
         "PELEV-W": {
           "meta": 0,
-          "osnrgy": 77,
-          "totale": 77,
+          "osnrgy": 76,
+          "totale": 76,
           "found": true
         }
       },
-      "disponibilita": 77,
+      "disponibilita": 76,
       "bottleneck": "PELEV-W",
       "note": "BOX-W condiviso con Kit ALL-IN e Kit Elevate completo"
     },
@@ -464,126 +464,126 @@
       "componenti": {
         "FPCELEV1": {
           "meta": 4,
-          "osnrgy": 24,
-          "totale": 28,
+          "osnrgy": 23,
+          "totale": 27,
           "found": true
         },
         "FPCELEV2": {
           "meta": 4,
-          "osnrgy": 33,
-          "totale": 37,
+          "osnrgy": 32,
+          "totale": 36,
           "found": true
         },
         "FPCELEV3": {
           "meta": 4,
-          "osnrgy": 21,
-          "totale": 25,
+          "osnrgy": 20,
+          "totale": 24,
           "found": true
         },
         "FPCELEV4": {
           "meta": 2,
-          "osnrgy": 19,
-          "totale": 21,
+          "osnrgy": 18,
+          "totale": 20,
           "found": true
         },
         "FPCELEV5": {
           "meta": 2,
-          "osnrgy": 24,
-          "totale": 26,
+          "osnrgy": 23,
+          "totale": 25,
           "found": true
         },
         "STELEV1": {
-          "meta": 2,
-          "osnrgy": 29,
-          "totale": 31,
-          "found": true
-        },
-        "STELEV2": {
-          "meta": 2,
-          "osnrgy": 26,
-          "totale": 28,
-          "found": true
-        },
-        "STELEV3": {
-          "meta": 2,
-          "osnrgy": 20,
-          "totale": 22,
-          "found": true
-        },
-        "STELEV4": {
-          "meta": 2,
-          "osnrgy": 26,
-          "totale": 28,
-          "found": true
-        },
-        "STELEV5": {
-          "meta": 2,
-          "osnrgy": 32,
-          "totale": 34,
-          "found": true
-        },
-        "STELEV6": {
-          "meta": 2,
-          "osnrgy": 30,
-          "totale": 32,
-          "found": true
-        },
-        "STELEV7": {
-          "meta": 2,
-          "osnrgy": 27,
-          "totale": 29,
-          "found": true
-        },
-        "STELEV8": {
-          "meta": 2,
-          "osnrgy": 29,
-          "totale": 31,
-          "found": true
-        },
-        "STELEV9": {
-          "meta": 2,
-          "osnrgy": 27,
-          "totale": 29,
-          "found": true
-        },
-        "STELEV10": {
           "meta": 2,
           "osnrgy": 28,
           "totale": 30,
           "found": true
         },
-        "STELEV11": {
+        "STELEV2": {
+          "meta": 2,
+          "osnrgy": 25,
+          "totale": 27,
+          "found": true
+        },
+        "STELEV3": {
+          "meta": 2,
+          "osnrgy": 19,
+          "totale": 21,
+          "found": true
+        },
+        "STELEV4": {
+          "meta": 2,
+          "osnrgy": 25,
+          "totale": 27,
+          "found": true
+        },
+        "STELEV5": {
+          "meta": 2,
+          "osnrgy": 31,
+          "totale": 33,
+          "found": true
+        },
+        "STELEV6": {
           "meta": 2,
           "osnrgy": 29,
           "totale": 31,
           "found": true
         },
-        "STELEV12": {
+        "STELEV7": {
           "meta": 2,
-          "osnrgy": 29,
-          "totale": 31,
+          "osnrgy": 26,
+          "totale": 28,
           "found": true
         },
-        "STELEV13": {
+        "STELEV8": {
+          "meta": 2,
+          "osnrgy": 28,
+          "totale": 30,
+          "found": true
+        },
+        "STELEV9": {
+          "meta": 2,
+          "osnrgy": 26,
+          "totale": 28,
+          "found": true
+        },
+        "STELEV10": {
           "meta": 2,
           "osnrgy": 27,
           "totale": 29,
           "found": true
         },
+        "STELEV11": {
+          "meta": 2,
+          "osnrgy": 28,
+          "totale": 30,
+          "found": true
+        },
+        "STELEV12": {
+          "meta": 2,
+          "osnrgy": 28,
+          "totale": 30,
+          "found": true
+        },
+        "STELEV13": {
+          "meta": 2,
+          "osnrgy": 26,
+          "totale": 28,
+          "found": true
+        },
         "BOX-W": {
           "meta": 0,
-          "osnrgy": 190,
-          "totale": 190,
+          "osnrgy": 189,
+          "totale": 189,
           "found": true
         },
         "PELEV-W": {
           "meta": 0,
-          "osnrgy": 77,
-          "totale": 77,
+          "osnrgy": 76,
+          "totale": 76,
           "found": true
         }
       },
-      "disponibilita": 21,
+      "disponibilita": 20,
       "bottleneck": "FPCELEV4",
       "note": "19 componenti: 5 osteotomi + 13 stop + BOX-W + PELEV-W"
     },
@@ -592,71 +592,71 @@
       "componenti": {
         "BOX.PT1": {
           "meta": 0,
-          "osnrgy": 1,
-          "totale": 1,
+          "osnrgy": -1,
+          "totale": -1,
           "found": true
         },
         "OSPT1": {
           "meta": 0,
-          "osnrgy": 24,
-          "totale": 24,
+          "osnrgy": 21,
+          "totale": 21,
           "found": true
         },
         "OSPT2": {
           "meta": 0,
-          "osnrgy": 42,
-          "totale": 42,
+          "osnrgy": 39,
+          "totale": 39,
           "found": true
         },
         "OSPT3": {
           "meta": 0,
-          "osnrgy": 46,
-          "totale": 46,
+          "osnrgy": 43,
+          "totale": 43,
           "found": true
         },
         "PT1PP": {
-          "meta": 0,
-          "osnrgy": 14,
-          "totale": 14,
-          "found": true
-        },
-        "PT1DRL": {
           "meta": 0,
           "osnrgy": 10,
           "totale": 10,
           "found": true
         },
+        "PT1DRL": {
+          "meta": 0,
+          "osnrgy": 8,
+          "totale": 8,
+          "found": true
+        },
         "PT1FR22": {
           "meta": 0,
-          "osnrgy": 0,
-          "totale": 0,
+          "osnrgy": 3,
+          "totale": 3,
           "found": true
         },
         "PT1FR28": {
           "meta": 0,
-          "osnrgy": 0,
-          "totale": 0,
+          "osnrgy": 1,
+          "totale": 1,
           "found": true
         },
         "PT1CMMC": {
           "meta": 0,
-          "osnrgy": 11,
-          "totale": 11,
+          "osnrgy": 9,
+          "totale": 9,
           "found": true
         },
         "PT1CMCC": {
           "meta": 0,
-          "osnrgy": 11,
-          "totale": 11,
+          "osnrgy": 9,
+          "totale": 9,
           "found": true
         }
       },
       "configurazioni": {
-        "Kit completo (10 componenti)": 0,
-        "Set 3 osteotomi (vendita separata)": 24
+        "Kit completo (10 componenti)": -1,
+        "Set 3 osteotomi (vendita separata)": 21
       },
       "bottleneck": {
-        "kit_completo": "PT1FR22",
+        "kit_completo": "BOX.PT1",
         "set_osteotomi": "OSPT1"
       }
     },
@@ -755,8 +755,8 @@
         },
         "3DM00626.1": {
           "meta": 0,
-          "osnrgy": 0,
-          "totale": 0,
+          "osnrgy": 5,
+          "totale": 5,
           "found": true
         },
         "3DM00626.1,5": {
@@ -774,7 +774,7 @@
       },
       "configurazioni": {
         "Con frese (18 componenti)": -1,
-        "Senza frese (13 componenti)": 0
+        "Senza frese (13 componenti)": 2
       },
       "note": "Molti clienti comprano senza frese GFR20-*"
     },
@@ -807,8 +807,8 @@
         },
         "CEP3.5": {
           "meta": 0,
-          "osnrgy": 295,
-          "totale": 295,
+          "osnrgy": 280,
+          "totale": 280,
           "found": true
         }
       },
@@ -819,7 +819,7 @@
       "pins_disponibili": {
         "CEP2.7 (2.7mm - 5pcs)": 0,
         "CEP3.1 (3.1mm - 5pcs)": 95,
-        "CEP3.5 (3.5mm - 5pcs)": 295
+        "CEP3.5 (3.5mm - 5pcs)": 280
       },
       "note": "Pin venduti separatamente in confezioni da 5"
     },
