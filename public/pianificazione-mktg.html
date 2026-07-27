@@ -324,7 +324,9 @@
         }
         // Mostra SOLO i webinar del calendario, nell'ordine definito
         const tags = WEBINAR_CALENDAR.map(w => w.tag);
-        let html = '';
+        // R87 (27/07/2026): i form del sito scrivono in KESSEL — questi contatori
+        // (tabelle Dashboard) sono STORICI e non crescono piu'.
+        let html = '<div style="margin-top:10px; padding:8px 12px; background:#fffbeb; border:1px solid #f59e0b; border-radius:6px; font-size:0.8rem; color:#92400e;">&#128204; <strong>Storico fino al 27/07/2026</strong> — da quella data i form del sito scrivono in KESSEL: le nuove iscrizioni si vedono nella console <em>Nuove Lead &amp; Account</em> su my.osseotouch.com. Questi numeri non crescono pi&ugrave;.</div>';
         for (const tag of tags) {
             if (!stats[tag]) continue;
             const s = stats[tag];
@@ -410,6 +412,7 @@
                 <div style="font-size:0.8rem; font-weight:600; color:#25d366; margin-bottom:10px; text-transform:uppercase; letter-spacing:0.5px;">
                     &#128172; Gruppo WhatsApp Magneto-Dinamica
                 </div>
+                <div style="margin-bottom:10px; padding:6px 10px; background:#fffbeb; border:1px solid #f59e0b; border-radius:6px; font-size:0.78rem; color:#92400e;">&#128204; <strong>Storico fino al 27/07/2026</strong> — le nuove iscrizioni WhatsApp arrivano in KESSEL (console <em>Nuove Lead &amp; Account</em>, my.osseotouch.com). Questi numeri non crescono pi&ugrave;.</div>
                 <div class="webinar-counter">
                     <div class="wc-item">
                         <span class="wc-num">${s.lead}</span>
