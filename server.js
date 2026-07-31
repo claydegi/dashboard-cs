@@ -11,6 +11,12 @@ const {
     isShopOrderPublicSecretConfigured,
     sanitizeShopOrderError
 } = require('./scripts/shop_public_order_capability');
+const {
+    evaluateMyOsseotouchShopBridgeReference
+} = require('./scripts/myosseotouch_shop_bridge');
+const {
+    createKesselShopOrdersExportHandler
+} = require('./scripts/kessel_shop_orders_export');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,6 +46,9 @@ const CONFIG = {
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
     SHOP_ORDER_PUBLIC_TOKEN_SECRET: process.env.SHOP_ORDER_PUBLIC_TOKEN_SECRET,
+    MYOSSEOTOUCH_SHOP_BRIDGE_SECRET: process.env.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
+    MYOSSEOTOUCH_SHOP_TEST_MODE: process.env.MYOSSEOTOUCH_SHOP_TEST_MODE === 'true',
+    KESSEL_SHOP_EXPORT_API_KEY: process.env.KESSEL_SHOP_EXPORT_API_KEY,
     SHOP_FRONTEND_URL: process.env.SHOP_FRONTEND_URL || 'http://localhost:4331'
 };
 
@@ -1627,8 +1636,46 @@ async function initDB() {
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_id TEXT`);             // QuickBooks invoice ID after team review
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_url TEXT`);            // QuickBooks "Pay Now" link sent to customer
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS practice_name TEXT`);                     // dental practice/clinic name (US flow)
+        // F9 — ponte MyOSSEOTOUCH USA -> shop. Il reference raw non entra mai nel DB:
+        // viene conservato esclusivamente il digest SHA-256 dopo validazione HMAC.
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_ref_hash TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_ref_state TEXT NOT NULL DEFAULT 'absent'`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_origin TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_ref_validated_at TIMESTAMPTZ`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_ref_purpose TEXT`);
+        await client.query(`
+            DO $$
+            BEGIN
+                IF NOT EXISTS (
+                    SELECT 1
+                    FROM pg_constraint
+                    WHERE conname = 'shop_orders_myosseotouch_ref_consistency'
+                      AND conrelid = 'shop_orders'::regclass
+                ) THEN
+                    ALTER TABLE shop_orders
+                    ADD CONSTRAINT shop_orders_myosseotouch_ref_consistency CHECK (
+                        (
+                            myosseotouch_ref_state = 'accepted'
+                            AND myosseotouch_ref_hash ~ '^[0-9a-f]{64}$'
+                            AND myosseotouch_ref_purpose IN ('live', 'test')
+                            AND myosseotouch_origin = 'myosseotouch_us'
+                            AND myosseotouch_ref_validated_at IS NOT NULL
+                        )
+                        OR (
+                            myosseotouch_ref_state IN ('absent', 'invalid')
+                            AND myosseotouch_ref_hash IS NULL
+                            AND myosseotouch_ref_purpose IS NULL
+                            AND myosseotouch_origin IS NULL
+                            AND myosseotouch_ref_validated_at IS NULL
+                        )
+                    );
+                END IF;
+            END
+            $$;
+        `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_market ON shop_orders(market)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_flow ON shop_orders(flow)`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_myosseotouch_ref_hash ON shop_orders(myosseotouch_ref_hash)`);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS shop_order_items (
@@ -13586,6 +13633,14 @@ app.get('/api/shop/orders/public/:orderNumber', createShopPublicOrderHandler({
     secret: CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET
 }));
 
+// ----- KESSEL F9: export completo, paginato e server-to-server -----
+// Auth dedicata fail-closed nel factory handler; non usa l'endpoint admin
+// limitato a 500 e non espone mai campi operativi/PII non allowlisted.
+app.get('/api/kessel/shop-orders', createKesselShopOrdersExportHandler({
+    pool,
+    apiKey: CONFIG.KESSEL_SHOP_EXPORT_API_KEY
+}));
+
 // ----- Admin: lista ordini -----
 // Di default mostra solo ordini in divenire (pending, pending_payment, paid).
 // Per vedere archivio (confermati/cancellati) passare ?archive=true
@@ -13785,7 +13840,18 @@ function buildShopUsInternalEmailHtml(order) {
 
 // POST /api/shop-us/quote-request
 app.post('/api/shop-us/quote-request', async (req, res) => {
-    const { customer, shipping_address, items, notes } = req.body || {};
+    res.set('Cache-Control', 'private, no-store, max-age=0');
+    const { customer, shipping_address, items, notes, myosseotouch_ref } = req.body || {};
+    const bridgeDecision = evaluateMyOsseotouchShopBridgeReference(myosseotouch_ref, {
+        secret: CONFIG.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
+        testMode: CONFIG.MYOSSEOTOUCH_SHOP_TEST_MODE
+    });
+
+    // Un reference che dichiara purpose=test non puo' mai degradare al flusso
+    // commerciale: il rifiuto avviene prima di pool, email o altri side effect.
+    if (bridgeDecision.rejectRequest) {
+        return res.status(400).json({ error: 'TEST shop reference not available' });
+    }
 
     // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -13812,17 +13878,22 @@ app.post('/api/shop-us/quote-request', async (req, res) => {
             `INSERT INTO shop_orders (
                 order_number, status, payment_method,
                 buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
-                ship_street, ship_zip, ship_city, ship_state, ship_country,
-                subtotal_net, shipping, vat_amount, sales_tax, total_gross,
-                customer_notes, market, flow, currency, is_test
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
-            RETURNING id`,
+                 ship_street, ship_zip, ship_city, ship_state, ship_country,
+                 subtotal_net, shipping, vat_amount, sales_tax, total_gross,
+                 customer_notes, market, flow, currency, is_test,
+                 myosseotouch_ref_hash, myosseotouch_ref_state, myosseotouch_origin,
+                 myosseotouch_ref_validated_at, myosseotouch_ref_purpose
+             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
+             RETURNING id`,
             [
                 orderNumber, status, 'quickbooks_invoice',
                 customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
                 shipping_address.street, shipping_address.zip, shipping_address.city, (shipping_address.state || '').toUpperCase(), 'US',
                 subtotal, 0, 0, 0, subtotal,
-                notes || null, 'US', 'customer_service', 'USD', process.env.NODE_ENV !== 'production'
+                notes || null, 'US', 'customer_service', 'USD',
+                bridgeDecision.isTest || process.env.NODE_ENV !== 'production',
+                bridgeDecision.hash, bridgeDecision.state, bridgeDecision.origin,
+                bridgeDecision.validatedAt, bridgeDecision.purpose
             ]
         );
         const orderId = ins.rows[0].id;
@@ -13836,6 +13907,15 @@ app.post('/api/shop-us/quote-request', async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        if (bridgeDecision.isTest) {
+            return res.json({
+                success: true,
+                orderNumber,
+                isTest: true,
+                redirectUrl: `/en/shop/quote-received/?requestId=${encodeURIComponent(orderNumber)}&test=1`
+            });
+        }
 
         const orderForEmail = { orderNumber, customer, shipping_address, notes: notes || '', items, totals };
 
@@ -13861,8 +13941,8 @@ app.post('/api/shop-us/quote-request', async (req, res) => {
         });
     } catch (err) {
         await client.query('ROLLBACK').catch(() => {});
-        console.error('[shop-us quote-request] error:', err);
-        res.status(500).json({ error: 'Could not save quote request: ' + err.message });
+        console.error('[shop-us quote-request] error:', err?.name || 'Error');
+        res.status(500).json({ error: 'Could not save quote request' });
     } finally {
         client.release();
     }
@@ -13920,7 +14000,17 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
 // POST /api/shop-us/checkout — Stripe Checkout Session in USD
 app.post('/api/shop-us/checkout', async (req, res) => {
     res.set('Cache-Control', 'private, no-store, max-age=0');
-    const { customer, shipping_address, items, notes } = req.body || {};
+    const { customer, shipping_address, items, notes, myosseotouch_ref } = req.body || {};
+    const bridgeDecision = evaluateMyOsseotouchShopBridgeReference(myosseotouch_ref, {
+        secret: CONFIG.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
+        testMode: CONFIG.MYOSSEOTOUCH_SHOP_TEST_MODE
+    });
+
+    // Fail-closed TEST: questo return precede pool.connect(), Stripe e ogni
+    // possibile side effect commerciale.
+    if (bridgeDecision.rejectRequest) {
+        return res.status(400).json({ error: 'TEST shop reference not available' });
+    }
 
     // Validation
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -13932,7 +14022,7 @@ app.post('/api/shop-us/checkout', async (req, res) => {
     if (!shipping_address || !shipping_address.street || !shipping_address.city || !shipping_address.state || !shipping_address.zip) {
         return res.status(400).json({ error: 'Incomplete shipping address (street, city, state, zip required)' });
     }
-    if (!stripe) {
+    if (!bridgeDecision.isTest && !stripe) {
         return res.status(503).json({ error: 'Stripe not configured on server' });
     }
     if (!isShopOrderPublicSecretConfigured(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET)) {
@@ -13959,15 +14049,23 @@ app.post('/api/shop-us/checkout', async (req, res) => {
                 buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
                 ship_street, ship_zip, ship_city, ship_state, ship_country,
                 subtotal_net, shipping, vat_amount, sales_tax, total_gross,
-                customer_notes, market, flow, currency, is_test
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23)
+                customer_notes, market, flow, currency, is_test, confirmed_at,
+                myosseotouch_ref_hash, myosseotouch_ref_state, myosseotouch_origin,
+                myosseotouch_ref_validated_at, myosseotouch_ref_purpose
+            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
             RETURNING id`,
             [
-                orderNumber, 'pending_payment', 'stripe_card',
+                orderNumber,
+                bridgeDecision.isTest ? 'confirmed' : 'pending_payment',
+                bridgeDecision.isTest ? 'test_no_payment' : 'stripe_card',
                 customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
                 shipping_address.street, shipping_address.zip, shipping_address.city, stateUpper, 'US',
                 subtotal, 0, 0, salesTax, total,
-                notes || null, 'US', 'buy_now', 'USD', process.env.NODE_ENV !== 'production'
+                notes || null, 'US', 'buy_now', 'USD',
+                bridgeDecision.isTest || process.env.NODE_ENV !== 'production',
+                bridgeDecision.isTest ? new Date() : null,
+                bridgeDecision.hash, bridgeDecision.state, bridgeDecision.origin,
+                bridgeDecision.validatedAt, bridgeDecision.purpose
             ]
         );
         const orderId = ins.rows[0].id;
@@ -13981,6 +14079,18 @@ app.post('/api/shop-us/checkout', async (req, res) => {
         }
 
         await client.query('COMMIT');
+
+        if (bridgeDecision.isTest) {
+            const testConfirmationUrl =
+                `${CONFIG.SHOP_FRONTEND_URL}/en/shop/order-confirmed/?id=${encodeURIComponent(orderNumber)}&test=1`;
+            return res.json({
+                success: true,
+                orderNumber,
+                publicOrderToken,
+                isTest: true,
+                sessionUrl: testConfirmationUrl
+            });
+        }
 
         // Build Stripe line_items in USD cents (skip free items — Stripe rejects $0)
         const lineItems = items
@@ -14033,7 +14143,7 @@ app.post('/api/shop-us/checkout', async (req, res) => {
 
     } catch (err) {
         await client.query('ROLLBACK').catch(() => {});
-        console.error('[shop-us/checkout] error:', sanitizeShopOrderError(err));
+        console.error('[shop-us/checkout] error:', err?.name || 'Error');
         return res.status(500).json({ error: 'Could not create checkout session' });
     } finally {
         client.release();

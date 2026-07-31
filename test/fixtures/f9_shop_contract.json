@@ -1,0 +1,53 @@
+{
+  "bridge_vector": {
+    "secret": "f9-cross-runtime-test-secret-32-bytes-minimum",
+    "random": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+    "now_epoch": 1999996400,
+    "ttl_seconds": 3600,
+    "exp_epoch": "2000000000",
+    "purpose": "test",
+    "tag": "V9ZVBAyCbr3Gy_e3XkQuB1oO46QT_WF8YaYcgbjYG2Q",
+    "reference": "v1.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA.2000000000.test.V9ZVBAyCbr3Gy_e3XkQuB1oO46QT_WF8YaYcgbjYG2Q",
+    "reference_sha256": "c64711fc62e2310bd5f6a823f2de19ac3ac4f2ae6843d47f10244d972a675894"
+  },
+  "export_order": {
+    "id": 94001,
+    "order_number": "TEST-F9-94001",
+    "status": "paid",
+    "created_at": "2026-07-31T08:00:00.000Z",
+    "confirmed_at": "2026-07-31T08:01:00.000Z",
+    "cancelled_at": null,
+    "ship_country": "US",
+    "market_hint": "USA",
+    "flow": "shop",
+    "currency": "USD",
+    "subtotal_net": null,
+    "shipping": "0",
+    "vat_amount": null,
+    "sales_tax": "8.25",
+    "total_gross": "108.25",
+    "is_test": true,
+    "is_deleted": false,
+    "items": [
+      {
+        "position": 1,
+        "product_type": "product",
+        "product_code": "F9-TEST",
+        "product_name": "Synthetic F9 item",
+        "qty": 1,
+        "unit_price": "100",
+        "vat_rate": "0",
+        "is_free_promo": false
+      }
+    ],
+    "reference": {
+      "hash": "c64711fc62e2310bd5f6a823f2de19ac3ac4f2ae6843d47f10244d972a675894",
+      "state": "accepted",
+      "purpose": "test"
+    },
+    "identity": {
+      "email": "F9.Synthetic@example.com",
+      "phone": "+1 (212) 555-0199"
+    }
+  }
+}
