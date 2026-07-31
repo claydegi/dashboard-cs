@@ -103,6 +103,12 @@ function serializeOrder(order, items) {
             hash: order.myosseotouch_ref_hash,
             state: order.myosseotouch_ref_state,
             purpose: order.myosseotouch_ref_purpose
+        },
+        acceptance: {
+            acceptance_id: order.f9_acceptance_id || null,
+            proposal_id: order.f9_proposal_id || null,
+            proposal_snapshot_version: order.f9_snapshot_version || null,
+            snapshot_hash: order.f9_snapshot_hash || null
         }
     };
 
@@ -135,8 +141,8 @@ function createKesselShopOrdersExportHandler({ pool, apiKey, logger = console })
                 field: 'after_id',
                 defaultValue: 0
             });
-            requestedSnapshot = parseUnsignedInteger(req.query?.snapshot_max_id, {
-                field: 'snapshot_max_id',
+            requestedSnapshot = parseUnsignedInteger(req.query?.snapshot_revision, {
+                field: 'snapshot_revision',
                 defaultValue: null
             });
             limit = parseUnsignedInteger(req.query?.limit, {
@@ -152,28 +158,31 @@ function createKesselShopOrdersExportHandler({ pool, apiKey, logger = console })
         }
 
         try {
-            let snapshotMaxId = requestedSnapshot;
+            let snapshotRevision = requestedSnapshot;
             let total;
-            if (snapshotMaxId === null) {
+            if (snapshotRevision === null) {
                 const metaResult = await pool.query(
-                    `SELECT COALESCE(MAX(id), 0)::int AS snapshot_max_id,
+                    `SELECT COALESCE(MAX(snapshot_revision), 0)::bigint AS snapshot_revision,
                             COUNT(*)::int AS total
                      FROM shop_orders`
                 );
-                snapshotMaxId = Number(metaResult.rows[0].snapshot_max_id);
+                snapshotRevision = Number(metaResult.rows[0].snapshot_revision);
                 total = Number(metaResult.rows[0].total);
             } else {
                 const totalResult = await pool.query(
-                    `SELECT COUNT(*)::int AS total
-                     FROM shop_orders
-                     WHERE id <= $1`,
-                    [snapshotMaxId]
+                    `SELECT COALESCE(MAX(snapshot_revision), 0)::bigint AS current_revision,
+                            COUNT(*) FILTER (WHERE snapshot_revision <= $1)::int AS total
+                       FROM shop_orders`,
+                    [snapshotRevision]
                 );
+                if (Number(totalResult.rows[0].current_revision) !== snapshotRevision) {
+                    return res.status(409).json({ error: 'snapshot_drift' });
+                }
                 total = Number(totalResult.rows[0].total);
             }
 
-            if (!Number.isSafeInteger(snapshotMaxId)
-                || snapshotMaxId < 0
+            if (!Number.isSafeInteger(snapshotRevision)
+                || snapshotRevision < 0
                 || !Number.isSafeInteger(total)
                 || total < 0) {
                 throw new TypeError('Metadati snapshot non validi');
@@ -187,12 +196,14 @@ function createKesselShopOrdersExportHandler({ pool, apiKey, logger = console })
                         is_test, is_deleted,
                         buyer_email, buyer_phone,
                         myosseotouch_ref_hash, myosseotouch_ref_state,
-                        myosseotouch_ref_purpose
+                        myosseotouch_ref_purpose,
+                        f9_acceptance_id::text, f9_proposal_id,
+                        f9_snapshot_version, f9_snapshot_hash
                  FROM shop_orders
-                 WHERE id > $1 AND id <= $2
+                 WHERE id > $1 AND snapshot_revision <= $2
                  ORDER BY id ASC
                  LIMIT $3`,
-                [afterId, snapshotMaxId, limit + 1]
+                [afterId, snapshotRevision, limit + 1]
             );
 
             const hasMore = orderResult.rows.length > limit;
@@ -226,11 +237,18 @@ function createKesselShopOrdersExportHandler({ pool, apiKey, logger = console })
             const orders = pageRows.map(order =>
                 serializeOrder(order, itemsByOrder.get(Number(order.id)) || [])
             );
+            const finalRevisionResult = await pool.query(
+                `SELECT COALESCE(MAX(snapshot_revision), 0)::bigint AS current_revision
+                   FROM shop_orders`
+            );
+            if (Number(finalRevisionResult.rows[0].current_revision) !== snapshotRevision) {
+                return res.status(409).json({ error: 'snapshot_drift' });
+            }
             return res.json({
                 orders,
                 total,
                 has_more: hasMore,
-                snapshot_max_id: snapshotMaxId
+                snapshot_revision: snapshotRevision
             });
         } catch (error) {
             logger.error('[kessel/shop-orders] export failed:', error?.name || 'Error');

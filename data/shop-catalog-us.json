@@ -1,0 +1,3251 @@
+{
+  "schema_version": "1.0.0",
+  "dataset": "osseotouch_shop_catalog_us",
+  "language": "en",
+  "market": "US",
+  "currency": "USD",
+  "last_updated": "2026-07-13",
+  "source_page": "https://www.osseotouch.com/en/shop/",
+  "source_files": [
+    "JAN34/templates/pages/en/shop.astro",
+    "JAN34/templates/pages/en/shop/checkout.astro"
+  ],
+  "pricing_policy": {
+    "prices_are_pre_tax": true,
+    "sales_tax": {
+      "automatic_calculation": false,
+      "applies_to": "Alabama deliveries only",
+      "note": "The server-authoritative U.S. checkout calculates Alabama sales tax and shows the final amount before Stripe payment."
+    },
+    "shipping": {
+      "standard_amount": 0,
+      "currency": "USD",
+      "note": "Free U.S. shipping nationwide, according to the English shop and checkout."
+    },
+    "returns": "30-day returns for unopened items.",
+    "warranty": "24-month warranty."
+  },
+  "notes": [
+    "Magnetic Mallet Plus Handpiece (MAOSFPLUS) is included with the Magnetic Mallet device and is not sold separately in the English shop source.",
+    "Single component prices are listed where the English shop exposes them inside kit detail sections.",
+    "Owner correction confirmed on 2026-05-13: First Lancet Osteotome / FPDFIRST is priced at USD 175; the English shop and this catalog are aligned."
+  ],
+  "products": [
+    {
+      "id": "infinity",
+      "code": "infinity",
+      "name": "Infinity",
+      "summary": "Entry-level Magnetic Mallet configuration with 10 instruments for atraumatic extractions, implant site preparation, and free-hand crestal sinus lift.",
+      "category": "magnetic_mallet_configuration",
+      "group": "Magnetic Mallet device configurations",
+      "price": {
+        "amount": 5890,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Device configuration price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#config-infinity",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/infinity/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Magnetic Mallet", "type": "device"},
+        {"name": "Essential Extraction Kit", "type": "kit"},
+        {"name": "Silver Osteotome Kit", "type": "kit"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "configs"
+      }
+    },
+    {
+      "id": "total-combo",
+      "code": "total-combo",
+      "name": "Total Combo",
+      "summary": "Best-selling premium Magnetic Mallet configuration with Essential Extraction, Black Ruby DLC osteotomes, and Kit Elevate for millimetric-stop crestal sinus elevation.",
+      "category": "magnetic_mallet_configuration",
+      "group": "Magnetic Mallet device configurations",
+      "price": {
+        "amount": 7890,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Device configuration price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#config-total-combo",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/total/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Magnetic Mallet", "type": "device"},
+        {"name": "Essential Extraction Kit", "type": "kit"},
+        {"name": "Black Ruby", "type": "kit"},
+        {"name": "Kit Elevate", "type": "kit"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "configs"
+      }
+    },
+    {
+      "id": "master",
+      "code": "master",
+      "name": "Master",
+      "summary": "Flagship Magnetic Mallet configuration combining Essential Extraction, complete BLEXO, Levacorone, Black Ruby, and Kit Elevate for the broadest published clinical coverage.",
+      "category": "magnetic_mallet_configuration",
+      "group": "Magnetic Mallet device configurations",
+      "price": {
+        "amount": 9890,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Device configuration price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#config-master",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/master/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Magnetic Mallet", "type": "device"},
+        {"name": "Essential Extraction Kit", "type": "kit"},
+        {"name": "BLEXO Complete", "type": "kit"},
+        {"name": "Crown Remover (Levacorone)", "type": "kit"},
+        {"name": "Black Ruby", "type": "kit"},
+        {"name": "Kit Elevate", "type": "kit"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "configs"
+      }
+    },
+    {
+      "id": "kit-essential",
+      "code": "kit-essential",
+      "name": "Essential Extraction Kit",
+      "summary": "Four curved extractors designed for MAGNETODYNAMICS for routine atraumatic extraction workflows, including residual roots, compromised teeth, and third molars.",
+      "category": "kit",
+      "group": "Extractions",
+      "price": {
+        "amount": 450,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#kit-essential",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-estrazione/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCEXTR1",
+          "name": "Extractor 1 Curved",
+          "individual_price": {
+            "amount": 129,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXTR2",
+          "name": "Extractor 2 Curved",
+          "individual_price": {
+            "amount": 129,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXTR3-RVS",
+          "name": "Extractor 3-RVS Curved",
+          "individual_price": {
+            "amount": 129,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXTR4",
+          "name": "Curved Lever for Third Molars",
+          "individual_price": {
+            "amount": 129,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "blexo-pathfinder",
+      "code": "blexo-pathfinder",
+      "name": "BLEXO Pathfinders",
+      "summary": "Four straight Pathfinder extractors — Micro, Slim, Arch, and LongRoot — for narrow spaces and different root morphologies.",
+      "category": "kit",
+      "group": "Extractions",
+      "price": {
+        "amount": 590,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-pathfinder",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/blexo/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "BXO-MICRO",
+          "name": "Blexo Micro",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-SLIM",
+          "name": "Blexo Slim",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-ARCH",
+          "name": "Blexo Arch",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-LONGRT",
+          "name": "Blexo LongRoot",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "blexo-anglefit",
+      "code": "blexo-anglefit",
+      "name": "BLEXO AngleFit",
+      "summary": "Four angled extractors — Mesial, Distal, RightSide, and LeftSide — for directional access in posterior extraction cases.",
+      "category": "kit",
+      "group": "Extractions",
+      "price": {
+        "amount": 590,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-anglefit",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/blexo/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "BXO-MESIAL",
+          "name": "Blexo Mesial",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-DISTAL",
+          "name": "Blexo Distal",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-RIGHTS",
+          "name": "Blexo RightSide",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-LEFTS",
+          "name": "Blexo LeftSide",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "blexo-complete",
+      "code": "blexo-complete",
+      "name": "BLEXO Complete",
+      "summary": "Complete eight-instrument BLEXO set with four Pathfinder and four AngleFit extractors for complex atraumatic extraction workflows.",
+      "category": "kit",
+      "group": "Extractions",
+      "price": {
+        "amount": 1080,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Free All-In Box included ($240 value)",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/blexo/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "BXO-MICRO",
+          "name": "Blexo Micro (Pathfinder)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-SLIM",
+          "name": "Blexo Slim (Pathfinder)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-ARCH",
+          "name": "Blexo Arch (Pathfinder)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-LONGRT",
+          "name": "Blexo LongRoot (Pathfinder)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-MESIAL",
+          "name": "Blexo Mesial (AngleFit)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-DISTAL",
+          "name": "Blexo Distal (AngleFit)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-RIGHTS",
+          "name": "Blexo RightSide (AngleFit)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "BXO-LEFTS",
+          "name": "Blexo LeftSide (AngleFit)",
+          "individual_price": {
+            "amount": 145,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "black-ruby",
+      "code": "black-ruby",
+      "name": "Black Ruby",
+      "summary": "Five DLC-coated osteotomes for low-friction, rotary bur-free implant site preparation with the Magnetic Mallet.",
+      "category": "kit",
+      "group": "Implantology & site preparation",
+      "price": {
+        "amount": 790,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/black-ruby/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCBLKR1",
+          "name": "Black Ruby R1",
+          "individual_price": {
+            "amount": 165,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCBLKR2",
+          "name": "Black Ruby R2",
+          "individual_price": {
+            "amount": 165,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCBLKR3",
+          "name": "Black Ruby R3",
+          "individual_price": {
+            "amount": 165,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCBLKR4",
+          "name": "Black Ruby R4",
+          "individual_price": {
+            "amount": 165,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCBLKR5",
+          "name": "Black Ruby R5",
+          "individual_price": {
+            "amount": 165,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "osteotomi-silver",
+      "code": "osteotomi-silver",
+      "name": "Silver Osteotome Kit",
+      "summary": "Progressive curved osteotomes for osseodensification with MAGNETODYNAMICS, implant site preparation, and selected mini crestal sinus lifts.",
+      "category": "kit",
+      "group": "Implantology & site preparation",
+      "price": {
+        "amount": 790,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-osteotomi-silver/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPC100P",
+          "name": "Osteotome 100 Pointed (Ø 1.0)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC100",
+          "name": "Osteotome 100 (Ø 1.0)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC160",
+          "name": "Osteotome 160 (Ø 1.6)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC200",
+          "name": "Osteotome 200 (Ø 2.0)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC230",
+          "name": "Osteotome 230 (Ø 2.3)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC330",
+          "name": "Osteotome 330 (Ø 3.3)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPC360",
+          "name": "Osteotome 360 (Ø 3.6)",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "first",
+      "code": "FPDFIRST",
+      "name": "First Lancet Osteotome",
+      "summary": "Lanceolate 1.8 mm osteotome designed to create the initial cortical entry without a rotary pilot drill.",
+      "category": "single_instrument",
+      "group": "Implantology & site preparation",
+      "price": {
+        "amount": 175,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Single First Lancet Osteotome price confirmed by owner on 2026-05-13.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#first",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/first/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"code": "FPDFIRST", "name": "First — Lancet Osteotome"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "easy-in",
+      "code": "easy-in",
+      "name": "Easy In 20°",
+      "summary": "Six 20-degree angled osteotomes for difficult mandibular access and progressive implant site preparation based on MAGNETODYNAMICS.",
+      "category": "kit",
+      "group": "Implantology & site preparation",
+      "price": {
+        "amount": 590,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/easy-in-kit/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "AZ100P-20",
+          "name": "Easy In 100 Pointed 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "AZ100-20",
+          "name": "Easy In 100 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "AZ160-20",
+          "name": "Easy In 160 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "AZ200-20",
+          "name": "Easy In 200 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "AZ230-20",
+          "name": "Easy In 230 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "AZ300-20",
+          "name": "Easy In 300 20°",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "pt-1",
+      "code": "pt-1",
+      "name": "PT-1 Pterygoid",
+      "summary": "Pterygoid implant kit with three dedicated osteotomes and supporting instruments for controlled pterygoid-axis preparation.",
+      "category": "kit",
+      "group": "Implantology & site preparation",
+      "price": {
+        "amount": 1390,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#pt-1",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/pt-1/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "OSPT1",
+          "name": "Osteotome PT1",
+          "individual_price": {
+            "amount": 170,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "OSPT2",
+          "name": "Osteotome PT2",
+          "individual_price": {
+            "amount": 170,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "OSPT3",
+          "name": "Osteotome PT3",
+          "individual_price": {
+            "amount": 170,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "elevate",
+      "code": "elevate",
+      "name": "Kit Elevate",
+      "summary": "Five DLC inserts and millimetric stops from 1 to 13 mm for selected crestal sinus floor elevation workflows.",
+      "category": "kit",
+      "group": "Crestal sinus floor elevation",
+      "price": {
+        "amount": 1690,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#elevate",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/elevate/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCELEV1",
+          "name": "Osteotome Elevate 1",
+          "individual_price": {
+            "amount": 149,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCELEV2",
+          "name": "Osteotome Elevate 2",
+          "individual_price": {
+            "amount": 149,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCELEV3",
+          "name": "Osteotome Elevate 3",
+          "individual_price": {
+            "amount": 149,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCELEV4",
+          "name": "Osteotome Elevate 4",
+          "individual_price": {
+            "amount": 149,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCELEV5",
+          "name": "Osteotome Elevate 5",
+          "individual_price": {
+            "amount": 149,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV1",
+          "name": "Stop H1",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV2",
+          "name": "Stop H2",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV3",
+          "name": "Stop H3",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV4",
+          "name": "Stop H4",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV5",
+          "name": "Stop H5",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV6",
+          "name": "Stop H6",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV7",
+          "name": "Stop H7",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV8",
+          "name": "Stop H8",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV9",
+          "name": "Stop H9",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV10",
+          "name": "Stop H10",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV11",
+          "name": "Stop H11",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV12",
+          "name": "Stop H12",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "STELEV13",
+          "name": "Stop H13",
+          "individual_price": {
+            "amount": 45,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "expander-5",
+      "code": "expander-5",
+      "name": "Ridge Expansion — Expander 5",
+      "summary": "Five-instrument set for progressive horizontal ridge expansion: Expander 1, 2, 3A, Cut, and Split.",
+      "category": "kit",
+      "group": "Expansion & regeneration",
+      "price": {
+        "amount": 690,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-espansione-cresta/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCEXP1",
+          "name": "Expander 1",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXP2",
+          "name": "Expander 2",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXP3A",
+          "name": "Expander 3A",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCCUT",
+          "name": "Cut",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCSPLIT",
+          "name": "Split",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "expander-plus-8",
+      "code": "expander-plus-8",
+      "name": "Ridge Expansion — Expander Plus 8",
+      "summary": "Eight-instrument ridge-expansion set combining Expander 5 with three Genoa blades for controlled cortical separation.",
+      "category": "kit",
+      "group": "Expansion & regeneration",
+      "price": {
+        "amount": 990,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-espansione-cresta/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCEXP1",
+          "name": "Expander 1",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXP2",
+          "name": "Expander 2",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCEXP3A",
+          "name": "Expander 3A",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCCUT",
+          "name": "Cut",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCSPLIT",
+          "name": "Split",
+          "individual_price": {
+            "amount": 130,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCGENOA1",
+          "name": "Genoa 1",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCGENOA2",
+          "name": "Genoa 2",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCGENOA3",
+          "name": "Genoa 3",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "genoa",
+      "code": "genoa",
+      "name": "Genoa (3 blades)",
+      "summary": "Three Genoa blades designed for controlled cortical separation in thin-ridge expansion workflows.",
+      "category": "kit",
+      "group": "Expansion & regeneration",
+      "price": {
+        "amount": 490,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#genoa",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-espansione-cresta/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "FPCGENOA1",
+          "name": "Genoa 1",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCGENOA2",
+          "name": "Genoa 2",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "FPCGENOA3",
+          "name": "Genoa 3",
+          "individual_price": {
+            "amount": 155,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "easy-pin",
+      "code": "easy-pin",
+      "name": "Easy-Pin Kit",
+      "summary": "Complete GBR membrane fixation system containing the Magnetic Mallet tip, pin inserter, and instrument box.",
+      "category": "kit",
+      "group": "Expansion & regeneration",
+      "price": {
+        "amount": 490,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#easy-pin",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/easy-pin/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Easy-Pin Magnetic Mallet tip"},
+        {"name": "Pin inserter"},
+        {"name": "Instrument box"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "dynamic-guided-standard",
+      "code": "dynamic-guided-standard",
+      "name": "Dynamic Guided — Standard",
+      "summary": "Five guided osteotomes, five depth stops, and a Radel box for guided implant site preparation based on MAGNETODYNAMICS.",
+      "category": "kit",
+      "group": "Guided surgery",
+      "price": {
+        "amount": 1900,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#dynamic-guided-standard",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-dynamic-guided/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Five guided osteotomes"},
+        {"name": "Five depth stops"},
+        {"name": "Radel instrument box"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "dynamic-guided-extra",
+      "code": "dynamic-guided-extra",
+      "name": "Dynamic Guided — Extra (with drills)",
+      "summary": "Dynamic Guided Standard configuration plus five dedicated guided drills for mixed guided workflows.",
+      "category": "kit",
+      "group": "Guided surgery",
+      "price": {
+        "amount": 2390,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#dynamic-guided-extra",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/kit-dynamic-guided/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {"name": "Dynamic Guided Standard set"},
+        {"name": "Five dedicated guided drills"}
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "levacorone",
+      "code": "levacorone",
+      "name": "Crown Remover (Levacorone)",
+      "summary": "System based on MAGNETODYNAMICS for removing cemented crowns, inlays, and bridges with three interchangeable hooks.",
+      "category": "kit",
+      "group": "Prosthetics",
+      "price": {
+        "amount": 1400,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Kit price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#levacorone",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/levacorone/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [
+        {
+          "code": "GL2306",
+          "name": "Hook Single Crown 2",
+          "individual_price": {
+            "amount": 85,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "GL2307",
+          "name": "Hook Single Crown",
+          "individual_price": {
+            "amount": 85,
+            "currency": "USD",
+            "tax_included": false
+          }
+        },
+        {
+          "code": "GL2308",
+          "name": "Hook Bridge",
+          "individual_price": {
+            "amount": 85,
+            "currency": "USD",
+            "tax_included": false
+          }
+        }
+      ],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups"
+      }
+    },
+    {
+      "id": "CEP3.1",
+      "code": "CEP3.1",
+      "name": "Easy-Pin Box XL Ø 3.1 mm (5 pins)",
+      "summary": "Replacement consumable box containing five Easy-Pin XL fixation pins with 3.1 mm head diameter.",
+      "category": "easy_pin_consumable",
+      "group": "Easy-Pin consumables",
+      "price": {
+        "amount": 99,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Box of 5 pins.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#pins",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/easy-pin/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "pinProducts"
+      }
+    },
+    {
+      "id": "CEP3.5",
+      "code": "CEP3.5",
+      "name": "Easy-Pin Box XXL Ø 3.5 mm (5 pins)",
+      "summary": "Replacement consumable box containing five Easy-Pin XXL fixation pins with 3.5 mm head diameter.",
+      "category": "easy_pin_consumable",
+      "group": "Easy-Pin consumables",
+      "price": {
+        "amount": 99,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Box of 5 pins.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#pins",
+      "information_url": "https://www.osseotouch.com/en/devices/magnetic-mallet/easy-pin/",
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "pinProducts"
+      }
+    },
+    {
+      "id": "acc-pedale",
+      "code": "PEDAL-BLACK",
+      "name": "Foot Pedal",
+      "summary": "Replacement foot-control pedal for compatible Magnetic Mallet systems; compatibility must be confirmed before purchase.",
+      "category": "accessory",
+      "group": "Accessories",
+      "price": {
+        "amount": 220,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Accessory price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#acc-pedale",
+      "information_url": null,
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "accessories"
+      }
+    },
+    {
+      "id": "acc-box-allin",
+      "code": "BOX.ALLIN",
+      "name": "All-In Box",
+      "summary": "Radel instrument box designed to organize and process a multi-instrument OSSEOTOUCH set.",
+      "category": "accessory",
+      "group": "Accessories",
+      "price": {
+        "amount": 240,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "price_note": "Accessory price shown in the English shop.",
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_url": "https://www.osseotouch.com/en/shop/#acc-box-allin",
+      "information_url": null,
+      "checkout_options": [
+        "buy_now"
+      ],
+      "included_components": [],
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "accessories"
+      }
+    }
+  ],
+  "component_price_list": [
+    {
+      "code": "AZ100-20",
+      "name": "Easy In 100 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "AZ100P-20",
+      "name": "Easy In 100 Pointed 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "AZ160-20",
+      "name": "Easy In 160 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "AZ200-20",
+      "name": "Easy In 200 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "AZ230-20",
+      "name": "Easy In 230 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "AZ300-20",
+      "name": "Easy In 300 20°",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "easy-in",
+          "parent_name": "Easy In 20°",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#easy-in"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-ARCH",
+      "name": "Blexo Arch",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-pathfinder",
+          "parent_name": "BLEXO Pathfinders",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-pathfinder"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-DISTAL",
+      "name": "Blexo Distal",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-anglefit",
+          "parent_name": "BLEXO AngleFit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-anglefit"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-LEFTS",
+      "name": "Blexo LeftSide",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-anglefit",
+          "parent_name": "BLEXO AngleFit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-anglefit"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-LONGRT",
+      "name": "Blexo LongRoot",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-pathfinder",
+          "parent_name": "BLEXO Pathfinders",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-pathfinder"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-MESIAL",
+      "name": "Blexo Mesial",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-anglefit",
+          "parent_name": "BLEXO AngleFit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-anglefit"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-MICRO",
+      "name": "Blexo Micro",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-pathfinder",
+          "parent_name": "BLEXO Pathfinders",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-pathfinder"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-RIGHTS",
+      "name": "Blexo RightSide",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-anglefit",
+          "parent_name": "BLEXO AngleFit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-anglefit"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "BXO-SLIM",
+      "name": "Blexo Slim",
+      "price": {
+        "amount": 145,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "blexo-pathfinder",
+          "parent_name": "BLEXO Pathfinders",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-pathfinder"
+        },
+        {
+          "parent_id": "blexo-complete",
+          "parent_name": "BLEXO Complete",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#blexo-complete"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC100",
+      "name": "Osteotome 100 (Ø 1.0)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC100P",
+      "name": "Osteotome 100 Pointed (Ø 1.0)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC160",
+      "name": "Osteotome 160 (Ø 1.6)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC200",
+      "name": "Osteotome 200 (Ø 2.0)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC230",
+      "name": "Osteotome 230 (Ø 2.3)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC330",
+      "name": "Osteotome 330 (Ø 3.3)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPC360",
+      "name": "Osteotome 360 (Ø 3.6)",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "osteotomi-silver",
+          "parent_name": "Silver Osteotome Kit",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#osteotomi-silver"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCBLKR1",
+      "name": "Black Ruby R1",
+      "price": {
+        "amount": 165,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "black-ruby",
+          "parent_name": "Black Ruby",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCBLKR2",
+      "name": "Black Ruby R2",
+      "price": {
+        "amount": 165,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "black-ruby",
+          "parent_name": "Black Ruby",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCBLKR3",
+      "name": "Black Ruby R3",
+      "price": {
+        "amount": 165,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "black-ruby",
+          "parent_name": "Black Ruby",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCBLKR4",
+      "name": "Black Ruby R4",
+      "price": {
+        "amount": 165,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "black-ruby",
+          "parent_name": "Black Ruby",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCBLKR5",
+      "name": "Black Ruby R5",
+      "price": {
+        "amount": 165,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "black-ruby",
+          "parent_name": "Black Ruby",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#black-ruby"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCCUT",
+      "name": "Cut",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-5",
+          "parent_name": "Ridge Expansion — Expander 5",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5"
+        },
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCELEV1",
+      "name": "Osteotome Elevate 1",
+      "price": {
+        "amount": 149,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCELEV2",
+      "name": "Osteotome Elevate 2",
+      "price": {
+        "amount": 149,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCELEV3",
+      "name": "Osteotome Elevate 3",
+      "price": {
+        "amount": 149,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCELEV4",
+      "name": "Osteotome Elevate 4",
+      "price": {
+        "amount": 149,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCELEV5",
+      "name": "Osteotome Elevate 5",
+      "price": {
+        "amount": 149,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXP1",
+      "name": "Expander 1",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-5",
+          "parent_name": "Ridge Expansion — Expander 5",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5"
+        },
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXP2",
+      "name": "Expander 2",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-5",
+          "parent_name": "Ridge Expansion — Expander 5",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5"
+        },
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXP3A",
+      "name": "Expander 3A",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-5",
+          "parent_name": "Ridge Expansion — Expander 5",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5"
+        },
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXTR1",
+      "name": "Extractor 1 Curved",
+      "price": {
+        "amount": 129,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "kit-essential",
+          "parent_name": "Essential Extraction Kit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#kit-essential"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXTR2",
+      "name": "Extractor 2 Curved",
+      "price": {
+        "amount": 129,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "kit-essential",
+          "parent_name": "Essential Extraction Kit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#kit-essential"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXTR3-RVS",
+      "name": "Extractor 3-RVS Curved",
+      "price": {
+        "amount": 129,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "kit-essential",
+          "parent_name": "Essential Extraction Kit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#kit-essential"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCEXTR4",
+      "name": "Curved Lever for Third Molars",
+      "price": {
+        "amount": 129,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "kit-essential",
+          "parent_name": "Essential Extraction Kit",
+          "group_id": "extractions",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#kit-essential"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCGENOA1",
+      "name": "Genoa 1",
+      "price": {
+        "amount": 155,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        },
+        {
+          "parent_id": "genoa",
+          "parent_name": "Genoa (3 blades)",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#genoa"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCGENOA2",
+      "name": "Genoa 2",
+      "price": {
+        "amount": 155,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        },
+        {
+          "parent_id": "genoa",
+          "parent_name": "Genoa (3 blades)",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#genoa"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCGENOA3",
+      "name": "Genoa 3",
+      "price": {
+        "amount": 155,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        },
+        {
+          "parent_id": "genoa",
+          "parent_name": "Genoa (3 blades)",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#genoa"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "FPCSPLIT",
+      "name": "Split",
+      "price": {
+        "amount": 130,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "expander-5",
+          "parent_name": "Ridge Expansion — Expander 5",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-5"
+        },
+        {
+          "parent_id": "expander-plus-8",
+          "parent_name": "Ridge Expansion — Expander Plus 8",
+          "group_id": "expansion",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#expander-plus-8"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "GL2306",
+      "name": "Hook Single Crown 2",
+      "price": {
+        "amount": 85,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "levacorone",
+          "parent_name": "Crown Remover (Levacorone)",
+          "group_id": "prosthetics",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#levacorone"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "GL2307",
+      "name": "Hook Single Crown",
+      "price": {
+        "amount": 85,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "levacorone",
+          "parent_name": "Crown Remover (Levacorone)",
+          "group_id": "prosthetics",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#levacorone"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "GL2308",
+      "name": "Hook Bridge",
+      "price": {
+        "amount": 85,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "levacorone",
+          "parent_name": "Crown Remover (Levacorone)",
+          "group_id": "prosthetics",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#levacorone"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "OSPT1",
+      "name": "Osteotome PT1",
+      "price": {
+        "amount": 170,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "pt-1",
+          "parent_name": "PT-1 Pterygoid",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#pt-1"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "OSPT2",
+      "name": "Osteotome PT2",
+      "price": {
+        "amount": 170,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "pt-1",
+          "parent_name": "PT-1 Pterygoid",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#pt-1"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "OSPT3",
+      "name": "Osteotome PT3",
+      "price": {
+        "amount": 170,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "pt-1",
+          "parent_name": "PT-1 Pterygoid",
+          "group_id": "implantology",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#pt-1"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV1",
+      "name": "Stop H1",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV10",
+      "name": "Stop H10",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV11",
+      "name": "Stop H11",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV12",
+      "name": "Stop H12",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV13",
+      "name": "Stop H13",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV2",
+      "name": "Stop H2",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV3",
+      "name": "Stop H3",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV4",
+      "name": "Stop H4",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV5",
+      "name": "Stop H5",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV6",
+      "name": "Stop H6",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV7",
+      "name": "Stop H7",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV8",
+      "name": "Stop H8",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    },
+    {
+      "code": "STELEV9",
+      "name": "Stop H9",
+      "price": {
+        "amount": 45,
+        "currency": "USD",
+        "tax_included": false
+      },
+      "availability": {
+        "status": "available_online",
+        "note": "Listed on the English OSSEOTOUCH shop. Orders route through the U.S. checkout/customer-service flow."
+      },
+      "purchase_context": [
+        {
+          "parent_id": "elevate",
+          "parent_name": "Kit Elevate",
+          "group_id": "sinus-lift",
+          "purchase_url": "https://www.osseotouch.com/en/shop/#elevate"
+        }
+      ],
+      "direct_checkout_status": "direct_add_to_cart_from_parent_kit_details",
+      "last_updated": "2026-05-13",
+      "source": {
+        "file": "JAN34/templates/pages/en/shop.astro",
+        "collection": "kitGroups[].kits[].singles"
+      }
+    }
+  ],
+  "counts": {
+    "products": 24,
+    "component_price_list_items": 62
+  }
+}

@@ -12,11 +12,12 @@ const {
     sanitizeShopOrderError
 } = require('./scripts/shop_public_order_capability');
 const {
-    evaluateMyOsseotouchShopBridgeReference
-} = require('./scripts/myosseotouch_shop_bridge');
-const {
     createKesselShopOrdersExportHandler
 } = require('./scripts/kessel_shop_orders_export');
+const {
+    applyF9StripeWebhook,
+    createF9CheckoutHandler
+} = require('./scripts/f9_checkout');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -46,9 +47,10 @@ const CONFIG = {
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
     SHOP_ORDER_PUBLIC_TOKEN_SECRET: process.env.SHOP_ORDER_PUBLIC_TOKEN_SECRET,
-    MYOSSEOTOUCH_SHOP_BRIDGE_SECRET: process.env.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
-    MYOSSEOTOUCH_SHOP_TEST_MODE: process.env.MYOSSEOTOUCH_SHOP_TEST_MODE === 'true',
+    MYOSSEOTOUCH_F9_RESOLVER_URL: process.env.MYOSSEOTOUCH_F9_RESOLVER_URL,
+    MYOSSEOTOUCH_F9_API_KEY: process.env.MYOSSEOTOUCH_F9_API_KEY,
     KESSEL_SHOP_EXPORT_API_KEY: process.env.KESSEL_SHOP_EXPORT_API_KEY,
+    SHOP_US_CATALOG_PATH: process.env.SHOP_US_CATALOG_PATH || path.join(__dirname, 'data', 'shop-catalog-us.json'),
     SHOP_FRONTEND_URL: process.env.SHOP_FRONTEND_URL || 'http://localhost:4331'
 };
 
@@ -1625,7 +1627,7 @@ async function initDB() {
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS financing_data JSONB`);
 
         // ===== USA shop extensions (Sprint 3 — 04/05/2026) =====
-        // Add columns to support OSSEOTOUCH LLC US orders + Customer Service quote requests
+        // Add columns to support OSSEOTOUCH LLC US orders and accepted proposals
         // alongside existing IT orders, in the same table for unified admin list.
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS market TEXT NOT NULL DEFAULT 'IT'`);     // 'IT' | 'US'
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS flow TEXT`);                              // 'buy_now' | 'customer_service' (null for IT)
@@ -1633,9 +1635,15 @@ async function initDB() {
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS sales_tax NUMERIC(10,2) DEFAULT 0`);      // US sales tax (distinct from EU vat_amount)
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS ship_state TEXT`);                        // US state code (for sales tax AL only)
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS ship_country TEXT`);                      // ISO country code (US, IT, etc.)
-        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_id TEXT`);             // QuickBooks invoice ID after team review
-        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS quickbooks_invoice_url TEXT`);            // QuickBooks "Pay Now" link sent to customer
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS practice_name TEXT`);                     // dental practice/clinic name (US flow)
+        await client.query(`CREATE SEQUENCE IF NOT EXISTS shop_orders_snapshot_revision_seq`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS snapshot_revision BIGINT NOT NULL DEFAULT nextval('shop_orders_snapshot_revision_seq')`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS idempotency_key TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS f9_acceptance_id UUID`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS f9_proposal_id TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS f9_snapshot_version TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS f9_snapshot_hash TEXT`);
+        await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS checkout_request_hash TEXT`);
         // F9 — ponte MyOSSEOTOUCH USA -> shop. Il reference raw non entra mai nel DB:
         // viene conservato esclusivamente il digest SHA-256 dopo validazione HMAC.
         await client.query(`ALTER TABLE shop_orders ADD COLUMN IF NOT EXISTS myosseotouch_ref_hash TEXT`);
@@ -1676,6 +1684,51 @@ async function initDB() {
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_market ON shop_orders(market)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_flow ON shop_orders(flow)`);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_myosseotouch_ref_hash ON shop_orders(myosseotouch_ref_hash)`);
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_shop_orders_idempotency_key ON shop_orders(idempotency_key) WHERE idempotency_key IS NOT NULL`);
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_shop_orders_f9_acceptance ON shop_orders(f9_acceptance_id) WHERE f9_acceptance_id IS NOT NULL`);
+        await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_orders_snapshot_revision ON shop_orders(snapshot_revision)`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shop_order_number_counters (
+                order_year INTEGER PRIMARY KEY,
+                next_value INTEGER NOT NULL CHECK (next_value > 0)
+            )
+        `);
+        await client.query(`
+            INSERT INTO shop_order_number_counters (order_year, next_value)
+            SELECT split_part(order_number, '-', 2)::int,
+                   MAX(split_part(order_number, '-', 3)::int)
+              FROM shop_orders
+             WHERE order_number ~ '^OSS-[0-9]{4}-[0-9]+$'
+             GROUP BY split_part(order_number, '-', 2)::int
+            ON CONFLICT (order_year) DO NOTHING
+        `);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shop_order_stripe_attempts (
+                order_id INTEGER NOT NULL REFERENCES shop_orders(id) ON DELETE RESTRICT,
+                generation INTEGER NOT NULL CHECK (generation > 0),
+                stripe_idempotency_key TEXT NOT NULL,
+                request_hash TEXT NOT NULL CHECK (request_hash ~ '^[0-9a-f]{64}$'),
+                state TEXT NOT NULL CHECK (state IN ('creating','open','completed','expired','indeterminate','terminal')),
+                stripe_session_id TEXT,
+                stripe_session_url TEXT,
+                created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                PRIMARY KEY (order_id, generation),
+                UNIQUE (stripe_idempotency_key),
+                UNIQUE (stripe_session_id)
+            )
+        `);
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS uq_shop_order_stripe_active_attempt ON shop_order_stripe_attempts(order_id) WHERE state IN ('creating','open','indeterminate')`);
+        await client.query(`
+            CREATE TABLE IF NOT EXISTS shop_stripe_webhook_events (
+                stripe_event_id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                order_id INTEGER REFERENCES shop_orders(id) ON DELETE RESTRICT,
+                attempt_generation INTEGER,
+                received_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+                applied_at TIMESTAMPTZ
+            )
+        `);
 
         await client.query(`
             CREATE TABLE IF NOT EXISTS shop_order_items (
@@ -1691,6 +1744,52 @@ async function initDB() {
             )
         `);
         await client.query(`CREATE INDEX IF NOT EXISTS idx_shop_order_items_order ON shop_order_items(order_id)`);
+        await client.query(`
+            CREATE OR REPLACE FUNCTION bump_shop_order_snapshot_revision()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF NEW IS DISTINCT FROM OLD
+                   AND NEW.snapshot_revision IS NOT DISTINCT FROM OLD.snapshot_revision THEN
+                    NEW.snapshot_revision := nextval('shop_orders_snapshot_revision_seq');
+                END IF;
+                RETURN NEW;
+            END;
+            $$ LANGUAGE plpgsql
+        `);
+        await client.query(`DROP TRIGGER IF EXISTS trg_shop_orders_snapshot_revision ON shop_orders`);
+        await client.query(`
+            CREATE TRIGGER trg_shop_orders_snapshot_revision
+            BEFORE UPDATE ON shop_orders
+            FOR EACH ROW EXECUTE FUNCTION bump_shop_order_snapshot_revision()
+        `);
+        await client.query(`
+            CREATE OR REPLACE FUNCTION touch_shop_order_from_item()
+            RETURNS TRIGGER AS $$
+            BEGIN
+                IF TG_OP = 'UPDATE' AND OLD.order_id IS DISTINCT FROM NEW.order_id THEN
+                    UPDATE shop_orders
+                       SET snapshot_revision = nextval('shop_orders_snapshot_revision_seq')
+                     WHERE id = OLD.order_id;
+                END IF;
+                IF TG_OP = 'DELETE' THEN
+                    UPDATE shop_orders
+                       SET snapshot_revision = nextval('shop_orders_snapshot_revision_seq')
+                     WHERE id = OLD.order_id;
+                ELSE
+                    UPDATE shop_orders
+                       SET snapshot_revision = nextval('shop_orders_snapshot_revision_seq')
+                     WHERE id = NEW.order_id;
+                END IF;
+                RETURN NULL;
+            END;
+            $$ LANGUAGE plpgsql
+        `);
+        await client.query(`DROP TRIGGER IF EXISTS trg_shop_order_items_snapshot_revision ON shop_order_items`);
+        await client.query(`
+            CREATE TRIGGER trg_shop_order_items_snapshot_revision
+            AFTER INSERT OR UPDATE OR DELETE ON shop_order_items
+            FOR EACH ROW EXECUTE FUNCTION touch_shop_order_from_item()
+        `);
 
         // ==================== SUTURE VENDITA (agente SUTURE — portale cliente + proposte) ====================
         // Distinto dal Controllo Suture VITREX (tabelle suture_stock/suture_sync_meta/suture_ordini_clienti sopra).
@@ -13168,10 +13267,14 @@ const SHOP_FREE_SHIP_DEFAULT = 3900;
 async function generateShopOrderNumber(client) {
     const year = new Date().getFullYear();
     const r = await client.query(
-        `SELECT COUNT(*)::int AS c FROM shop_orders WHERE order_number LIKE $1`,
-        [`OSS-${year}-%`]
+        `INSERT INTO shop_order_number_counters (order_year, next_value)
+         VALUES ($1, 1)
+         ON CONFLICT (order_year) DO UPDATE
+             SET next_value = shop_order_number_counters.next_value + 1
+         RETURNING next_value`,
+        [year]
     );
-    const next = (r.rows[0].c || 0) + 1;
+    const next = Number(r.rows[0].next_value);
     return `OSS-${year}-${String(next).padStart(4, '0')}`;
 }
 
@@ -13525,6 +13628,14 @@ app.post('/api/shop/stripe-webhook', async (req, res) => {
     }
 
     try {
+        if (event?.data?.object?.metadata?.market === 'US') {
+            const f9Result = await applyF9StripeWebhook(pool, event);
+            if (f9Result.handled) {
+                return res.json({ received: true });
+            }
+            // Sessioni USA legacy create prima del deploy non hanno la
+            // generazione F9: continuano nel gestore esistente fino a esaurimento.
+        }
         if (event.type === 'checkout.session.completed') {
             const session = event.data.object;
             const orderNumber = session.metadata?.order_number;
@@ -13655,8 +13766,8 @@ app.get('/api/shop/orders', requireAdmin, async (req, res) => {
         } else if (archive === 'true') {
             conds.push(`status IN ('confirmed', 'cancelled')`);
         } else {
-            // Default: ordini attivi (IT + US, include quote_pending e quote_invoiced US)
-            conds.push(`status IN ('pending', 'pending_payment', 'paid', 'pending_financing', 'quote_pending', 'quote_invoiced')`);
+            // Default: ordini attivi IT + checkout online USA.
+            conds.push(`status IN ('pending', 'pending_payment', 'paid', 'pending_financing', 'confirmed')`);
         }
         const where = conds.length ? 'WHERE ' + conds.join(' AND ') : '';
 
@@ -13667,7 +13778,6 @@ app.get('/api/shop/orders', requireAdmin, async (req, res) => {
                    ship_street, ship_zip, ship_city, ship_prov, ship_state, ship_country,
                    total_gross, subtotal_net, shipping, vat_amount, sales_tax,
                    market, flow, currency,
-                   quickbooks_invoice_id, quickbooks_invoice_url,
                    customer_notes, internal_notes,
                    is_test, is_deleted,
                    created_at, confirmed_at, cancelled_at
@@ -13740,215 +13850,6 @@ app.delete('/api/shop/orders/:id', requireAdmin, async (req, res) => {
     }
 });
 
-// ==================== SHOP USA — Customer Service quote requests ====================
-// Sprint 3 (04/05/2026) — endpoint POST /api/shop-us/quote-request
-//
-// Receives form submissions from /en/shop/checkout/?flow=customer_service.
-// Saves the order in shop_orders with market='US', flow='customer_service',
-// currency='USD', status='quote_pending'. Sends 2 emails (customer confirmation
-// + internal notification to OSSEOTOUCH LLC team with line-items copy-paste-ready
-// for QuickBooks invoice creation).
-//
-// IMPORTANT: prices for US flow are indicative — final price is confirmed in the
-// QuickBooks invoice (no payment is collected at this step).
-
-// Helper — format USD as "$1,234"
-function shopFmtUsd(n) {
-    return '$' + Math.round(Number(n) || 0).toLocaleString('en-US');
-}
-
-// Helper — render customer confirmation email (EN)
-function buildShopUsCustomerEmailHtml(order) {
-    const itemsHtml = (order.items || []).map(i => {
-        return `<tr><td style="padding:8px;border-bottom:1px solid #eee">${i.qty}× ${i.name}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">${shopFmtUsd((Number(i.price) || 0) * (Number(i.qty) || 1))}</td></tr>`;
-    }).join('');
-    return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:620px;margin:0 auto;padding:24px">
-  <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:28px;color:#0a1f2e;margin:0 0 8px">Quote request received</h2>
-  <p style="color:#5a6878;font-size:15px;line-height:1.5;margin:0 0 24px">Thank you, <strong>${order.customer?.full_name || 'Customer'}</strong>. Our OSSEOTOUCH team will review your configuration and reply within <strong>1 business day</strong>.</p>
-  <div style="background:#f0eae0;padding:16px;border-left:3px solid #1a9e8f;font-size:14px;color:#0d1822;margin-bottom:24px">
-    <strong>Reference:</strong> ${order.orderNumber}<br>
-    <strong>Status:</strong> Quote pending review.<br>
-    <strong>What happens next:</strong> We confirm shipping and final price, then email you a QuickBooks invoice with a Pay Now link. <strong>No payment is collected until you approve the invoice.</strong>
-  </div>
-  <h3 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:20px;color:#0a1f2e;margin:24px 0 8px">Your configuration</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:14px;margin-bottom:24px">
-    ${itemsHtml}
-    <tr><td style="padding:12px 8px;font-weight:600;border-top:2px solid #0a1f2e">Indicative subtotal</td><td style="padding:12px 8px;text-align:right;font-weight:600;border-top:2px solid #0a1f2e;color:#0a1f2e">${shopFmtUsd(order.totals?.subtotal || 0)}</td></tr>
-  </table>
-  <p style="font-size:13px;color:#5a6878;line-height:1.5">Final price including shipping and any setup fee will be confirmed in the invoice.</p>
-  <p style="font-size:13px;color:#5a6878;line-height:1.5;margin-top:24px">Need to reach us? Email <a href="mailto:contact@osseotouch.com" style="color:#1a9e8f">contact@osseotouch.com</a> or message us on WhatsApp.</p>
-  <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
-  <p style="font-size:11px;color:#5a6878">OSSEOTOUCH LLC · Fairhope, AL · USA<br>Free U.S. shipping · 30-day returns on unopened items · 24-month limited warranty</p>
-</div>`;
-}
-
-// Helper — render internal team email (EN) with line-items copy-paste-ready for QuickBooks
-function buildShopUsInternalEmailHtml(order) {
-    const itemsRows = (order.items || []).map(i => {
-        const lineTotal = (Number(i.price) || 0) * (Number(i.qty) || 1);
-        return `<tr>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee">${i.qty}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;font-family:monospace">${i.id || ''}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee">${i.name}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right">${shopFmtUsd(i.price || 0)}</td>
-          <td style="padding:6px 10px;border-bottom:1px solid #eee;text-align:right;font-weight:600">${shopFmtUsd(lineTotal)}</td>
-        </tr>`;
-    }).join('');
-    const c = order.customer || {};
-    const ship = order.shipping_address || {};
-    return `<div style="font-family:'Helvetica Neue',Arial,sans-serif;color:#0d1822;max-width:760px;margin:0 auto;padding:20px">
-  <h2 style="font-family:'Times New Roman',Georgia,serif;font-weight:400;font-size:24px;color:#0a1f2e;margin:0 0 8px">[US QUOTE] ${order.orderNumber} — ${c.practice || c.full_name || ''}</h2>
-  <p style="color:#5a6878;font-size:14px;margin:0 0 20px">A new quote request was submitted via /en/shop/checkout/. Review below, then create a QuickBooks invoice and send the Pay Now link.</p>
-
-  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Customer</h3>
-  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;background:#faf7f2;border:1px solid #ddd">
-    <tr><td style="padding:6px 10px;font-weight:600;width:140px">Name</td><td style="padding:6px 10px">${c.full_name || ''}</td></tr>
-    <tr><td style="padding:6px 10px;font-weight:600">Email</td><td style="padding:6px 10px"><a href="mailto:${c.email || ''}" style="color:#1a9e8f">${c.email || ''}</a></td></tr>
-    <tr><td style="padding:6px 10px;font-weight:600">Phone</td><td style="padding:6px 10px">${c.phone || ''}</td></tr>
-    <tr><td style="padding:6px 10px;font-weight:600">Practice</td><td style="padding:6px 10px">${c.practice || '—'}</td></tr>
-  </table>
-
-  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Shipping address</h3>
-  <p style="font-size:13px;line-height:1.5;background:#faf7f2;padding:10px 14px;border:1px solid #ddd;margin:0 0 16px">
-    ${ship.street || ''}<br>
-    ${ship.city || ''}, ${ship.state || ''} ${ship.zip || ''}<br>
-    United States
-  </p>
-
-  <h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Line items <span style="font-size:12px;color:#5a6878;font-style:italic">(copy-paste-ready for QuickBooks)</span></h3>
-  <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px;background:#fff;border:1px solid #ddd">
-    <thead style="background:#0a1f2e;color:#faf7f2">
-      <tr>
-        <th style="padding:8px 10px;text-align:left">Qty</th>
-        <th style="padding:8px 10px;text-align:left">SKU/ID</th>
-        <th style="padding:8px 10px;text-align:left">Product</th>
-        <th style="padding:8px 10px;text-align:right">Unit price</th>
-        <th style="padding:8px 10px;text-align:right">Line total</th>
-      </tr>
-    </thead>
-    <tbody>${itemsRows}</tbody>
-    <tfoot>
-      <tr><td colspan="4" style="padding:10px;text-align:right;font-weight:600;border-top:2px solid #0a1f2e">Indicative subtotal</td><td style="padding:10px;text-align:right;font-weight:700;border-top:2px solid #0a1f2e;color:#0a1f2e">${shopFmtUsd(order.totals?.subtotal || 0)}</td></tr>
-    </tfoot>
-  </table>
-
-  ${order.notes ? `<h3 style="font-family:'Times New Roman',Georgia,serif;font-size:18px;color:#0a1f2e;margin:0 0 8px">Customer notes</h3><p style="font-size:13px;background:#fdf6e3;padding:10px 14px;border-left:3px solid #c9a25c;margin:0 0 16px">${order.notes}</p>` : ''}
-
-  <p style="font-size:13px;color:#5a6878;margin-top:20px">Reference ID: <strong>${order.orderNumber}</strong> · Submitted at: ${new Date().toLocaleString('en-US', { timeZone: 'America/Chicago' })} CT<br>Admin: <a href="https://dashboard-cs.up.railway.app/admin#shop" style="color:#1a9e8f">view in Dashboard</a></p>
-</div>`;
-}
-
-// POST /api/shop-us/quote-request
-app.post('/api/shop-us/quote-request', async (req, res) => {
-    res.set('Cache-Control', 'private, no-store, max-age=0');
-    const { customer, shipping_address, items, notes, myosseotouch_ref } = req.body || {};
-    const bridgeDecision = evaluateMyOsseotouchShopBridgeReference(myosseotouch_ref, {
-        secret: CONFIG.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
-        testMode: CONFIG.MYOSSEOTOUCH_SHOP_TEST_MODE
-    });
-
-    // Un reference che dichiara purpose=test non puo' mai degradare al flusso
-    // commerciale: il rifiuto avviene prima di pool, email o altri side effect.
-    if (bridgeDecision.rejectRequest) {
-        return res.status(400).json({ error: 'TEST shop reference not available' });
-    }
-
-    // Validation
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: 'Empty cart' });
-    }
-    if (!customer || !customer.full_name || !customer.email || !customer.phone) {
-        return res.status(400).json({ error: 'Missing customer information (name, email, phone required)' });
-    }
-    if (!shipping_address || !shipping_address.street || !shipping_address.city || !shipping_address.state || !shipping_address.zip) {
-        return res.status(400).json({ error: 'Incomplete shipping address (street, city, state, zip required)' });
-    }
-
-    // Compute indicative subtotal in USD (no tax, no shipping at this stage)
-    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
-    const totals = { subtotal, shipping: 0, sales_tax: 0, total: subtotal };
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const orderNumber = await generateShopOrderNumber(client);
-        const status = 'quote_pending';
-
-        const ins = await client.query(
-            `INSERT INTO shop_orders (
-                order_number, status, payment_method,
-                buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
-                 ship_street, ship_zip, ship_city, ship_state, ship_country,
-                 subtotal_net, shipping, vat_amount, sales_tax, total_gross,
-                 customer_notes, market, flow, currency, is_test,
-                 myosseotouch_ref_hash, myosseotouch_ref_state, myosseotouch_origin,
-                 myosseotouch_ref_validated_at, myosseotouch_ref_purpose
-             ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28)
-             RETURNING id`,
-            [
-                orderNumber, status, 'quickbooks_invoice',
-                customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
-                shipping_address.street, shipping_address.zip, shipping_address.city, (shipping_address.state || '').toUpperCase(), 'US',
-                subtotal, 0, 0, 0, subtotal,
-                notes || null, 'US', 'customer_service', 'USD',
-                bridgeDecision.isTest || process.env.NODE_ENV !== 'production',
-                bridgeDecision.hash, bridgeDecision.state, bridgeDecision.origin,
-                bridgeDecision.validatedAt, bridgeDecision.purpose
-            ]
-        );
-        const orderId = ins.rows[0].id;
-
-        for (const item of items) {
-            await client.query(
-                `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, 0, false]
-            );
-        }
-
-        await client.query('COMMIT');
-
-        if (bridgeDecision.isTest) {
-            return res.json({
-                success: true,
-                orderNumber,
-                isTest: true,
-                redirectUrl: `/en/shop/quote-received/?requestId=${encodeURIComponent(orderNumber)}&test=1`
-            });
-        }
-
-        const orderForEmail = { orderNumber, customer, shipping_address, notes: notes || '', items, totals };
-
-        // Async emails — don't block the response
-        sendMailgunEmail(
-            customer.email,
-            `Quote request received ${orderNumber} — OSSEOTOUCH USA`,
-            buildShopUsCustomerEmailHtml(orderForEmail),
-            'shop-us-quote-customer'
-        ).catch(e => console.error('[shop-us quote] customer mail error:', e));
-
-        sendMailgunEmail(
-            'contact@osseotouch.com',
-            `[US QUOTE] ${orderNumber} — ${customer.practice || customer.full_name}`,
-            buildShopUsInternalEmailHtml(orderForEmail),
-            'shop-us-quote-internal'
-        ).catch(e => console.error('[shop-us quote] internal mail error:', e));
-
-        return res.json({
-            success: true,
-            orderNumber,
-            redirectUrl: `/en/shop/quote-received/?requestId=${orderNumber}`
-        });
-    } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
-        console.error('[shop-us quote-request] error:', err?.name || 'Error');
-        res.status(500).json({ error: 'Could not save quote request' });
-    } finally {
-        client.release();
-    }
-});
-
-
 // ==================== SHOP USA — Buy Now (Stripe Checkout Session) ====================
 // Sprint 4 (04/05/2026) — endpoint POST /api/shop-us/checkout
 //
@@ -13997,159 +13898,18 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
 </div>`;
 }
 
-// POST /api/shop-us/checkout — Stripe Checkout Session in USD
-app.post('/api/shop-us/checkout', async (req, res) => {
-    res.set('Cache-Control', 'private, no-store, max-age=0');
-    const { customer, shipping_address, items, notes, myosseotouch_ref } = req.body || {};
-    const bridgeDecision = evaluateMyOsseotouchShopBridgeReference(myosseotouch_ref, {
-        secret: CONFIG.MYOSSEOTOUCH_SHOP_BRIDGE_SECRET,
-        testMode: CONFIG.MYOSSEOTOUCH_SHOP_TEST_MODE
-    });
-
-    // Fail-closed TEST: questo return precede pool.connect(), Stripe e ogni
-    // possibile side effect commerciale.
-    if (bridgeDecision.rejectRequest) {
-        return res.status(400).json({ error: 'TEST shop reference not available' });
-    }
-
-    // Validation
-    if (!items || !Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: 'Empty cart' });
-    }
-    if (!customer || !customer.full_name || !customer.email || !customer.phone) {
-        return res.status(400).json({ error: 'Missing customer information (name, email, phone required)' });
-    }
-    if (!shipping_address || !shipping_address.street || !shipping_address.city || !shipping_address.state || !shipping_address.zip) {
-        return res.status(400).json({ error: 'Incomplete shipping address (street, city, state, zip required)' });
-    }
-    if (!bridgeDecision.isTest && !stripe) {
-        return res.status(503).json({ error: 'Stripe not configured on server' });
-    }
-    if (!isShopOrderPublicSecretConfigured(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET)) {
-        return res.status(503).json({ error: 'Checkout temporarily unavailable' });
-    }
-
-    // Compute totals (USD; free U.S. shipping; sales tax handled manually by
-    // Customer Service post-checkout, no automatic calculation)
-    const subtotal = items.reduce((s, i) => s + (Number(i.price) || 0) * (Number(i.qty) || 1), 0);
-    const stateUpper = (shipping_address.state || '').toUpperCase();
-    const salesTax = 0;
-    const total = subtotal;
-
-    const client = await pool.connect();
-    try {
-        await client.query('BEGIN');
-        const orderNumber = await generateShopOrderNumber(client);
-        const publicOrderToken = createShopOrderPublicCapability(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET, orderNumber);
-        if (!publicOrderToken) throw new Error('Shop public order capability non disponibile');
-
-        const ins = await client.query(
-            `INSERT INTO shop_orders (
-                order_number, status, payment_method,
-                buyer_company, buyer_contact_name, buyer_email, buyer_phone, practice_name,
-                ship_street, ship_zip, ship_city, ship_state, ship_country,
-                subtotal_net, shipping, vat_amount, sales_tax, total_gross,
-                customer_notes, market, flow, currency, is_test, confirmed_at,
-                myosseotouch_ref_hash, myosseotouch_ref_state, myosseotouch_origin,
-                myosseotouch_ref_validated_at, myosseotouch_ref_purpose
-            ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24,$25,$26,$27,$28,$29)
-            RETURNING id`,
-            [
-                orderNumber,
-                bridgeDecision.isTest ? 'confirmed' : 'pending_payment',
-                bridgeDecision.isTest ? 'test_no_payment' : 'stripe_card',
-                customer.practice || null, customer.full_name, customer.email, customer.phone, customer.practice || null,
-                shipping_address.street, shipping_address.zip, shipping_address.city, stateUpper, 'US',
-                subtotal, 0, 0, salesTax, total,
-                notes || null, 'US', 'buy_now', 'USD',
-                bridgeDecision.isTest || process.env.NODE_ENV !== 'production',
-                bridgeDecision.isTest ? new Date() : null,
-                bridgeDecision.hash, bridgeDecision.state, bridgeDecision.origin,
-                bridgeDecision.validatedAt, bridgeDecision.purpose
-            ]
-        );
-        const orderId = ins.rows[0].id;
-
-        for (const item of items) {
-            await client.query(
-                `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
-                 VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, 0, Number(item.price) === 0]
-            );
-        }
-
-        await client.query('COMMIT');
-
-        if (bridgeDecision.isTest) {
-            const testConfirmationUrl =
-                `${CONFIG.SHOP_FRONTEND_URL}/en/shop/order-confirmed/?id=${encodeURIComponent(orderNumber)}&test=1`;
-            return res.json({
-                success: true,
-                orderNumber,
-                publicOrderToken,
-                isTest: true,
-                sessionUrl: testConfirmationUrl
-            });
-        }
-
-        // Build Stripe line_items in USD cents (skip free items — Stripe rejects $0)
-        const lineItems = items
-            .filter(it => Number(it.price) > 0)
-            .map(it => ({
-                price_data: {
-                    currency: 'usd',
-                    product_data: { name: it.name },
-                    unit_amount: Math.round(Number(it.price) * 100)
-                },
-                quantity: Number(it.qty)
-            }));
-
-        // Sales tax: handled manually by Customer Service post-checkout (no automatic line item)
-
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            payment_method_types: ['card'],
-            line_items: lineItems,
-            customer_email: customer.email,
-            success_url: `${CONFIG.SHOP_FRONTEND_URL}/en/shop/order-confirmed/?id=${orderNumber}&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${CONFIG.SHOP_FRONTEND_URL}/en/shop/checkout/?canceled=1`,
-            metadata: {
-                order_number: orderNumber,
-                order_id: String(orderId),
-                market: 'US',
-                buyer_name: customer.full_name || '',
-                practice: customer.practice || ''
-            },
-            locale: 'en'
-        });
-
-        // Save Stripe session_id on the order
-        const innerClient = await pool.connect();
-        try {
-            await innerClient.query(
-                `UPDATE shop_orders SET stripe_session_id = $1 WHERE id = $2`,
-                [session.id, orderId]
-            );
-        } finally {
-            innerClient.release();
-        }
-
-        return res.json({
-            success: true,
-            orderNumber,
-            publicOrderToken,
-            sessionUrl: session.url
-        });
-
-    } catch (err) {
-        await client.query('ROLLBACK').catch(() => {});
-        console.error('[shop-us/checkout] error:', err?.name || 'Error');
-        return res.status(500).json({ error: 'Could not create checkout session' });
-    } finally {
-        client.release();
-    }
+// Roadmap #94: il solo checkout USA pubblico usa prezzi server-side, reference
+// S2S e tentativi Stripe generazionali/idempotenti.
+const f9CheckoutHandler = createF9CheckoutHandler({
+    pool,
+    stripe,
+    config: CONFIG,
+    generateOrderNumber: generateShopOrderNumber,
+    createPublicCapability: createShopOrderPublicCapability,
+    publicCapabilityReady: isShopOrderPublicSecretConfigured
+    /* c8 ignore stop */
 });
-
+app.post('/api/shop-us/checkout', f9CheckoutHandler);
 
 // ==================== AVVIO SERVER ====================
 

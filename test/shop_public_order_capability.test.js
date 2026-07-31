@@ -197,15 +197,17 @@ test('direct redirect capabilities are transported only in the URL fragment', ()
 
 test('server integration keeps capability out of Stripe URLs and metadata', () => {
     const server = fs.readFileSync(path.join(__dirname, '..', 'server.js'), 'utf8');
+    const f9Checkout = fs.readFileSync(path.join(__dirname, '..', 'scripts', 'f9_checkout.js'), 'utf8');
     assert.match(server, /SHOP_ORDER_PUBLIC_TOKEN_SECRET:\s*process\.env\.SHOP_ORDER_PUBLIC_TOKEN_SECRET/);
     assert.doesNotMatch(server, /SHOP_ORDER_PUBLIC_TOKEN_SECRET[^,\n]*\|\|[^,\n]*['"][^'"]+['"]/);
     assert.doesNotMatch(server, /success_url:[^\n]*order_token/);
     assert.doesNotMatch(server, /metadata:\s*\{[^}]*publicOrderToken/s);
     assert.match(server, /buildShopBccCustomerEmailHtml\(orderForEmail, methodLabel, publicOrderToken\)/);
     assert.match(server, /appendShopOrderCapabilityFragment\(`https:\/\/www\.osseotouch\.com\/shop\/ordine-finanziamento-inviato\/\?id=/);
-    // Quattro flussi preesistenti + conferma first-party del checkout F9 TEST.
-    assert.equal((server.match(/\n\s+publicOrderToken,/g) || []).length, 5);
+    // Due flussi italiani preesistenti + conferma first-party del checkout F9 TEST.
+    assert.equal((server.match(/\n\s+publicOrderToken,/g) || []).length, 3);
     assert.match(server, /app\.get\('\/api\/shop\/orders\/public\/:orderNumber', createShopPublicOrderHandler/);
     assert.match(server, /app\.post\('\/api\/shop\/checkout'[\s\S]*?res\.set\('Cache-Control', 'private, no-store, max-age=0'\)/);
-    assert.match(server, /app\.post\('\/api\/shop-us\/checkout'[\s\S]*?res\.set\('Cache-Control', 'private, no-store, max-age=0'\)/);
+    assert.match(server, /app\.post\('\/api\/shop-us\/checkout', f9CheckoutHandler\)/);
+    assert.match(f9Checkout, /res\.set\('Cache-Control', 'private, no-store, max-age=0'\)/);
 });

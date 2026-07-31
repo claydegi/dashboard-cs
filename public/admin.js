@@ -2208,8 +2208,6 @@ const SHOP_STATUS_LABELS = {
     confirmed: { label: 'Confermato', color: '#059669', bg: '#d1fae5' },
     cancelled: { label: 'Cancellato', color: '#991b1b', bg: '#fee2e2' },
     // US Customer Service flow statuses
-    quote_pending: { label: 'Quote in attesa team', color: '#7c3aed', bg: '#ede9fe' },
-    quote_invoiced: { label: 'Invoice QuickBooks inviata', color: '#1e40af', bg: '#dbeafe' }
 };
 
 const SHOP_METHOD_LABELS = {
@@ -2218,7 +2216,6 @@ const SHOP_METHOD_LABELS = {
     cs_offline: '📄 Finalizza CS',
     bcc_financing: '💰 Finanziamento BCC',
     bcc_leasing: '🚗 Noleggio BCC',
-    quickbooks_invoice: '📋 Invoice QuickBooks',
     stripe_us: '💳 Stripe US (LLC)'
 };
 
@@ -2295,7 +2292,6 @@ function renderShopOrders(orders) {
         const marketBadge = SHOP_MARKET_BADGE[market] || SHOP_MARKET_BADGE.IT;
         const currency = o.currency || 'EUR';
         const isUS = market === 'US';
-        const isQuote = o.flow === 'customer_service';
 
         const itemsList = (o.items || []).map(it => `
             <li>${it.qty}× ${it.product_name}${it.is_free_promo ? ' <span style="color:#d4af6a">(OMAGGIO)</span>' : ''} — ${fmtShopMoney(it.qty * it.unit_price, currency)}</li>
@@ -2326,7 +2322,6 @@ function renderShopOrders(orders) {
                 <div>
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap">
                         <span style="background:${marketBadge.bg}; color:${marketBadge.color}; padding:3px 8px; border-radius:4px; font-size:11px; font-weight:700; letter-spacing:0.05em">${marketBadge.label}</span>
-                        ${isQuote ? '<span style="background:#ede9fe;color:#7c3aed;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;letter-spacing:0.05em">QUOTE</span>' : ''}
                         <span style="font-family:monospace; font-weight:700; font-size:16px; color:#1a9e8f">${o.order_number}</span>
                         ${o.is_test ? '<span style="font-size:11px;background:#fef3c7;color:#92400e;padding:2px 6px;border-radius:4px;letter-spacing:0.05em">TEST</span>' : ''}
                     </div>
@@ -2346,9 +2341,9 @@ function renderShopOrders(orders) {
                     ${isUS ? '' : `<div style="font-size:12px; color:#6b7280">P.IVA ${o.buyer_vat || '—'}</div>`}
                 </div>
                 <div style="text-align:right">
-                    <div style="font-size:13px; color:#6b7280">${isQuote ? 'Indicative subtotal' : 'Totale ordine'}</div>
+                    <div style="font-size:13px; color:#6b7280">Totale ordine</div>
                     <div style="font-size:22px; font-weight:800; color:${isUS ? '#ea580c' : '#1a9e8f'}">${fmtShopMoney(o.total_gross, currency)}</div>
-                    <div style="font-size:11px; color:#6b7280">${isUS ? (isQuote ? 'Final price in invoice' : 'sales tax incl. if AL') : 'IVA inclusa'} · ${(o.items || []).length} art.</div>
+                    <div style="font-size:11px; color:#6b7280">${isUS ? 'sales tax incl. if AL' : 'IVA inclusa'} · ${(o.items || []).length} art.</div>
                 </div>
             </div>
 
@@ -2362,7 +2357,6 @@ function renderShopOrders(orders) {
                     </div>
                     ${o.customer_notes ? `<div style="margin-top:10px; padding:8px; background:#fff8e1; border-left:3px solid #d4af6a; font-size:13px"><strong>${isUS ? 'Customer notes' : 'Note cliente'}:</strong> ${o.customer_notes}</div>` : ''}
                     ${o.internal_notes ? `<div style="margin-top:6px; padding:8px; background:#eef2ff; border-left:3px solid #6366f1; font-size:13px"><strong>${isUS ? 'Internal notes' : 'Note interne'}:</strong> ${o.internal_notes}</div>` : ''}
-                    ${o.quickbooks_invoice_url ? `<div style="margin-top:6px; padding:8px; background:#dbeafe; border-left:3px solid #1e40af; font-size:13px"><strong>QuickBooks invoice:</strong> <a href="${o.quickbooks_invoice_url}" target="_blank" rel="noopener" style="color:#1e40af">Open invoice ${o.quickbooks_invoice_id || ''} →</a></div>` : ''}
                 </div>
             </details>
 
