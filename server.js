@@ -4,6 +4,13 @@ const path = require('path');
 const https = require('https');
 const fs = require('fs');
 const { Pool } = require('pg');
+const {
+    appendShopOrderCapabilityFragment,
+    createShopOrderPublicCapability,
+    createShopPublicOrderHandler,
+    isShopOrderPublicSecretConfigured,
+    sanitizeShopOrderError
+} = require('./scripts/shop_public_order_capability');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,6 +39,7 @@ const CONFIG = {
     ODOO_API_KEY: process.env.ODOO_API_KEY || '',
     STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY || '',
     STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET || '',
+    SHOP_ORDER_PUBLIC_TOKEN_SECRET: process.env.SHOP_ORDER_PUBLIC_TOKEN_SECRET,
     SHOP_FRONTEND_URL: process.env.SHOP_FRONTEND_URL || 'http://localhost:4331'
 };
 
@@ -13191,7 +13199,7 @@ ${order.notes ? `<p style="background:#fff8e1;padding:10px;border-left:4px solid
 <p style="color:#888;font-size:13px;margin-top:20px">Gestisci l'ordine nella Dashboard CS → tab Ordini online.</p>`;
 }
 
-function buildShopBccCustomerEmailHtml(order, methodLabel) {
+function buildShopBccCustomerEmailHtml(order, methodLabel, publicOrderToken) {
     const fin = order.financing || {};
     const isFfZero = fin.modo === 'ff-zero';
     const rataStr = isFfZero
@@ -13211,7 +13219,7 @@ function buildShopBccCustomerEmailHtml(order, methodLabel) {
       <li>Il Customer Service ti contatterà per finalizzare il contratto con BCC Rent&amp;Lease.</li>
     </ol>
     <p style="margin-top:30px">
-      <a href="https://www.osseotouch.com/shop/ordine-finanziamento-inviato/?id=${order.orderNumber}" style="display:inline-block;padding:12px 24px;background:#1a9e8f;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Vai al riepilogo ordine &rarr;</a>
+      <a href="${appendShopOrderCapabilityFragment(`https://www.osseotouch.com/shop/ordine-finanziamento-inviato/?id=${order.orderNumber}`, publicOrderToken)}" style="display:inline-block;padding:12px 24px;background:#1a9e8f;color:#fff;text-decoration:none;border-radius:8px;font-weight:700">Vai al riepilogo ordine &rarr;</a>
     </p>
     <p style="margin-top:25px;font-size:14px">Per parlare subito con noi:</p>
     <p>
@@ -13252,6 +13260,7 @@ function buildShopBccInternalEmailHtml(order, methodLabel) {
 }
 
 app.post('/api/shop/checkout', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0');
     const { customer, shipping_address, billing_address, items, payment_method, notes } = req.body || {};
 
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -13271,12 +13280,17 @@ app.post('/api/shop/checkout', async (req, res) => {
     if (isBcc && !financingChoice) {
         return res.status(400).json({ error: 'Configurazione finanziamento mancante' });
     }
+    if (!isShopOrderPublicSecretConfigured(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET)) {
+        return res.status(503).json({ error: 'Checkout temporaneamente non disponibile' });
+    }
 
     const totals = computeShopTotals(items);
     const client = await pool.connect();
     try {
         await client.query('BEGIN');
         const orderNumber = await generateShopOrderNumber(client);
+        const publicOrderToken = createShopOrderPublicCapability(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET, orderNumber);
+        if (!publicOrderToken) throw new Error('Shop public order capability non disponibile');
         let status;
         if (payment_method === 'cs_offline') status = 'pending';
         else if (isBcc) status = 'pending_financing';
@@ -13324,7 +13338,8 @@ app.post('/api/shop/checkout', async (req, res) => {
             return res.json({
                 success: true,
                 orderNumber,
-                redirectUrl: `/shop/ordine-confermato/?id=${orderNumber}`,
+                publicOrderToken,
+                redirectUrl: appendShopOrderCapabilityFragment(`/shop/ordine-confermato/?id=${orderNumber}`, publicOrderToken),
                 order: orderForEmail
             });
         }
@@ -13347,9 +13362,9 @@ app.post('/api/shop/checkout', async (req, res) => {
             sendMailgunEmail(
                 customer.email,
                 `Richiesta ${methodLabel} ricevuta ${orderNumber} — OSSEOTOUCH`,
-                buildShopBccCustomerEmailHtml(orderForEmail, methodLabel),
+                buildShopBccCustomerEmailHtml(orderForEmail, methodLabel, publicOrderToken),
                 'shop-bcc-request'
-            ).catch(e => console.error('mail bcc cust:', e));
+            ).catch(e => console.error('mail bcc cust:', sanitizeShopOrderError(e)));
 
             sendMailgunEmail(
                 'contact@osseotouch.com',
@@ -13361,7 +13376,8 @@ app.post('/api/shop/checkout', async (req, res) => {
             return res.json({
                 success: true,
                 orderNumber,
-                redirectUrl: `/shop/ordine-finanziamento-inviato/?id=${orderNumber}`,
+                publicOrderToken,
+                redirectUrl: appendShopOrderCapabilityFragment(`/shop/ordine-finanziamento-inviato/?id=${orderNumber}`, publicOrderToken),
                 order: orderForEmail
             });
         }
@@ -13433,14 +13449,15 @@ app.post('/api/shop/checkout', async (req, res) => {
         return res.json({
             success: true,
             orderNumber,
+            publicOrderToken,
             sessionUrl: session.url,
             order: orderForEmail
         });
 
     } catch (err) {
         await client.query('ROLLBACK');
-        console.error('[shop/checkout] error:', err);
-        return res.status(500).json({ error: err.message });
+        console.error('[shop/checkout] error:', sanitizeShopOrderError(err));
+        return res.status(500).json({ error: 'Errore durante la creazione dell’ordine' });
     } finally {
         client.release();
     }
@@ -13563,55 +13580,11 @@ app.post('/api/shop/stripe-webhook', async (req, res) => {
     }
 });
 
-// ----- Endpoint pubblico per thank-you page (legge ordine by orderNumber) -----
-app.get('/api/shop/orders/public/:orderNumber', async (req, res) => {
-    const { orderNumber } = req.params;
-    try {
-        const r = await pool.query(
-            `SELECT order_number, status, payment_method,
-                    buyer_company, buyer_contact_name, buyer_email, buyer_phone, buyer_vat,
-                    ship_street, ship_zip, ship_city, ship_prov,
-                    subtotal_net, shipping, vat_amount, total_gross,
-                    customer_notes, financing_data, created_at
-             FROM shop_orders WHERE order_number = $1`,
-            [orderNumber]
-        );
-        if (r.rows.length === 0) return res.status(404).json({ error: 'Ordine non trovato' });
-        const o = r.rows[0];
-        const itemsRes = await pool.query(
-            `SELECT product_type, product_name, qty, unit_price, is_free_promo FROM shop_order_items WHERE order_id = (SELECT id FROM shop_orders WHERE order_number = $1)`,
-            [orderNumber]
-        );
-        res.json({
-            orderNumber: o.order_number,
-            method: o.payment_method,
-            status: o.status,
-            customer: {
-                company: o.buyer_company, contact_name: o.buyer_contact_name,
-                email: o.buyer_email, phone: o.buyer_phone, vat: o.buyer_vat
-            },
-            shipping_address: {
-                street: o.ship_street, zip: o.ship_zip, city: o.ship_city, prov: o.ship_prov
-            },
-            notes: o.customer_notes || '',
-            items: itemsRes.rows.map(it => ({
-                name: it.product_name, qty: it.qty, price: Number(it.unit_price),
-                type: it.product_type
-            })),
-            totals: {
-                subtotal: Number(o.subtotal_net),
-                shipping: Number(o.shipping),
-                vat: Number(o.vat_amount),
-                total: Number(o.total_gross),
-                hasPinVat: false
-            },
-            financing: o.financing_data || null
-        });
-    } catch (err) {
-        console.error('[shop/orders public] error:', err);
-        res.status(500).json({ error: err.message });
-    }
-});
+// ----- Endpoint pubblico per thank-you page (capability HMAC obbligatoria) -----
+app.get('/api/shop/orders/public/:orderNumber', createShopPublicOrderHandler({
+    pool,
+    secret: CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET
+}));
 
 // ----- Admin: lista ordini -----
 // Di default mostra solo ordini in divenire (pending, pending_payment, paid).
@@ -13946,6 +13919,7 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
 
 // POST /api/shop-us/checkout — Stripe Checkout Session in USD
 app.post('/api/shop-us/checkout', async (req, res) => {
+    res.set('Cache-Control', 'private, no-store, max-age=0');
     const { customer, shipping_address, items, notes } = req.body || {};
 
     // Validation
@@ -13961,6 +13935,9 @@ app.post('/api/shop-us/checkout', async (req, res) => {
     if (!stripe) {
         return res.status(503).json({ error: 'Stripe not configured on server' });
     }
+    if (!isShopOrderPublicSecretConfigured(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET)) {
+        return res.status(503).json({ error: 'Checkout temporarily unavailable' });
+    }
 
     // Compute totals (USD; free U.S. shipping; sales tax handled manually by
     // Customer Service post-checkout, no automatic calculation)
@@ -13973,6 +13950,8 @@ app.post('/api/shop-us/checkout', async (req, res) => {
     try {
         await client.query('BEGIN');
         const orderNumber = await generateShopOrderNumber(client);
+        const publicOrderToken = createShopOrderPublicCapability(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET, orderNumber);
+        if (!publicOrderToken) throw new Error('Shop public order capability non disponibile');
 
         const ins = await client.query(
             `INSERT INTO shop_orders (
@@ -14048,13 +14027,14 @@ app.post('/api/shop-us/checkout', async (req, res) => {
         return res.json({
             success: true,
             orderNumber,
+            publicOrderToken,
             sessionUrl: session.url
         });
 
     } catch (err) {
         await client.query('ROLLBACK').catch(() => {});
-        console.error('[shop-us/checkout] error:', err);
-        return res.status(500).json({ error: 'Could not create checkout session: ' + err.message });
+        console.error('[shop-us/checkout] error:', sanitizeShopOrderError(err));
+        return res.status(500).json({ error: 'Could not create checkout session' });
     } finally {
         client.release();
     }
