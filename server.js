@@ -13631,6 +13631,12 @@ app.post('/api/shop/stripe-webhook', async (req, res) => {
         if (event?.data?.object?.metadata?.market === 'US') {
             const f9Result = await applyF9StripeWebhook(pool, event);
             if (f9Result.handled) {
+                // Fix 06/08/2026: il ramo F9 usciva qui senza mai inviare le email
+                // di pagamento ricevuto (cliente + contact@) — vedi ordine OSS-2026-0006.
+                // orderPaidNow è true solo alla PRIMA transizione a paid (idempotente sui replay).
+                if (f9Result.orderPaidNow) {
+                    sendShopUsPaidEmails(f9Result.orderId).catch(e => console.error('[f9 paid mails]:', e));
+                }
                 return res.json({ received: true });
             }
             // Sessioni USA legacy create prima del deploy non hanno la
@@ -13737,6 +13743,58 @@ app.post('/api/shop/stripe-webhook', async (req, res) => {
         res.status(500).send('Error');
     }
 });
+
+// Email di pagamento ricevuto per gli ordini shop US gestiti dal ramo F9 del
+// webhook (che esce prima del blocco email legacy). Chiamata fire-and-forget
+// solo quando l'ordine transita a paid per la prima volta (orderPaidNow).
+async function sendShopUsPaidEmails(orderId) {
+    const ordRes = await pool.query(`SELECT * FROM shop_orders WHERE id = $1`, [orderId]);
+    const order = ordRes.rows[0];
+    if (!order || !order.buyer_email) {
+        console.warn(`[f9 paid mails] ordine ${orderId} non trovato o senza email`);
+        return;
+    }
+    const itemsRes = await pool.query(
+        `SELECT product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo FROM shop_order_items WHERE order_id = $1`,
+        [orderId]
+    );
+    const usOrderForEmail = {
+        orderNumber: order.order_number,
+        customer: {
+            full_name: order.buyer_contact_name,
+            email: order.buyer_email,
+            phone: order.buyer_phone,
+            practice: order.practice_name
+        },
+        shipping_address: {
+            street: order.ship_street, city: order.ship_city,
+            state: order.ship_state, zip: order.ship_zip
+        },
+        notes: order.customer_notes || '',
+        items: itemsRes.rows.map(it => ({
+            name: it.product_name, qty: it.qty, price: Number(it.unit_price),
+            id: it.product_code, type: it.product_type
+        })),
+        totals: {
+            subtotal: Number(order.subtotal_net),
+            shipping: Number(order.shipping || 0),
+            sales_tax: Number(order.sales_tax || 0),
+            total: Number(order.total_gross)
+        }
+    };
+    await sendMailgunEmail(
+        order.buyer_email,
+        `Payment received ${order.order_number} — OSSEOTOUCH USA`,
+        buildShopUsPaymentReceivedEmailHtml(usOrderForEmail),
+        'shop-us-order-paid'
+    );
+    await sendMailgunEmail(
+        'contact@osseotouch.com',
+        `[US PAID] ${order.order_number} — ${order.practice_name || order.buyer_contact_name}`,
+        buildShopUsInternalEmailHtml(usOrderForEmail),
+        'shop-us-order-paid-internal'
+    );
+}
 
 // ----- Endpoint pubblico per thank-you page (capability HMAC obbligatoria) -----
 app.get('/api/shop/orders/public/:orderNumber', createShopPublicOrderHandler({

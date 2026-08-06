@@ -489,14 +489,16 @@ async function applyF9StripeWebhook(pool, event) {
                 [state, session.id, orderId, generation]
             );
         }
+        let orderPaidNow = false;
         if (paid) {
-            await client.query(
+            const paidUpd = await client.query(
                 `UPDATE shop_orders
                     SET status='paid', stripe_payment_status=$1, confirmed_at=NOW(),
                         snapshot_revision=nextval('shop_orders_snapshot_revision_seq')
                   WHERE id=$2 AND stripe_session_id=$3 AND status <> 'paid'`,
                 [session.payment_status || 'paid', orderId, session.id]
             );
+            orderPaidNow = paidUpd.rowCount > 0;
         }
         await client.query(
             `UPDATE shop_stripe_webhook_events SET applied_at=NOW()
@@ -504,7 +506,7 @@ async function applyF9StripeWebhook(pool, event) {
             [event.id]
         );
         await client.query('COMMIT');
-        return { handled: true, applied: Boolean(state), paid };
+        return { handled: true, applied: Boolean(state), paid, orderPaidNow, orderId };
     } catch (error) {
         await client.query('ROLLBACK').catch(() => {});
         throw error;
