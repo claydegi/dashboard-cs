@@ -1,25 +1,25 @@
 {
-  "timestamp": "2026-08-06T08:15:29.050585",
+  "timestamp": "2026-08-07T08:15:09.283234",
   "kits": {
     "estrattori": {
       "nome": "Kit Estrattori Essential",
       "componenti": {
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 11,
-          "totale": 139,
+          "osnrgy": 10,
+          "totale": 138,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 87,
-          "osnrgy": 15,
-          "totale": 102,
+          "osnrgy": 14,
+          "totale": 101,
           "found": true
         },
         "FPCEXTR3-RVS": {
           "meta": 93,
-          "osnrgy": 33,
-          "totale": 126,
+          "osnrgy": 32,
+          "totale": 125,
           "found": true
         },
         "FPCEXTR4": {
@@ -30,12 +30,12 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 16,
-          "totale": 137,
+          "osnrgy": 15,
+          "totale": 136,
           "found": true
         }
       },
-      "disponibilita": 102,
+      "disponibilita": 101,
       "bottleneck": "FPCEXTR2",
       "note": "FPCEXTR4 e FPCEXTR5 sono fungibili (somma)"
     },
@@ -44,30 +44,30 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 100,
-          "osnrgy": 43,
-          "totale": 143,
+          "osnrgy": 42,
+          "totale": 142,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 55,
-          "totale": 115,
+          "osnrgy": 54,
+          "totale": 114,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 100,
-          "osnrgy": 33,
-          "totale": 133,
+          "osnrgy": 32,
+          "totale": 132,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 46,
-          "totale": 108,
+          "osnrgy": 45,
+          "totale": 107,
           "found": true
         }
       },
-      "disponibilita": 108,
+      "disponibilita": 107,
       "bottleneck": "BXO-MICRO",
       "note": "4 strumenti vendibili separatamente o con Anglefit"
     },
@@ -76,30 +76,30 @@
       "componenti": {
         "BXO-LEFTS": {
           "meta": 0,
-          "osnrgy": 75,
-          "totale": 75,
+          "osnrgy": 74,
+          "totale": 74,
           "found": true
         },
         "BXO-RIGHTS": {
           "meta": 0,
-          "osnrgy": 76,
-          "totale": 76,
+          "osnrgy": 75,
+          "totale": 75,
           "found": true
         },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 50,
-          "totale": 50,
+          "osnrgy": 49,
+          "totale": 49,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 57,
-          "totale": 57,
+          "osnrgy": 56,
+          "totale": 56,
           "found": true
         }
       },
-      "disponibilita": 50,
+      "disponibilita": 49,
       "bottleneck": "BXO-MESIAL",
       "note": "4 strumenti vendibili separatamente o con Pathfinder"
     },
@@ -108,68 +108,68 @@
       "componenti": {
         "BXO-ARCH": {
           "meta": 100,
-          "osnrgy": 43,
-          "totale": 143,
+          "osnrgy": 42,
+          "totale": 142,
           "found": true
         },
         "BXO-SLIM": {
           "meta": 60,
-          "osnrgy": 55,
-          "totale": 115,
+          "osnrgy": 54,
+          "totale": 114,
           "found": true
         },
         "BXO-LONGRT": {
           "meta": 100,
-          "osnrgy": 33,
-          "totale": 133,
+          "osnrgy": 32,
+          "totale": 132,
           "found": true
         },
         "BXO-MICRO": {
           "meta": 62,
-          "osnrgy": 46,
-          "totale": 108,
+          "osnrgy": 45,
+          "totale": 107,
           "found": true
         },
         "BXO-LEFTS": {
+          "meta": 0,
+          "osnrgy": 74,
+          "totale": 74,
+          "found": true
+        },
+        "BXO-RIGHTS": {
           "meta": 0,
           "osnrgy": 75,
           "totale": 75,
           "found": true
         },
-        "BXO-RIGHTS": {
-          "meta": 0,
-          "osnrgy": 76,
-          "totale": 76,
-          "found": true
-        },
         "BXO-MESIAL": {
           "meta": 0,
-          "osnrgy": 50,
-          "totale": 50,
+          "osnrgy": 49,
+          "totale": 49,
           "found": true
         },
         "BXO-DISTAL": {
           "meta": 0,
-          "osnrgy": 57,
-          "totale": 57,
+          "osnrgy": 56,
+          "totale": 56,
           "found": true
         },
         "FPCEXTR1": {
           "meta": 128,
-          "osnrgy": 11,
-          "totale": 139,
+          "osnrgy": 10,
+          "totale": 138,
           "found": true
         },
         "FPCEXTR2": {
           "meta": 87,
-          "osnrgy": 15,
-          "totale": 102,
+          "osnrgy": 14,
+          "totale": 101,
           "found": true
         },
         "FPCEXTR3-RVS": {
           "meta": 93,
-          "osnrgy": 33,
-          "totale": 126,
+          "osnrgy": 32,
+          "totale": 125,
           "found": true
         },
         "FPCEXTR4": {
@@ -180,43 +180,43 @@
         },
         "FPCEXTR5": {
           "meta": 121,
-          "osnrgy": 16,
-          "totale": 137,
+          "osnrgy": 15,
+          "totale": 136,
           "found": true
         },
         "BOX-W": {
-          "meta": 1,
-          "osnrgy": 182,
-          "totale": 183,
+          "meta": 0,
+          "osnrgy": 181,
+          "totale": 181,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 121,
-          "totale": 121,
+          "osnrgy": 120,
+          "totale": 120,
           "found": true
         }
       },
-      "disponibilita": 50,
+      "disponibilita": 49,
       "bottleneck": "Anglefit"
     },
     "box_allin": {
       "nome": "Box ALL-IN",
       "componenti": {
         "BOX-W": {
-          "meta": 1,
-          "osnrgy": 182,
-          "totale": 183,
+          "meta": 0,
+          "osnrgy": 181,
+          "totale": 181,
           "found": true
         },
         "PALLIN-W": {
           "meta": 0,
-          "osnrgy": 121,
-          "totale": 121,
+          "osnrgy": 120,
+          "totale": 120,
           "found": true
         }
       },
-      "disponibilita": 121,
+      "disponibilita": 120,
       "bottleneck": "PALLIN-W",
       "note": "BOX-W condiviso con Kit Elevate. Vendibile separatamente o con Blexo 8pcs"
     },
@@ -224,19 +224,19 @@
       "nome": "Box Elevate",
       "componenti": {
         "BOX-W": {
-          "meta": 1,
-          "osnrgy": 182,
-          "totale": 183,
+          "meta": 0,
+          "osnrgy": 181,
+          "totale": 181,
           "found": true
         },
         "PELEV-W": {
-          "meta": 1,
+          "meta": 0,
           "osnrgy": 70,
-          "totale": 71,
+          "totale": 70,
           "found": true
         }
       },
-      "disponibilita": 71,
+      "disponibilita": 70,
       "bottleneck": "PELEV-W",
       "note": "BOX-W condiviso con Kit ALL-IN e Kit Elevate completo"
     },
@@ -463,127 +463,127 @@
       "nome": "Kit Elevate",
       "componenti": {
         "FPCELEV1": {
-          "meta": 5,
+          "meta": 4,
           "osnrgy": 61,
-          "totale": 66,
+          "totale": 65,
           "found": true
         },
         "FPCELEV2": {
-          "meta": 5,
+          "meta": 4,
           "osnrgy": 70,
-          "totale": 75,
+          "totale": 74,
           "found": true
         },
         "FPCELEV3": {
-          "meta": 5,
+          "meta": 4,
           "osnrgy": 58,
-          "totale": 63,
+          "totale": 62,
           "found": true
         },
         "FPCELEV4": {
-          "meta": 3,
+          "meta": 2,
           "osnrgy": 56,
-          "totale": 59,
+          "totale": 58,
           "found": true
         },
         "FPCELEV5": {
-          "meta": 3,
+          "meta": 2,
           "osnrgy": 60,
-          "totale": 63,
+          "totale": 62,
           "found": true
         },
         "STELEV1": {
-          "meta": 3,
+          "meta": 2,
           "osnrgy": 66,
-          "totale": 69,
-          "found": true
-        },
-        "STELEV2": {
-          "meta": 3,
-          "osnrgy": 63,
-          "totale": 66,
-          "found": true
-        },
-        "STELEV3": {
-          "meta": 3,
-          "osnrgy": 57,
-          "totale": 60,
-          "found": true
-        },
-        "STELEV4": {
-          "meta": 3,
-          "osnrgy": 63,
-          "totale": 66,
-          "found": true
-        },
-        "STELEV5": {
-          "meta": 3,
-          "osnrgy": 69,
-          "totale": 72,
-          "found": true
-        },
-        "STELEV6": {
-          "meta": 3,
-          "osnrgy": 67,
-          "totale": 70,
-          "found": true
-        },
-        "STELEV7": {
-          "meta": 3,
-          "osnrgy": 64,
-          "totale": 67,
-          "found": true
-        },
-        "STELEV8": {
-          "meta": 3,
-          "osnrgy": 66,
-          "totale": 69,
-          "found": true
-        },
-        "STELEV9": {
-          "meta": 3,
-          "osnrgy": 64,
-          "totale": 67,
-          "found": true
-        },
-        "STELEV10": {
-          "meta": 3,
-          "osnrgy": 65,
           "totale": 68,
           "found": true
         },
-        "STELEV11": {
-          "meta": 3,
-          "osnrgy": 66,
+        "STELEV2": {
+          "meta": 2,
+          "osnrgy": 63,
+          "totale": 65,
+          "found": true
+        },
+        "STELEV3": {
+          "meta": 2,
+          "osnrgy": 57,
+          "totale": 59,
+          "found": true
+        },
+        "STELEV4": {
+          "meta": 2,
+          "osnrgy": 63,
+          "totale": 65,
+          "found": true
+        },
+        "STELEV5": {
+          "meta": 2,
+          "osnrgy": 69,
+          "totale": 71,
+          "found": true
+        },
+        "STELEV6": {
+          "meta": 2,
+          "osnrgy": 67,
           "totale": 69,
           "found": true
         },
-        "STELEV12": {
-          "meta": 3,
-          "osnrgy": 66,
-          "totale": 69,
-          "found": true
-        },
-        "STELEV13": {
-          "meta": 3,
+        "STELEV7": {
+          "meta": 2,
           "osnrgy": 64,
+          "totale": 66,
+          "found": true
+        },
+        "STELEV8": {
+          "meta": 2,
+          "osnrgy": 66,
+          "totale": 68,
+          "found": true
+        },
+        "STELEV9": {
+          "meta": 2,
+          "osnrgy": 64,
+          "totale": 66,
+          "found": true
+        },
+        "STELEV10": {
+          "meta": 2,
+          "osnrgy": 65,
           "totale": 67,
           "found": true
         },
+        "STELEV11": {
+          "meta": 2,
+          "osnrgy": 66,
+          "totale": 68,
+          "found": true
+        },
+        "STELEV12": {
+          "meta": 2,
+          "osnrgy": 66,
+          "totale": 68,
+          "found": true
+        },
+        "STELEV13": {
+          "meta": 2,
+          "osnrgy": 64,
+          "totale": 66,
+          "found": true
+        },
         "BOX-W": {
-          "meta": 1,
-          "osnrgy": 182,
-          "totale": 183,
+          "meta": 0,
+          "osnrgy": 181,
+          "totale": 181,
           "found": true
         },
         "PELEV-W": {
-          "meta": 1,
+          "meta": 0,
           "osnrgy": 70,
-          "totale": 71,
+          "totale": 70,
           "found": true
         }
       },
-      "disponibilita": 59,
+      "disponibilita": 58,
       "bottleneck": "FPCELEV4",
       "note": "19 componenti: 5 osteotomi + 13 stop + BOX-W + PELEV-W"
     },
