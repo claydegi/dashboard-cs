@@ -13293,6 +13293,16 @@ function shopFmtEur(n) {
     return Math.round(Number(n)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 }
 
+// USD per le email dello shop USA: simbolo incluso, separatore migliaia US.
+// Fix 12/09/2026: mancava del tutto e il webhook F9 moriva con
+// "ReferenceError: shopFmtUsd is not defined" prima di inviare le email
+// (ordine OSS-2026-0008 del 09/09: nessuna mail al cliente ne' a contact@).
+function shopFmtUsd(n) {
+    const value = Number(n);
+    const safe = Number.isFinite(value) ? value : 0;
+    return '$' + safe.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+}
+
 function buildShopCustomerEmailHtml(order) {
     const itemsHtml = order.items.map(i => {
         const isGift = Number(i.price) === 0 || i.type === 'suture-gift';
@@ -13954,6 +13964,32 @@ function buildShopUsPaymentReceivedEmailHtml(order) {
   <hr style="border:none;border-top:1px solid #ddd;margin:24px 0">
   <p style="font-size:11px;color:#5a6878">OSSEOTOUCH LLC · Fairhope, AL · USA<br>30-day returns on unopened items · 24-month limited warranty</p>
 </div>`;
+}
+
+// Helper — notifica interna al team per un ordine USA pagato.
+// Fix 12/09/2026: la funzione era richiamata dal webhook (ramo F9 e ramo legacy)
+// ma non era mai stata definita: seconda causa della mancata notifica a contact@.
+function buildShopUsInternalEmailHtml(order) {
+    const customer = order.customer || {};
+    const ship = order.shipping_address || {};
+    const totals = order.totals || {};
+    const itemsHtml = (order.items || [])
+        .map(i => `<li>${i.qty}× ${i.name} — ${shopFmtUsd((Number(i.price) || 0) * (Number(i.qty) || 1))}</li>`)
+        .join('');
+    const shipping = Number(totals.shipping || 0);
+    const salesTax = Number(totals.sales_tax || 0);
+    return `<h2 style="color:#1a9e8f">US shop order paid — ${order.orderNumber}</h2>
+<p><strong>Practice:</strong> ${customer.practice || '—'}</p>
+<p><strong>Contact:</strong> ${customer.full_name || '—'}</p>
+<p><strong>Email:</strong> <a href="mailto:${customer.email || ''}">${customer.email || '—'}</a></p>
+<p><strong>Phone:</strong> ${customer.phone || '—'}</p>
+<p><strong>Shipping:</strong> ${ship.street || ''}, ${ship.city || ''} ${ship.state || ''} ${ship.zip || ''} · United States</p>
+${order.notes ? `<p style="background:#fff8e1;padding:10px;border-left:4px solid #d4af6a"><strong>Customer notes:</strong> ${order.notes}</p>` : ''}
+<h3>Items</h3>
+<ul>${itemsHtml}</ul>
+<p><strong>Subtotal:</strong> ${shopFmtUsd(totals.subtotal || 0)} · <strong>Shipping:</strong> ${shipping > 0 ? shopFmtUsd(shipping) : 'free'}${salesTax > 0 ? ` · <strong>Sales tax (AL):</strong> ${shopFmtUsd(salesTax)}` : ''}</p>
+<p style="font-size:18px;margin-top:20px"><strong>Total paid:</strong> <span style="color:#1a9e8f;font-weight:800">${shopFmtUsd(totals.total || 0)}</span></p>
+<p style="color:#888;font-size:13px;margin-top:20px">Dashboard CS → tab Ordini online.</p>`;
 }
 
 // Roadmap #94: il solo checkout USA pubblico usa prezzi server-side, reference
