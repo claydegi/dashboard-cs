@@ -1,0 +1,5032 @@
+{
+  "schema_version": "1.0",
+  "dataset": "osseotouch_shop_catalog_it",
+  "market": "IT",
+  "language": "it",
+  "currency": "EUR",
+  "last_updated": "2026-11-06",
+  "source": {
+    "shop_url": "https://www.osseotouch.com/shop/",
+    "suture_shop_url": "https://www.osseotouch.com/shop/suture/",
+    "source_file": "JAN34/templates/pages/shop.astro",
+    "extraction_note": "Generated from the product arrays in JAN34/templates/pages/shop.astro. Prices are the net list prices displayed by the Italian shop."
+  },
+  "pricing_policy": {
+    "prices_are_net": true,
+    "default_item_vat_rate": 0.22,
+    "reduced_vat_rate": 0.04,
+    "reduced_vat_applies_to": [
+      "Easy-Pin pin consumables marked consumable: true in shop source"
+    ],
+    "shipping": {
+      "standard_net_amount": 15,
+      "currency": "EUR",
+      "vat_rate": 0.22,
+      "standard_gross_amount": 18.3,
+      "free_shipping_thresholds": [
+        {
+          "condition": "default cart",
+          "subtotal_must_be_greater_than": 3900,
+          "currency": "EUR"
+        },
+        {
+          "condition": "only suture items",
+          "subtotal_must_be_greater_than": 600,
+          "currency": "EUR"
+        }
+      ]
+    },
+    "availability_note": "The shop source exposes catalog availability but not live stock quantities."
+  },
+  "counts": {
+    "products": 52,
+    "component_price_list_items": 84,
+    "configurations": 3,
+    "kits_and_consumables": 20,
+    "standalone_devices": 2,
+    "accessories": 3,
+    "suture_boxes": 24
+  },
+  "products": [
+    {
+      "id": "infinity",
+      "code": "infinity",
+      "code_source": "shop configuration id; no separate SKU exposed in source",
+      "type": "magnetic_mallet_configuration",
+      "name": "Infinity",
+      "tagline": "Entry",
+      "summary": "Configurazione di ingresso. 10 strumenti per estrazioni atraumatiche, preparazioni implantari e mini rialzi.",
+      "price": {
+        "net_amount": 3900,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 4758,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#infinity",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/infinity/",
+      "payment_options": [
+        {
+          "type": "operating_rental",
+          "duration_months": 60,
+          "monthly_net_amount": 81.94,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=infinity&modo=noleggio"
+        },
+        {
+          "type": "zero_rate_financing",
+          "duration_months": 24,
+          "monthly_gross_amount": 198.25,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=infinity&modo=ff-zero"
+        }
+      ],
+      "included_items": [
+        {
+          "name": "Magnetic Mallet",
+          "type": "device"
+        },
+        {
+          "name": "Kit Estrazione Essential",
+          "type": "kit"
+        },
+        {
+          "name": "Kit Osteotomi Silver",
+          "type": "kit"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "total-combo",
+      "code": "total-combo",
+      "code_source": "shop configuration id; no separate SKU exposed in source",
+      "type": "magnetic_mallet_configuration",
+      "name": "Total Combo",
+      "tagline": "Premium",
+      "summary": "Configurazione premium con coating DLC. Drill-free di ultima generazione e rialzi del seno con stop millimetrati.",
+      "price": {
+        "net_amount": 5555,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 6777.1,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#total-combo",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/total/",
+      "payment_options": [
+        {
+          "type": "operating_rental",
+          "duration_months": 60,
+          "monthly_net_amount": 113.43,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=total-combo&modo=noleggio"
+        },
+        {
+          "type": "zero_rate_financing",
+          "duration_months": 24,
+          "monthly_gross_amount": 282.38,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=total-combo&modo=ff-zero"
+        }
+      ],
+      "included_items": [
+        {
+          "name": "Magnetic Mallet",
+          "type": "device"
+        },
+        {
+          "name": "Kit Estrazione Essential",
+          "type": "kit"
+        },
+        {
+          "name": "Black Ruby",
+          "type": "kit"
+        },
+        {
+          "name": "Kit Elevate",
+          "type": "kit"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "master",
+      "code": "master",
+      "code_source": "shop configuration id; no separate SKU exposed in source",
+      "type": "magnetic_mallet_configuration",
+      "name": "Master",
+      "tagline": "Master",
+      "summary": "La configurazione completa: cinque kit per coprire ogni scenario clinico, dalle estrazioni complesse con BLEXO ai rialzi seno con stop millimetrato. Coating DLC su Black Ruby e Elevate.",
+      "price": {
+        "net_amount": 7490,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 9137.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#master",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/master/",
+      "payment_options": [
+        {
+          "type": "operating_rental",
+          "duration_months": 60,
+          "monthly_net_amount": 152.95,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=master&modo=noleggio"
+        },
+        {
+          "type": "zero_rate_financing",
+          "duration_months": 24,
+          "monthly_gross_amount": 380.74,
+          "currency": "EUR",
+          "url": "https://www.osseotouch.com/shop/finanziamento/?config=master&modo=ff-zero"
+        }
+      ],
+      "included_items": [
+        {
+          "name": "Magnetic Mallet",
+          "type": "device"
+        },
+        {
+          "name": "Kit Estrazione Essential",
+          "type": "kit"
+        },
+        {
+          "name": "BLEXO",
+          "type": "kit"
+        },
+        {
+          "name": "Levacorone",
+          "type": "kit"
+        },
+        {
+          "name": "Black Ruby",
+          "type": "kit"
+        },
+        {
+          "name": "Kit Elevate",
+          "type": "kit"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "kit-essential",
+      "code": "kit-essential",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Estrazioni",
+      "name": "Kit Estrazione Essential",
+      "summary": "4 estrattori atraumatici per la routine quotidiana. Radici residue, denti scomposti, ottavi inclusi.",
+      "price": {
+        "net_amount": 440,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 536.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#kit-essential",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-estrazione/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPCEXTR1",
+          "name": "Extractor 1 Curved",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXTR2",
+          "name": "Extractor 2 Curved",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXTR3-RVS",
+          "name": "Extractor 3-RVS Curved",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXTR4",
+          "name": "Leva per Ottavi (curved)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "blexo-pathfinder",
+      "code": "blexo-pathfinder",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Estrazioni",
+      "name": "BLEXO Pathfinder",
+      "summary": "4 estrattori Pathfinder per 4 archetipi di radice: Micro, Slim, Arch, LongRoot.",
+      "price": {
+        "net_amount": 470,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 573.4,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#blexo-pathfinder",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/blexo/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "BXO-MICRO",
+          "name": "Blexo Micro",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-SLIM",
+          "name": "Blexo Slim",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-ARCH",
+          "name": "Blexo Arch",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-LONGRT",
+          "name": "Blexo LongRoot",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "blexo-anglefit",
+      "code": "blexo-anglefit",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Estrazioni",
+      "name": "BLEXO AngleFit",
+      "summary": "4 estrattori angolati per 4 direzioni: Mesial, Distal, RightSide, LeftSide.",
+      "price": {
+        "net_amount": 470,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 573.4,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#blexo-anglefit",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/blexo/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "BXO-MESIAL",
+          "name": "Blexo Mesial",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-DISTAL",
+          "name": "Blexo Distal",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-RIGHTS",
+          "name": "Blexo RightSide",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-LEFTS",
+          "name": "Blexo LeftSide",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "blexo-completo",
+      "code": "blexo-completo",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Estrazioni",
+      "name": "BLEXO Completo",
+      "summary": "8 estrattori: 4 Pathfinders + 4 AngleFit.",
+      "price": {
+        "net_amount": 880,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1073.6,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#blexo-completo",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/blexo/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "BXO-MICRO",
+          "name": "Blexo Micro (Pathfinder)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-SLIM",
+          "name": "Blexo Slim (Pathfinder)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-ARCH",
+          "name": "Blexo Arch (Pathfinder)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-LONGRT",
+          "name": "Blexo LongRoot (Pathfinder)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-MESIAL",
+          "name": "Blexo Mesial (AngleFit)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-DISTAL",
+          "name": "Blexo Distal (AngleFit)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-RIGHTS",
+          "name": "Blexo RightSide (AngleFit)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BXO-LEFTS",
+          "name": "Blexo LeftSide (AngleFit)",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "black-ruby",
+      "code": "black-ruby",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Implantologia & preparazione sito",
+      "name": "Black Ruby",
+      "summary": "5 osteotomi premium con coating DLC. Drill-free di ultima generazione, attrito ~0.1.",
+      "price": {
+        "net_amount": 675,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 823.5,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#black-ruby",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/black-ruby/",
+      "badge": "DLC",
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPCBLKR1",
+          "name": "Black Ruby R1",
+          "net_amount": 135,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 164.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCBLKR2",
+          "name": "Black Ruby R2",
+          "net_amount": 135,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 164.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCBLKR3",
+          "name": "Black Ruby R3",
+          "net_amount": 135,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 164.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCBLKR4",
+          "name": "Black Ruby R4",
+          "net_amount": 135,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 164.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCBLKR5",
+          "name": "Black Ruby R5",
+          "net_amount": 135,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 164.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "osteotomi-silver",
+      "code": "osteotomi-silver",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Implantologia & preparazione sito",
+      "name": "Osteotomi Silver",
+      "summary": "6 osteotomi curvi a larghezze progressive (Ø 1.0 - 3.6 mm) per osteocondensazione e mini rialzi.",
+      "price": {
+        "net_amount": 660,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 805.2,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#osteotomi-silver",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-osteotomi-silver/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPC100P",
+          "name": "Osteotome 100 Pointed (Ø 1.0)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC100",
+          "name": "Osteotome 100 (Ø 1.0)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC160",
+          "name": "Osteotome 160 (Ø 1.6)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC200",
+          "name": "Osteotome 200 (Ø 2.0)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC230",
+          "name": "Osteotome 230 (Ø 2.3)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC330",
+          "name": "Osteotome 330 (Ø 3.3)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPC360",
+          "name": "Osteotome 360 (Ø 3.6)",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "chirurgia-implantare",
+      "code": "chirurgia-implantare",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Implantologia & preparazione sito",
+      "name": "Kit Chirurgia Implantare",
+      "summary": "Kit completo per chirurgia implantare. 7 frese + 4 driver manuali + cricchetto. Trousse a 2 scomparti.",
+      "price": {
+        "net_amount": 1600,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1952,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#chirurgia-implantare",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-chirurgico-implantare/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "first",
+      "code": "first",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Implantologia & preparazione sito",
+      "name": "First",
+      "summary": "Osteotomo lanceolato Ø 1.8 mm. Sostituisce la fresa pilota, drill-free totale.",
+      "price": {
+        "net_amount": 150,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 183,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#first",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/first/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPDFIRST",
+          "name": "First — Incisor",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "easy-in",
+      "code": "easy-in",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Implantologia & preparazione sito",
+      "name": "Easy In 20°",
+      "summary": "6 osteotomi 20° per accessi mandibolari difficili. Disegno Dr. Arduini.",
+      "price": {
+        "net_amount": 490,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 597.8,
+        "price_includes_vat": false
+      },
+      "regular_price": {
+        "net_amount": 780,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 951.6,
+        "price_includes_vat": false,
+        "display": "prezzo di listino mostrato sbarrato accanto al prezzo promo 490 EUR"
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#easy-in",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/easy-in-kit/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "AZ100P-20",
+          "name": "Easy In 100 Pointed 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "AZ100-20",
+          "name": "Easy In 100 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "AZ160-20",
+          "name": "Easy In 160 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "AZ200-20",
+          "name": "Easy In 200 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "AZ230-20",
+          "name": "Easy In 230 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "AZ300-20",
+          "name": "Easy In 300 20°",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "elevate",
+      "code": "elevate",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Rialzo del seno mascellare",
+      "name": "Kit Elevate",
+      "summary": "Rialzo crestale con stop millimetrici (1-13 mm). 5 inserti DLC + 13 stop + box Radel.",
+      "price": {
+        "net_amount": 1339,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1633.58,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#elevate",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/elevate/",
+      "badge": "DLC",
+      "financing_eligible": true,
+      "components": [
+        {
+          "code": "FPCELEV1",
+          "name": "Osteotome Elevate 1",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCELEV2",
+          "name": "Osteotome Elevate 2",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCELEV3",
+          "name": "Osteotome Elevate 3",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCELEV4",
+          "name": "Osteotome Elevate 4",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCELEV5",
+          "name": "Osteotome Elevate 5",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV1",
+          "name": "Stop H1",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV2",
+          "name": "Stop H2",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV3",
+          "name": "Stop H3",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV4",
+          "name": "Stop H4",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV5",
+          "name": "Stop H5",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV6",
+          "name": "Stop H6",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV7",
+          "name": "Stop H7",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV8",
+          "name": "Stop H8",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV9",
+          "name": "Stop H9",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV10",
+          "name": "Stop H10",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV11",
+          "name": "Stop H11",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV12",
+          "name": "Stop H12",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STELEV13",
+          "name": "Stop H13",
+          "net_amount": 30,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 36.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "BOX.ELEVATE",
+          "name": "Box Radel Elevate vuoto",
+          "net_amount": 299,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 364.78,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "expander-5",
+      "code": "expander-5",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Espansione & rigenerazione",
+      "name": "Espansione — Expander 5",
+      "summary": "5 strumenti per espansione orizzontale: Expander 1-3A + Cut + Split.",
+      "price": {
+        "net_amount": 675,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 823.5,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#expander-5",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-espansione-cresta/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPCEXP1",
+          "name": "Expander 1",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXP2",
+          "name": "Expander 2",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXP3A",
+          "name": "Expander 3A",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCCUT",
+          "name": "Cut",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCSPLIT",
+          "name": "Split",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "expander-plus-8",
+      "code": "expander-plus-8",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Espansione & rigenerazione",
+      "name": "Espansione — Expander Plus 8",
+      "summary": "8 strumenti: Expander 5 + 3 lame Genoa per separazione corticale controllata.",
+      "price": {
+        "net_amount": 990,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1207.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#expander-plus-8",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-espansione-cresta/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPCEXP1",
+          "name": "Expander 1",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXP2",
+          "name": "Expander 2",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCEXP3A",
+          "name": "Expander 3A",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCCUT",
+          "name": "Cut",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCSPLIT",
+          "name": "Split",
+          "net_amount": 110,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 134.2,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGENOA1",
+          "name": "Genoa 1",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGENOA2",
+          "name": "Genoa 2",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGENOA3",
+          "name": "Genoa 3",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "genoa",
+      "code": "genoa",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Espansione & rigenerazione",
+      "name": "Genoa (3 lame)",
+      "summary": "3 lame Genoa per cresta sottile, disegno Prof. Domenico Baldi. Separazione corticale controllata.",
+      "price": {
+        "net_amount": 450,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 549,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#genoa",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-espansione-cresta/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "FPCGENOA1",
+          "name": "Genoa 1",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGENOA2",
+          "name": "Genoa 2",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGENOA3",
+          "name": "Genoa 3",
+          "net_amount": 150,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 183,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-14"
+    },
+    {
+      "id": "easy-pin",
+      "code": "easy-pin",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Espansione & rigenerazione",
+      "name": "Easy-Pin",
+      "summary": "Sistema fissaggio membrane GBR. Tip + inseritore + box. In omaggio 1 box da 5 pin a scelta (XL Ø 3.1 mm o XXL Ø 3.5 mm).",
+      "price": {
+        "net_amount": 590,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 719.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#easy-pin",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/easy-pin/",
+      "badge": "Omaggio pin",
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "PNTEP",
+          "name": "Easy Pin Tip",
+          "net_amount": 96,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 117.12,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FCINSEP",
+          "name": "Curved Pin Inserter",
+          "net_amount": 145,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 176.9,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-10-14"
+    },
+    {
+      "id": "pin-3-1",
+      "code": "CEP3.1",
+      "code_source": "shop pin product code",
+      "type": "consumable",
+      "category": "Espansione & rigenerazione",
+      "name": "Pin Easy-Pin XL (Ø 3.1 mm)",
+      "summary": "Box da 5 pin titanio monouso XL, Ø 3.1 mm. Consumabile per fissaggio membrane GBR.",
+      "price": {
+        "net_amount": 83,
+        "currency": "EUR",
+        "vat_rate": 0.04,
+        "gross_amount": 86.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#pin-3-1",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/easy-pin/",
+      "badge": "Consumabile",
+      "financing_eligible": false,
+      "components": [],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "pin-3-5",
+      "code": "CEP3.5",
+      "code_source": "shop pin product code",
+      "type": "consumable",
+      "category": "Espansione & rigenerazione",
+      "name": "Pin Easy-Pin XXL (Ø 3.5 mm)",
+      "summary": "Box da 5 pin titanio monouso XXL, Ø 3.5 mm. Consumabile per fissaggio membrane GBR.",
+      "price": {
+        "net_amount": 83,
+        "currency": "EUR",
+        "vat_rate": 0.04,
+        "gross_amount": 86.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#pin-3-5",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/easy-pin/",
+      "badge": "Consumabile",
+      "financing_eligible": false,
+      "components": [],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "dynamic-guided-standard",
+      "code": "dynamic-guided-standard",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Chirurgia guidata",
+      "name": "Dynamic Guided Standard",
+      "summary": "5 osteotomi guidati + 5 stop + box Radel. chirurgia guidata basata sulla MAGNETODYNAMICS senza calore.",
+      "price": {
+        "net_amount": 1700,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 2074,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-dynamic-guided/",
+      "badge": null,
+      "financing_eligible": true,
+      "components": [
+        {
+          "code": "FPCGUID100P",
+          "name": "Osteotome 100P Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID200",
+          "name": "Osteotome 200 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID230",
+          "name": "Osteotome 230 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID300",
+          "name": "Osteotome 300 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID330",
+          "name": "Osteotome 330 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID6",
+          "name": "Stop Guided L6",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID8",
+          "name": "Stop Guided L8",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID10",
+          "name": "Stop Guided L10",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID12",
+          "name": "Stop Guided L12",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID14",
+          "name": "Stop Guided L14",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "dynamic-guided-extra",
+      "code": "dynamic-guided-extra",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Chirurgia guidata",
+      "name": "Dynamic Guided Extra",
+      "summary": "Standard + 5 frese guidate dedicate. Configurazione completa per chirurgia guidata avanzata.",
+      "price": {
+        "net_amount": 1990,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 2427.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#dynamic-guided-extra",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/kit-dynamic-guided/",
+      "badge": null,
+      "financing_eligible": true,
+      "components": [
+        {
+          "code": "FPCGUID100P",
+          "name": "Osteotome 100P Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID200",
+          "name": "Osteotome 200 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID230",
+          "name": "Osteotome 230 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID300",
+          "name": "Osteotome 300 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "FPCGUID330",
+          "name": "Osteotome 330 Guided",
+          "net_amount": 130,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 158.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID6",
+          "name": "Stop Guided L6",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID8",
+          "name": "Stop Guided L8",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID10",
+          "name": "Stop Guided L10",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID12",
+          "name": "Stop Guided L12",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "STGUID14",
+          "name": "Stop Guided L14",
+          "net_amount": 35,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 42.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GRF20-6",
+          "name": "Fresa Ø2 h6",
+          "net_amount": 85,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 103.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GRF20-8",
+          "name": "Fresa Ø2 h8",
+          "net_amount": 85,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 103.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GRF20-10",
+          "name": "Fresa Ø2 h10",
+          "net_amount": 85,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 103.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GRF20-11.5",
+          "name": "Fresa Ø2 h11.5",
+          "net_amount": 85,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 103.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GRF20-13",
+          "name": "Fresa Ø2 h13",
+          "net_amount": 85,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 103.7,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "levacorone",
+      "code": "levacorone",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Protesica & impianti specialistici",
+      "name": "Levacorone",
+      "summary": "Rimozione di corone, intarsi e ponti cementati. Manipolo + 3 hook intercambiabili.",
+      "price": {
+        "net_amount": 1300,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1586,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#levacorone",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/levacorone/",
+      "badge": null,
+      "financing_eligible": true,
+      "components": [
+        {
+          "code": "GL2306",
+          "name": "Hook Single Crown 2",
+          "net_amount": 80,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 97.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GL2307",
+          "name": "Hook Single Crown",
+          "net_amount": 80,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 97.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "GL2308",
+          "name": "Hook Bridge",
+          "net_amount": 80,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 97.6,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "pt-1",
+      "code": "pt-1",
+      "code_source": "shop kit id; no separate SKU exposed in source",
+      "type": "kit",
+      "category": "Protesica & impianti specialistici",
+      "name": "PT-1 (Pterigoideo)",
+      "summary": "3 osteotomi pterigoidei + drill + driver + torque + pin. Implanti pterigoidei con controllo asse.",
+      "price": {
+        "net_amount": 1200,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1464,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#pt-1",
+      "info_url": "https://www.osseotouch.com/devices/magnetic-mallet/pt-1/",
+      "badge": null,
+      "financing_eligible": false,
+      "components": [
+        {
+          "code": "OSPT1",
+          "name": "Osteotome PT1",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "OSPT2",
+          "name": "Osteotome PT2",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "OSPT3",
+          "name": "Osteotome PT3",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "easyroot",
+      "code": "easyroot",
+      "code_source": "shop device id; no separate SKU exposed in source",
+      "type": "standalone_device",
+      "name": "EasyRoot",
+      "summary": "dispositivo basato sulla MAGNETODYNAMICS entry-level dedicato esclusivamente alle estrazioni atraumatiche. Include 3 strumenti.",
+      "price": {
+        "net_amount": 2300,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 2806,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#easyroot",
+      "info_url": "https://www.osseotouch.com/devices/easyroot/",
+      "components": [
+        {
+          "code": "EZ-EXTR1",
+          "name": "EasyRoot Extractor 1",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "EZ-EXTR2",
+          "name": "EasyRoot Extractor 2",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        },
+        {
+          "code": "EXPL",
+          "name": "EasyRoot Expeller",
+          "net_amount": 120,
+          "currency": "EUR",
+          "vat_rate": 0.22,
+          "gross_amount": 146.4,
+          "direct_checkout_status": "not_direct_checkout; shown in the single-instrument price drawer"
+        }
+      ],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "steros",
+      "code": "steros",
+      "code_source": "shop device id; manufacturer package REF SA0.50-10",
+      "type": "standalone_device",
+      "name": "STEROS Active Spray",
+      "summary": "Sterilizzante a freddo a radicali liberi per dispositivi medici e loro superfici, 15 secondi di contatto. Prezzo per confezione SA0.50-10: 10 flaconcini monodose da 2,25 g + 1 flacone dispenser spray da 500 ml.",
+      "package": "1 confezione SA0.50-10 = 10 flaconcini monodose da 2,25 g + 1 flacone dispenser spray da 500 ml",
+      "price": {
+        "net_amount": 199,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 242.78,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#steros",
+      "info_url": "https://www.osseotouch.com/devices/steros/",
+      "components": [],
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-09-11"
+    },
+    {
+      "id": "acc-pedale",
+      "code": "PEDAL-BLACK",
+      "code_source": "shop accessory code",
+      "type": "accessory",
+      "name": "PEDAL - BLACK",
+      "summary": "Pedale di comando per Magnetic Mallet.",
+      "price": {
+        "net_amount": 180,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 219.6,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#acc-pedale",
+      "info_url": null,
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "acc-manipolo-plus",
+      "code": "MAOSFPLUS",
+      "code_source": "shop accessory code",
+      "type": "accessory",
+      "name": "Manipolo Plus",
+      "summary": "Manipolo Magnetic Mallet versione Plus. Potenza di impulso maggiorata, raccomandato per osso denso D2-D3.",
+      "price": {
+        "net_amount": 1200,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 1464,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#acc-manipolo-plus",
+      "info_url": null,
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "acc-box-allin",
+      "code": "BOX.ALLIN",
+      "code_source": "shop accessory code",
+      "type": "accessory",
+      "name": "Box All-In",
+      "summary": "Box Radel da 12 strumenti. Sterilizzabile in autoclave.",
+      "price": {
+        "net_amount": 240,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 292.8,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "cart subtotal > 3900 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/#acc-box-allin",
+      "info_url": null,
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "suture-3336",
+      "code": "3336",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silk",
+      "family_name": "Silk braided black",
+      "name": "Silk braided black - 3336",
+      "specification": "3/0 · 75 cm · DS 19",
+      "summary": "Non riassorbibile, seta siliconata, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 87,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 106.14,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silk",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-3335",
+      "code": "3335",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silk",
+      "family_name": "Silk braided black",
+      "name": "Silk braided black - 3335",
+      "specification": "4/0 · 45 cm · DS 19",
+      "summary": "Non riassorbibile, seta siliconata, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 87,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 106.14,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silk",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-3320",
+      "code": "3320",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silk",
+      "family_name": "Silk braided black",
+      "name": "Silk braided black - 3320",
+      "specification": "4/0 · 45 cm · DS 15",
+      "summary": "Non riassorbibile, seta siliconata, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 87,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 106.14,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silk",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-3154",
+      "code": "3154",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silk",
+      "family_name": "Silk braided black",
+      "name": "Silk braided black - 3154",
+      "specification": "3/0 · 45 cm · HRT 17 (cilindrico, ½ cerchio)",
+      "summary": "Non riassorbibile, seta siliconata, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 87,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 106.14,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silk",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-4021",
+      "code": "4021",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silon",
+      "family_name": "Silon monofil blue",
+      "name": "Silon monofil blue - 4021",
+      "specification": "3/0 · 75 cm · DR 18 (cilindrico)",
+      "summary": "Non riassorbibile, poliamide, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 98,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 119.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-SM2362",
+      "code": "SM2362",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silon",
+      "family_name": "Silon monofil blue",
+      "name": "Silon monofil blue - SM2362",
+      "specification": "4/0 · 75 cm · DS 15",
+      "summary": "Non riassorbibile, poliamide, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 98,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 119.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-SM2367",
+      "code": "SM2367",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silon",
+      "family_name": "Silon monofil blue",
+      "name": "Silon monofil blue - SM2367",
+      "specification": "4/0 · 45 cm · DS 19",
+      "summary": "Non riassorbibile, poliamide, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 98,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 119.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-SM2056",
+      "code": "SM2056",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silon",
+      "family_name": "Silon monofil blue",
+      "name": "Silon monofil blue - SM2056",
+      "specification": "5/0 · 45 cm · DSM 12 (micropunta)",
+      "summary": "Non riassorbibile, poliamide, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 98,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 119.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-SM2055",
+      "code": "SM2055",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "silon",
+      "family_name": "Silon monofil blue",
+      "name": "Silon monofil blue - SM2055",
+      "specification": "6/0 · 45 cm · DSM 12 (micropunta)",
+      "summary": "Non riassorbibile, poliamide, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 98,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 119.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-silon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TG4554",
+      "code": "TG4554",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "tervalon",
+      "family_name": "Tervalon braided green",
+      "name": "Tervalon braided green - TG4554",
+      "specification": "3/0 · 75 cm · DS 19",
+      "summary": "Non riassorbibile, poliestere, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 106,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 129.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-tervalon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TG4553",
+      "code": "TG4553",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "tervalon",
+      "family_name": "Tervalon braided green",
+      "name": "Tervalon braided green - TG4553",
+      "specification": "4/0 · 75 cm · DS 19",
+      "summary": "Non riassorbibile, poliestere, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 106,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 129.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-tervalon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TG4547",
+      "code": "TG4547",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "tervalon",
+      "family_name": "Tervalon braided green",
+      "name": "Tervalon braided green - TG4547",
+      "specification": "5/0 · 45 cm · DS 15",
+      "summary": "Non riassorbibile, poliestere, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 106,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 129.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-tervalon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TG4538",
+      "code": "TG4538",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "tervalon",
+      "family_name": "Tervalon braided green",
+      "name": "Tervalon braided green - TG4538",
+      "specification": "4/0 · 45 cm · DS 12",
+      "summary": "Non riassorbibile, poliestere, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 106,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 129.32,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-tervalon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-LV0212",
+      "code": "LV0212",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chirasorb",
+      "family_name": "Chirasorb braided violet",
+      "name": "Chirasorb braided violet - LV0212",
+      "specification": "3/0 · 75 cm · DS 19",
+      "summary": "Riassorbibile, glycolide + L-lactide, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 116,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 141.52,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chirasorb",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-LV0211",
+      "code": "LV0211",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chirasorb",
+      "family_name": "Chirasorb braided violet",
+      "name": "Chirasorb braided violet - LV0211",
+      "specification": "4/0 · 75 cm · DS 19",
+      "summary": "Riassorbibile, glycolide + L-lactide, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 116,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 141.52,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chirasorb",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-LV0205",
+      "code": "LV0205",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chirasorb",
+      "family_name": "Chirasorb braided violet",
+      "name": "Chirasorb braided violet - LV0205",
+      "specification": "5/0 · 45 cm · DS 15",
+      "summary": "Riassorbibile, glycolide + L-lactide, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 116,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 141.52,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chirasorb",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-LV0201",
+      "code": "LV0201",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chirasorb",
+      "family_name": "Chirasorb braided violet",
+      "name": "Chirasorb braided violet - LV0201",
+      "specification": "6/0 · 45 cm · DS 12",
+      "summary": "Riassorbibile, glycolide + L-lactide, plurifilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 116,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 141.52,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chirasorb",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-MV0212",
+      "code": "MV0212",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "monolac",
+      "family_name": "Monolac monofil violet",
+      "name": "Monolac monofil violet - MV0212",
+      "specification": "3/0 · 75 cm · DS 19",
+      "summary": "Riassorbibile, glycolide + ε-Caprolactone, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 143,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 174.46,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-monolac",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-MV0211",
+      "code": "MV0211",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "monolac",
+      "family_name": "Monolac monofil violet",
+      "name": "Monolac monofil violet - MV0211",
+      "specification": "4/0 · 75 cm · DS 19",
+      "summary": "Riassorbibile, glycolide + ε-Caprolactone, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 143,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 174.46,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-monolac",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-MV0205",
+      "code": "MV0205",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "monolac",
+      "family_name": "Monolac monofil violet",
+      "name": "Monolac monofil violet - MV0205",
+      "specification": "5/0 · 45 cm · DS 15",
+      "summary": "Riassorbibile, glycolide + ε-Caprolactone, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 143,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 174.46,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-monolac",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-MV0201",
+      "code": "MV0201",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "monolac",
+      "family_name": "Monolac monofil violet",
+      "name": "Monolac monofil violet - MV0201",
+      "specification": "6/0 · 45 cm · DS 12",
+      "summary": "Riassorbibile, glycolide + ε-Caprolactone, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 143,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 174.46,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-monolac",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TF6101",
+      "code": "TF6101",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chiraflon",
+      "family_name": "Chiraflon monofil Blue",
+      "name": "Chiraflon monofil Blue - TF6101",
+      "specification": "6/0 · 45 cm · DS 12",
+      "summary": "Non riassorbibile, PVDF, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 148,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 180.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chiraflon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TF6105",
+      "code": "TF6105",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chiraflon",
+      "family_name": "Chiraflon monofil Blue",
+      "name": "Chiraflon monofil Blue - TF6105",
+      "specification": "5/0 · 45 cm · DS 15",
+      "summary": "Non riassorbibile, PVDF, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 148,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 180.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chiraflon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    },
+    {
+      "id": "suture-TF6106",
+      "code": "TF6106",
+      "code_source": "Vitrex suture item code from Italian shop source",
+      "type": "suture_box",
+      "family_id": "chiraflon",
+      "family_name": "Chiraflon monofil Blue",
+      "name": "Chiraflon monofil Blue - TF6106",
+      "specification": "4/0 · 45 cm · DS 15",
+      "summary": "Non riassorbibile, PVDF, monofilamento",
+      "package": "1 box = 24 sutures",
+      "price": {
+        "net_amount": 148,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 180.56,
+        "price_includes_vat": false
+      },
+      "shipping": {
+        "standard_net_amount": 15,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "standard_gross_amount": 18.3,
+        "free_shipping_when": "only suture items and cart subtotal > 600 EUR",
+        "source": "JAN34/templates/pages/shop.astro and checkout shipping calculation"
+      },
+      "purchase_url": "https://www.osseotouch.com/shop/suture/#fam-chiraflon",
+      "info_url": "https://www.osseotouch.com/devices/suture/",
+      "market": "IT",
+      "language": "it",
+      "availability": "available_online",
+      "availability_note": "Listed in the Italian OSSEOTOUCH shop source; no live stock quantity is exposed in JAN34.",
+      "last_updated": "2026-11-06"
+    }
+  ],
+  "component_price_list": [
+    {
+      "code": "FPCEXTR1",
+      "name": "Extractor 1 Curved",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "kit-essential",
+          "name": "Kit Estrazione Essential"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#kit-essential"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXTR2",
+      "name": "Extractor 2 Curved",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "kit-essential",
+          "name": "Kit Estrazione Essential"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#kit-essential"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXTR3-RVS",
+      "name": "Extractor 3-RVS Curved",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "kit-essential",
+          "name": "Kit Estrazione Essential"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#kit-essential"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXTR4",
+      "name": "Leva per Ottavi (curved)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "kit-essential",
+          "name": "Kit Estrazione Essential"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#kit-essential"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-MICRO",
+      "name": "Blexo Micro",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-pathfinder",
+          "name": "BLEXO Pathfinder"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-pathfinder",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-SLIM",
+      "name": "Blexo Slim",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-pathfinder",
+          "name": "BLEXO Pathfinder"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-pathfinder",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-ARCH",
+      "name": "Blexo Arch",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-pathfinder",
+          "name": "BLEXO Pathfinder"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-pathfinder",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-LONGRT",
+      "name": "Blexo LongRoot",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-pathfinder",
+          "name": "BLEXO Pathfinder"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-pathfinder",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-MESIAL",
+      "name": "Blexo Mesial",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-anglefit",
+          "name": "BLEXO AngleFit"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-anglefit",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-DISTAL",
+      "name": "Blexo Distal",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-anglefit",
+          "name": "BLEXO AngleFit"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-anglefit",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-RIGHTS",
+      "name": "Blexo RightSide",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-anglefit",
+          "name": "BLEXO AngleFit"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-anglefit",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BXO-LEFTS",
+      "name": "Blexo LeftSide",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "blexo-anglefit",
+          "name": "BLEXO AngleFit"
+        },
+        {
+          "id": "blexo-completo",
+          "name": "BLEXO Completo"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#blexo-anglefit",
+        "https://www.osseotouch.com/shop/#blexo-completo"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCBLKR1",
+      "name": "Black Ruby R1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 135,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 164.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "black-ruby",
+          "name": "Black Ruby"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#black-ruby"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCBLKR2",
+      "name": "Black Ruby R2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 135,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 164.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "black-ruby",
+          "name": "Black Ruby"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#black-ruby"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCBLKR3",
+      "name": "Black Ruby R3",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 135,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 164.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "black-ruby",
+          "name": "Black Ruby"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#black-ruby"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCBLKR4",
+      "name": "Black Ruby R4",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 135,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 164.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "black-ruby",
+          "name": "Black Ruby"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#black-ruby"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCBLKR5",
+      "name": "Black Ruby R5",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 135,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 164.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "black-ruby",
+          "name": "Black Ruby"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#black-ruby"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC100P",
+      "name": "Osteotome 100 Pointed (Ø 1.0)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC100",
+      "name": "Osteotome 100 (Ø 1.0)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC160",
+      "name": "Osteotome 160 (Ø 1.6)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC200",
+      "name": "Osteotome 200 (Ø 2.0)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC230",
+      "name": "Osteotome 230 (Ø 2.3)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC330",
+      "name": "Osteotome 330 (Ø 3.3)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPC360",
+      "name": "Osteotome 360 (Ø 3.6)",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "osteotomi-silver",
+          "name": "Osteotomi Silver"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#osteotomi-silver"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPDFIRST",
+      "name": "First — Incisor",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 150,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 183,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "first",
+          "name": "First"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#first"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ100P-20",
+      "name": "Easy In 100 Pointed 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ100-20",
+      "name": "Easy In 100 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ160-20",
+      "name": "Easy In 160 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ200-20",
+      "name": "Easy In 200 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ230-20",
+      "name": "Easy In 230 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "AZ300-20",
+      "name": "Easy In 300 20°",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-in",
+          "name": "Easy In 20°"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-in"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCELEV1",
+      "name": "Osteotome Elevate 1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCELEV2",
+      "name": "Osteotome Elevate 2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCELEV3",
+      "name": "Osteotome Elevate 3",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCELEV4",
+      "name": "Osteotome Elevate 4",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCELEV5",
+      "name": "Osteotome Elevate 5",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV1",
+      "name": "Stop H1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV2",
+      "name": "Stop H2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV3",
+      "name": "Stop H3",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV4",
+      "name": "Stop H4",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV5",
+      "name": "Stop H5",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV6",
+      "name": "Stop H6",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV7",
+      "name": "Stop H7",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV8",
+      "name": "Stop H8",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV9",
+      "name": "Stop H9",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV10",
+      "name": "Stop H10",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV11",
+      "name": "Stop H11",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV12",
+      "name": "Stop H12",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STELEV13",
+      "name": "Stop H13",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 30,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 36.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "BOX.ELEVATE",
+      "name": "Box Radel Elevate vuoto",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 299,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 364.78,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "elevate",
+          "name": "Kit Elevate"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#elevate"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXP1",
+      "name": "Expander 1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-5",
+          "name": "Espansione — Expander 5"
+        },
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-5",
+        "https://www.osseotouch.com/shop/#expander-plus-8"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXP2",
+      "name": "Expander 2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-5",
+          "name": "Espansione — Expander 5"
+        },
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-5",
+        "https://www.osseotouch.com/shop/#expander-plus-8"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCEXP3A",
+      "name": "Expander 3A",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-5",
+          "name": "Espansione — Expander 5"
+        },
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-5",
+        "https://www.osseotouch.com/shop/#expander-plus-8"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCCUT",
+      "name": "Cut",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-5",
+          "name": "Espansione — Expander 5"
+        },
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-5",
+        "https://www.osseotouch.com/shop/#expander-plus-8"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCSPLIT",
+      "name": "Split",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 110,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 134.2,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-5",
+          "name": "Espansione — Expander 5"
+        },
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-5",
+        "https://www.osseotouch.com/shop/#expander-plus-8"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGENOA1",
+      "name": "Genoa 1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 150,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 183,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        },
+        {
+          "id": "genoa",
+          "name": "Genoa (3 lame)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-plus-8",
+        "https://www.osseotouch.com/shop/#genoa"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGENOA2",
+      "name": "Genoa 2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 150,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 183,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        },
+        {
+          "id": "genoa",
+          "name": "Genoa (3 lame)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-plus-8",
+        "https://www.osseotouch.com/shop/#genoa"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGENOA3",
+      "name": "Genoa 3",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 150,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 183,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "expander-plus-8",
+          "name": "Espansione — Expander Plus 8"
+        },
+        {
+          "id": "genoa",
+          "name": "Genoa (3 lame)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#expander-plus-8",
+        "https://www.osseotouch.com/shop/#genoa"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "PNTEP",
+      "name": "Easy Pin Tip",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 96,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 117.12,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-pin",
+          "name": "Easy-Pin"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-pin"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FCINSEP",
+      "name": "Curved Pin Inserter",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 145,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 176.9,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easy-pin",
+          "name": "Easy-Pin"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easy-pin"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGUID100P",
+      "name": "Osteotome 100P Guided",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGUID200",
+      "name": "Osteotome 200 Guided",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGUID230",
+      "name": "Osteotome 230 Guided",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGUID300",
+      "name": "Osteotome 300 Guided",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "FPCGUID330",
+      "name": "Osteotome 330 Guided",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 130,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 158.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STGUID6",
+      "name": "Stop Guided L6",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 35,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 42.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STGUID8",
+      "name": "Stop Guided L8",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 35,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 42.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STGUID10",
+      "name": "Stop Guided L10",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 35,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 42.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STGUID12",
+      "name": "Stop Guided L12",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 35,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 42.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "STGUID14",
+      "name": "Stop Guided L14",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 35,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 42.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-standard",
+          "name": "Dynamic Guided Standard"
+        },
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-standard",
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GRF20-6",
+      "name": "Fresa Ø2 h6",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 85,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 103.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GRF20-8",
+      "name": "Fresa Ø2 h8",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 85,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 103.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GRF20-10",
+      "name": "Fresa Ø2 h10",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 85,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 103.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GRF20-11.5",
+      "name": "Fresa Ø2 h11.5",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 85,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 103.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GRF20-13",
+      "name": "Fresa Ø2 h13",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 85,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 103.7,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "dynamic-guided-extra",
+          "name": "Dynamic Guided Extra"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#dynamic-guided-extra"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GL2306",
+      "name": "Hook Single Crown 2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 80,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 97.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "levacorone",
+          "name": "Levacorone"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#levacorone"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GL2307",
+      "name": "Hook Single Crown",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 80,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 97.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "levacorone",
+          "name": "Levacorone"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#levacorone"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "GL2308",
+      "name": "Hook Bridge",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 80,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 97.6,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "levacorone",
+          "name": "Levacorone"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#levacorone"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "OSPT1",
+      "name": "Osteotome PT1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "pt-1",
+          "name": "PT-1 (Pterigoideo)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#pt-1"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "OSPT2",
+      "name": "Osteotome PT2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "pt-1",
+          "name": "PT-1 (Pterigoideo)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#pt-1"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "OSPT3",
+      "name": "Osteotome PT3",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "pt-1",
+          "name": "PT-1 (Pterigoideo)"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#pt-1"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "EZ-EXTR1",
+      "name": "EasyRoot Extractor 1",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easyroot",
+          "name": "EasyRoot"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easyroot"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "EZ-EXTR2",
+      "name": "EasyRoot Extractor 2",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easyroot",
+          "name": "EasyRoot"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easyroot"
+      ],
+      "last_updated": "2026-05-12"
+    },
+    {
+      "code": "EXPL",
+      "name": "EasyRoot Expeller",
+      "type": "single_instrument_price_list_item",
+      "price": {
+        "net_amount": 120,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 146.4,
+        "price_includes_vat": false
+      },
+      "direct_checkout_status": "not_direct_checkout; the current shop drawer shows prices but checkout for single instruments is preview-only",
+      "parent_products": [
+        {
+          "id": "easyroot",
+          "name": "EasyRoot"
+        }
+      ],
+      "purchase_context_urls": [
+        "https://www.osseotouch.com/shop/#easyroot"
+      ],
+      "last_updated": "2026-05-12"
+    }
+  ],
+  "special_offers": [
+    {
+      "id": "acc-box-allin-promo",
+      "name": "Box All-In (offerta)",
+      "code": "BOX.ALLIN",
+      "type": "conditional_cart_upsell",
+      "price": {
+        "net_amount": 190,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 231.8,
+        "price_includes_vat": false
+      },
+      "regular_price": {
+        "net_amount": 240,
+        "currency": "EUR",
+        "vat_rate": 0.22,
+        "gross_amount": 292.8,
+        "price_includes_vat": false
+      },
+      "availability": "conditional_offer",
+      "condition": "Shown in cart when qualifying instrument kits are present and no Box All-In is already in cart.",
+      "purchase_url": "https://www.osseotouch.com/shop/",
+      "last_updated": "2026-05-12"
+    },
+    {
+      "id": "easy-pin-pin-gift",
+      "name": "Box pin in omaggio con il kit Easy-Pin",
+      "code": "CEP3.1 | CEP3.5",
+      "type": "conditional_gift",
+      "applies_to": "easy-pin",
+      "description": "Per ogni kit Easy-Pin acquistato, 1 box da 5 pin titanio monouso in omaggio a scelta del cliente: XL Ø 3.1 mm (CEP3.1) oppure XXL Ø 3.5 mm (CEP3.5). La riga omaggio compare nel carrello a 0 EUR. Non si applica agli strumenti singoli PNTEP e FCINSEP.",
+      "price": {
+        "net_amount": 0,
+        "currency": "EUR",
+        "vat_rate": 0.04,
+        "gross_amount": 0,
+        "price_includes_vat": false
+      },
+      "regular_price": {
+        "net_amount": 83,
+        "currency": "EUR",
+        "vat_rate": 0.04,
+        "gross_amount": 86.32,
+        "price_includes_vat": false
+      },
+      "availability": "conditional_offer",
+      "condition": "Added to the cart with each Easy-Pin kit; the customer chooses XL or XXL before checkout.",
+      "purchase_url": "https://www.osseotouch.com/shop/#easy-pin",
+      "last_updated": "2026-10-14"
+    }
+  ]
+}

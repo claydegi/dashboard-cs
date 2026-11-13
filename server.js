@@ -18,6 +18,12 @@ const {
     applyF9StripeWebhook,
     createF9CheckoutHandler
 } = require('./scripts/f9_checkout');
+const {
+    ShopItCartError,
+    createShopItCatalogProvider,
+    loadShopItProposalContext,
+    priceShopItCart
+} = require('./scripts/shop_it_pricing');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -51,6 +57,10 @@ const CONFIG = {
     MYOSSEOTOUCH_F9_API_KEY: process.env.MYOSSEOTOUCH_F9_API_KEY,
     KESSEL_SHOP_EXPORT_API_KEY: process.env.KESSEL_SHOP_EXPORT_API_KEY,
     SHOP_US_CATALOG_PATH: process.env.SHOP_US_CATALOG_PATH || path.join(__dirname, 'data', 'shop-catalog-us.json'),
+    // Shop IT: copia del catalogo nel repo + aggiornamento dal JSON pubblicato dal sito.
+    // SHOP_IT_CATALOG_URL='' disattiva la lettura dal sito (resta la copia nel repo).
+    SHOP_IT_CATALOG_PATH: process.env.SHOP_IT_CATALOG_PATH || path.join(__dirname, 'data', 'shop-catalog-it.json'),
+    SHOP_IT_CATALOG_URL: process.env.SHOP_IT_CATALOG_URL ?? 'https://www.osseotouch.com/data/shop-catalog-it.json',
     SHOP_FRONTEND_URL: process.env.SHOP_FRONTEND_URL || 'http://localhost:4331'
 };
 
@@ -13264,6 +13274,12 @@ app.post('/api/giacenze-strumenti/sync', requireAdmin, async (req, res) => {
 const SHOP_FREE_SHIP_SUTURE = 600;
 const SHOP_FREE_SHIP_DEFAULT = 3900;
 
+// Prezzi IT decisi dal server (fix 13/11/2026): vedi scripts/shop_it_pricing.js
+const shopItCatalog = createShopItCatalogProvider({
+    bundledPath: CONFIG.SHOP_IT_CATALOG_PATH,
+    liveUrl: CONFIG.SHOP_IT_CATALOG_URL || null
+});
+
 async function generateShopOrderNumber(client) {
     const year = new Date().getFullYear();
     const r = await client.query(
@@ -13421,9 +13437,9 @@ function buildShopBccInternalEmailHtml(order, methodLabel) {
 
 app.post('/api/shop/checkout', async (req, res) => {
     res.set('Cache-Control', 'private, no-store, max-age=0');
-    const { customer, shipping_address, billing_address, items, payment_method, notes } = req.body || {};
+    const { customer, shipping_address, billing_address, items: browserItems, payment_method, notes } = req.body || {};
 
-    if (!items || !Array.isArray(items) || items.length === 0) {
+    if (!browserItems || !Array.isArray(browserItems) || browserItems.length === 0) {
         return res.status(400).json({ error: 'Carrello vuoto' });
     }
     if (!customer || !customer.company || !customer.vat || !customer.email || !customer.contact_name) {
@@ -13442,6 +13458,33 @@ app.post('/api/shop/checkout', async (req, res) => {
     }
     if (!isShopOrderPublicSecretConfigured(CONFIG.SHOP_ORDER_PUBLIC_TOKEN_SECRET)) {
         return res.status(503).json({ error: 'Checkout temporaneamente non disponibile' });
+    }
+
+    // Righe ricostruite dal catalogo: del browser si usano solo id e quantita'.
+    // Prezzo diverso da quello attuale -> 409 con i prezzi corretti (mai addebito diverso da quello mostrato).
+    let items;
+    try {
+        const proposalCtx = req.body.suture_cart_token
+            ? await loadShopItProposalContext(pool, sutureProposalBuilder.getProposta, req.body.suture_cart_token)
+            : null;
+        try {
+            items = priceShopItCart(browserItems, await shopItCatalog.get(), proposalCtx);
+        } catch (err) {
+            if (!(err instanceof ShopItCartError)) throw err;
+            // Il sito potrebbe aver appena cambiato un prezzo: riprova una volta col catalogo riletto
+            items = priceShopItCart(browserItems, await shopItCatalog.get({ forceRefresh: true }), proposalCtx);
+        }
+    } catch (err) {
+        if (err instanceof ShopItCartError) {
+            console.warn('[shop/checkout] carrello rifiutato:', err.code, err.message);
+            return res.status(err.code === 'price_changed' ? 409 : 400).json({
+                error: err.message,
+                code: err.code,
+                repriced_items: err.code === 'price_changed' ? err.details.map(d => ({ id: d.id, price: d.price })) : undefined
+            });
+        }
+        console.error('[shop/checkout] verifica carrello:', sanitizeShopOrderError(err));
+        return res.status(500).json({ error: 'Errore durante la verifica del carrello' });
     }
 
     const totals = computeShopTotals(items);
@@ -13480,11 +13523,10 @@ app.post('/api/shop/checkout', async (req, res) => {
         const orderId = ins.rows[0].id;
 
         for (const item of items) {
-            const isGift = Number(item.price) === 0 || item.type === 'suture-gift';
             await client.query(
                 `INSERT INTO shop_order_items (order_id, product_type, product_code, product_name, qty, unit_price, vat_rate, is_free_promo)
                  VALUES ($1,$2,$3,$4,$5,$6,$7,$8)`,
-                [orderId, item.type || 'other', item.id || null, item.name, item.qty, item.price, item.vat ?? 0.22, isGift]
+                [orderId, item.type, item.id, item.name, item.qty, item.price, item.vat, item.isGift]
             );
         }
 
