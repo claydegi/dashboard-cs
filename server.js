@@ -12214,7 +12214,9 @@ app.get('/api/suture/storico/:cliente_id', requireAdmin, async (req, res) => {
 // POST /api/carrelli — cliente clicca "Conferma e procedi" nel portale → salva draft
 // Body: { proposta_id, cliente_id, items: [{cod, nome, prezzo, qty}], sconto_pct, omaggio_3plus1 }
 // TTL 24h. Ritorna token usabile come ?cart=<token> su osseotouch.com/shop/checkout
-app.post('/api/carrelli', async (req, res) => {
+// Solo admin (13/11/2026): era pubblico e nessun client lo usa; il portale cliente crea
+// i carrelli con POST /api/portali/:token/conferma/:proposta_id.
+app.post('/api/carrelli', requireAdmin, async (req, res) => {
     try {
         const { proposta_id, cliente_id, items, sconto_pct, omaggio_3plus1 } = req.body || {};
         if (!Array.isArray(items) || !items.length) {
