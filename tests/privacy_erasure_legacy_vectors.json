@@ -1,0 +1,72 @@
+{
+  "key": "1111111111111111111111111111111111111111111111111111111111111111",
+  "envelope": {
+    "payload": {
+      "case_id": "SYNTHETIC-LEGACY-001",
+      "generation": 1,
+      "policy": "structured-identities-fk-closure-v1",
+      "kessel_ids": [
+        1001
+      ],
+      "crm_contact_ids": [
+        17
+      ],
+      "identifier_hmacs": [
+        "079e4db37666101ec1b641203fa4497f71cb4c14855e1c2c5eab4bf14db90c07",
+        "359bf60466a06f3cde48bc5f52b18c6e0c9729350ed4ea7e30b8c7e1b2e4fe5d",
+        "44ca8fcf1aaf1972135052fd20547872fe4ae728d6cbfbe41fb45a3a30b0b47f",
+        "a455fd3329739d2d03557ebe1e10b6bb9a48cc4c2e9dfbdb4ec9adb0d67ddff1"
+      ],
+      "identity_schema": {},
+      "manifest_sha256": "3b7001149006955f700fb0b0aeafa25c7c4629d372dd0cd8c8a6b411031d8fc0",
+      "external_manifest_key": "privacy-registry/SYNTHETIC-LEGACY-001/registered.json"
+    },
+    "signature_algorithm": "HMAC-SHA256/privacy-ledger-v1",
+    "signature": "dbfca6c18ee7cfb7f650aba78f6836452d79a40f55059dac97911596d7d2ad39"
+  },
+  "vectors": [
+    {
+      "kind": "email",
+      "input": " TARGET@example.TEST ",
+      "normalized": "target@example.test",
+      "hmac": "a455fd3329739d2d03557ebe1e10b6bb9a48cc4c2e9dfbdb4ec9adb0d67ddff1"
+    },
+    {
+      "kind": "email",
+      "input": " STRA\u1e9eE@example.TEST\u001c",
+      "normalized": "strasse@example.test",
+      "hmac": "44ca8fcf1aaf1972135052fd20547872fe4ae728d6cbfbe41fb45a3a30b0b47f"
+    },
+    {
+      "kind": "email",
+      "input": "\u212aelvin@EXAMPLE.test",
+      "normalized": "kelvin@example.test",
+      "hmac": "09c832f11b8f96524c511c211b921ebe4e627abb6ff3dab70cb014fc75cb6f66"
+    },
+    {
+      "kind": "phone",
+      "input": " 0039 021-234.5678 ",
+      "normalized": "390212345678",
+      "hmac": "359bf60466a06f3cde48bc5f52b18c6e0c9729350ed4ea7e30b8c7e1b2e4fe5d"
+    },
+    {
+      "kind": "phone",
+      "input": "+39 (02)12345678",
+      "normalized": "390212345678",
+      "hmac": "359bf60466a06f3cde48bc5f52b18c6e0c9729350ed4ea7e30b8c7e1b2e4fe5d"
+    },
+    {
+      "kind": "phone",
+      "input": "\u06f0\u06f0\u06f3\u06f9 \u06f1\u06f2\u06f3\u06f4",
+      "normalized": "\u06f0\u06f0\u06f3\u06f9\u06f1\u06f2\u06f3\u06f4",
+      "hmac": "9cc7424c35d2e781eecfd34d0d8eed7ca40b3f83b22390a1305bd24c92ebe762"
+    },
+    {
+      "kind": "phone",
+      "input": "\u001c0044 2071234567\u001f",
+      "normalized": "442071234567",
+      "hmac": "079e4db37666101ec1b641203fa4497f71cb4c14855e1c2c5eab4bf14db90c07"
+    }
+  ],
+  "canonical": "{\"a\":{\"x\":\"\\u007f\\n\"},\"z\":\"\\u00e9\\ud834\\udd1e\",\"\\uffff\":true,\"\\ud800\\udc00\":\"test\"}"
+}

@@ -25,6 +25,9 @@ const {
     priceShopItCart
 } = require('./scripts/shop_it_pricing');
 
+const { createGuard } = require('./scripts/privacy_erasure_legacy');
+const legacyPrivacy = createGuard(process.env, { getPool: () => pool });
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -389,6 +392,7 @@ const WEBINAR_I18N = {
  * @param {string} tag - tag Mailgun per tracking
  */
 async function sendMailgunEmail(to, subject, html, tag, fromOverride) {
+    legacyPrivacy.assertRecipient(to); // Before provider setup, logs or send.
     if (!CONFIG.MAILGUN_API_KEY) {
         console.warn('[Mailgun] API key non configurata — email non inviata');
         return { ok: false, error: 'MAILGUN_API_KEY non configurata' };
@@ -543,6 +547,7 @@ app.use(express.json({
         }
     }
 }));
+app.use(legacyPrivacy.middleware);
 app.use(express.static(path.join(__dirname, 'public')));
 
 // ==================== DATABASE POSTGRESQL ====================
@@ -573,6 +578,7 @@ async function connectWithRetry(maxRetries = 5) {
 
 // Inizializza tabelle
 async function initDB() {
+    legacyPrivacy.ready(); // Validate enabled signed config BEFORE any startup write.
     const client = await connectWithRetry();
     try {
         await client.query(`
@@ -1349,10 +1355,14 @@ async function initDB() {
         );
         if (hasVideoWatch.rows.length > 0) {
             console.log('[Migration] Fixing video score inflation...');
+            await client.query('BEGIN');
+            try {
+            await client.query("SELECT set_config('app.privacy_blocked_crm_ids',$1,true)", ['{'+legacyPrivacy.blockedCrmIds().join(',')+'}']);
             await client.query(`
                 DO $$
                 DECLARE
                     rec RECORD;
+                    blocked_crm_ids int[] := current_setting('app.privacy_blocked_crm_ids')::int[];
                     synced_wrong BIGINT;
                     correct_score INT;
                     max_seconds INT;
@@ -1364,6 +1374,7 @@ async function initDB() {
                         SELECT DISTINCT contatto_id, linea_prodotto
                         FROM crm_score_manuali
                         WHERE tipo_attivita = 'video_watch'
+                        AND NOT (COALESCE(contatto_id,0)=ANY(blocked_crm_ids))
                     LOOP
                         -- Tempo effettivo di visione dai beacon progress
                         SELECT COALESCE(MAX(secondi_visti), 0) INTO max_seconds
@@ -1400,52 +1411,43 @@ async function initDB() {
                     END LOOP;
 
                     -- Step 2: Elimina TUTTI i video_watch da crm_score_manuali
-                    DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch';
+                    DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch'
+                    AND NOT (COALESCE(contatto_id,0)=ANY(blocked_crm_ids));
 
                     -- Step 3: Elimina i log add_score video_watch da crm_modifiche_log
                     -- (impedisce al push di ricreare score_eventi duplicati in SQLite)
                     DELETE FROM crm_modifiche_log
                     WHERE tipo_modifica = 'add_score'
-                      AND dettagli->>'tipo_attivita' = 'video_watch';
-
-                    -- Step 4: Inserisci dedup marker mancanti per ogni contatto con tempo sufficiente
-                    FOR rec IN
-                        SELECT vt.contatto_id, MIN(vt.email) as email, vt.campagna,
-                               MAX(vt.secondi_visti) as max_sec, MAX(vt.durata_totale) as max_dur
-                        FROM crm_video_tracking vt
-                        WHERE vt.evento = 'progress' AND vt.contatto_id IS NOT NULL
-                        GROUP BY vt.contatto_id, vt.campagna
-                    LOOP
-                        max_minutes := FLOOR(rec.max_sec / 60);
-
-                        IF max_minutes >= 10 AND NOT EXISTS (
-                            SELECT 1 FROM crm_video_tracking
-                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_10min'
-                        ) THEN
-                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
-                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_10min', rec.max_sec, rec.max_dur, 0);
-                        END IF;
-
-                        IF max_minutes >= 25 AND NOT EXISTS (
-                            SELECT 1 FROM crm_video_tracking
-                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_25min'
-                        ) THEN
-                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
-                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_25min', rec.max_sec, rec.max_dur, 0);
-                        END IF;
-
-                        IF max_minutes >= 40 AND NOT EXISTS (
-                            SELECT 1 FROM crm_video_tracking
-                            WHERE contatto_id = rec.contatto_id AND campagna = rec.campagna AND evento = 'score_40min'
-                        ) THEN
-                            INSERT INTO crm_video_tracking (contatto_id, email, campagna, evento, secondi_visti, durata_totale, percentuale)
-                            VALUES (rec.contatto_id, rec.email, rec.campagna, 'score_40min', rec.max_sec, rec.max_dur, 0);
-                        END IF;
-                    END LOOP;
+                      AND dettagli->>'tipo_attivita' = 'video_watch'
+                      AND NOT (COALESCE(contatto_id,0)=ANY(blocked_crm_ids));
 
                     RAISE NOTICE '[Migration] Video score cleanup: % contatti corretti', affected_count;
                 END $$;
             `);
+            // Step 4 reads email: inspect canonical HMAC before any derived write.
+            const markerCandidates = await client.query(`
+                SELECT vt.contatto_id, MIN(vt.email) as email, vt.campagna,
+                       MAX(vt.secondi_visti) as max_sec, MAX(vt.durata_totale) as max_dur
+                FROM crm_video_tracking vt
+                WHERE vt.evento='progress' AND vt.contatto_id IS NOT NULL
+                  AND NOT (vt.contatto_id=ANY($1::int[]))
+                GROUP BY vt.contatto_id,vt.campagna`, [legacyPrivacy.blockedCrmIds()]);
+            for (const rec of markerCandidates.rows) {
+                if (legacyPrivacy.matchesRecord(rec)) continue;
+                for (const [minutes,event] of [[10,'score_10min'],[25,'score_25min'],[40,'score_40min']]) {
+                    if (Math.floor(rec.max_sec/60)<minutes) continue;
+                    await client.query(`INSERT INTO crm_video_tracking
+                        (contatto_id,email,campagna,evento,secondi_visti,durata_totale,percentuale)
+                        SELECT $1,$2,$3,$4,$5,$6,0 WHERE NOT EXISTS
+                        (SELECT 1 FROM crm_video_tracking WHERE contatto_id=$1 AND campagna=$3 AND evento=$4)`,
+                        [rec.contatto_id,rec.email,rec.campagna,event,rec.max_sec,rec.max_dur]);
+                }
+            }
+            await client.query('COMMIT');
+            } catch (migrationError) {
+                await client.query('ROLLBACK');
+                throw migrationError;
+            }
             console.log('[Migration] Video score inflation fix completed');
         }
 
@@ -3520,6 +3522,7 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                     [existingIds, FONTI_PROTETTE]
                 );
                 for (const row of epResult.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
                     existingProtected.add(`${row.contatto_id}_${row.prodotto}`);
                 }
             }
@@ -3558,6 +3561,7 @@ app.post('/api/crm/sync', requireReportsKey, async (req, res) => {
                     [existingIds, FONTI_PROTETTE]
                 );
                 for (const row of epAcqResult.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
                     existingProtectedAcq.add(`${row.contatto_id}_${row.prodotto}_${row.numero_fattura}`);
                 }
             }
@@ -4550,6 +4554,7 @@ app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
         `, [regioni]);
         const noteMap = {};
         for (const r of noteResult.rows) {
+            if (legacyPrivacy.matchesRecord(r)) continue;
             noteMap[r.contatto_id] = parseInt(r.num_note);
         }
 
@@ -4566,6 +4571,7 @@ app.get('/api/crm/note/bulk', requireAdmin, async (req, res) => {
         const oppMap = {};
         const oppScaduteMap = {};
         for (const r of oppResult.rows) {
+            if (legacyPrivacy.matchesRecord(r)) continue;
             oppMap[r.contatto_id] = parseInt(r.num_opp);
             if (parseInt(r.num_scadute_non_viste) > 0) {
                 oppScaduteMap[r.contatto_id] = parseInt(r.num_scadute_non_viste);
@@ -4937,6 +4943,7 @@ app.get('/api/crm/score', requireAdmin, async (req, res) => {
                 GROUP BY contatto_id, SPLIT_PART(REGEXP_REPLACE(campagna, '_TEST$', ''), '_SF_', 1)
             `, [contattiIds]);
             for (const v of videoCompletions.rows) {
+            if (legacyPrivacy.matchesRecord(v)) continue;
                 if (!videoIconsMap[v.contatto_id]) videoIconsMap[v.contatto_id] = {};
                 videoIconsMap[v.contatto_id][v.linea] = parseInt(v.num_video);
             }
@@ -5959,6 +5966,7 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
         // Evita overcounting da multi-device parallelo (es. utente con PC + smartphone aperti insieme).
         const aggregated = {};
         for (const p of allParticipants) {
+            if (legacyPrivacy.matchesRecord(p)) continue;
             const email = (p.user_email || '').toLowerCase().trim();
             if (!email) continue;
 
@@ -5999,6 +6007,7 @@ app.post('/api/webinar/sync-zoom-participants', requireAdmin, async (req, res) =
         let scoreAssegnati = 0;
 
         for (const p of participants) {
+            if (legacyPrivacy.matchesRecord(p)) continue;
             // Cerca contatto CRM per email (prima in crm_contatti, poi in registrazioni webinar)
             let contattoId = null;
             const contatto = await pool.query(
@@ -6125,8 +6134,8 @@ app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
     try {
         // Trova tutti i partecipanti con score assegnato
         const scored = await pool.query(
-            'SELECT contatto_id, durata_minuti FROM crm_webinar_partecipanti WHERE webinar_tag = $1 AND score_assegnato = TRUE AND contatto_id IS NOT NULL',
-            [tag]
+            'SELECT contatto_id, durata_minuti FROM crm_webinar_partecipanti WHERE webinar_tag = $1 AND score_assegnato = TRUE AND contatto_id IS NOT NULL AND NOT (contatto_id=ANY($2::int[]))',
+            [tag,legacyPrivacy.blockedCrmIds()]
         );
 
         let rimossi = 0;
@@ -6143,6 +6152,7 @@ app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
 
             // Logga delete per sync verso SQLite
             for (const sm of manuali.rows) {
+            if (legacyPrivacy.matchesRecord(sm)) continue;
                 await pool.query(
                     `INSERT INTO crm_modifiche_log (tipo_modifica, contatto_id, dettagli)
                      VALUES ('delete_score_manuale', $1, $2)`,
@@ -6165,7 +6175,7 @@ app.post('/api/webinar/reset-zoom-scores', requireAdmin, async (req, res) => {
         }
 
         // Reset flag
-        await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = FALSE, contatto_id = NULL WHERE webinar_tag = $1', [tag]);
+        await pool.query('UPDATE crm_webinar_partecipanti SET score_assegnato = FALSE, contatto_id = NULL WHERE webinar_tag = $1 AND NOT (COALESCE(contatto_id,0)=ANY($2::int[]))', [tag,legacyPrivacy.blockedCrmIds()]);
 
         console.log(`[Zoom Reset] ${tag}: ${rimossi} score rimossi da crm_score_manuali, pronti per re-sync`);
         res.json({ ok: true, score_rimossi: rimossi, messaggio: 'Score resettati. Esegui sync-zoom-participants per riassegnare.' });
@@ -7132,9 +7142,11 @@ app.delete('/api/webinar-arcara/cleanup-test', requireAdmin, async (req, res) =>
             FROM crm_contatti c
             INNER JOIN crm_webinar_registrazioni wr ON c.id = wr.contatto_id
             WHERE wr.webinar_tag = 'WEBINAR_ARCARA_ELEVATE_REC'
-        `);
+            AND NOT (c.id=ANY($1::int[]))
+        `, [legacyPrivacy.blockedCrmIds()]);
 
-        const contattiIds = contattiTest.rows.map(c => c.id);
+        const allowedContacts = contattiTest.rows.filter(c => !legacyPrivacy.matchesRecord(c, {root:true}));
+        const contattiIds = allowedContacts.map(c => c.id);
 
         if (contattiIds.length === 0) {
             await client.query('ROLLBACK');
@@ -7148,7 +7160,7 @@ app.delete('/api/webinar-arcara/cleanup-test', requireAdmin, async (req, res) =>
         const delProdotti = await client.query(`DELETE FROM crm_prodotti WHERE contatto_id = ANY($1)`, [contattiIds]);
 
         // 4. Cancella registrazioni
-        const delRegistrazioni = await client.query(`DELETE FROM crm_webinar_registrazioni WHERE webinar_tag = 'WEBINAR_ARCARA_ELEVATE_REC'`);
+        const delRegistrazioni = await client.query(`DELETE FROM crm_webinar_registrazioni WHERE webinar_tag = 'WEBINAR_ARCARA_ELEVATE_REC' AND NOT (COALESCE(contatto_id,0)=ANY($1::int[]))`, [legacyPrivacy.blockedCrmIds()]);
 
         // 5. Cancella contatti (solo ID negativi senza altre registrazioni)
         const delContatti = await client.query(`
@@ -7163,7 +7175,7 @@ app.delete('/api/webinar-arcara/cleanup-test', requireAdmin, async (req, res) =>
         res.json({
             ok: true,
             deleted: {
-                contatti: contattiTest.rows,
+                contatti: allowedContacts,
                 score: delScore.rowCount,
                 prodotti: delProdotti.rowCount,
                 registrazioni: delRegistrazioni.rowCount,
@@ -7775,10 +7787,10 @@ app.put('/api/webinar/registrations/fix-contatto-id', requireReportsKey, async (
     try {
         const result = await pool.query(`
             UPDATE crm_webinar_registrazioni r
-            SET contatto_id = (SELECT id FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) ORDER BY id DESC LIMIT 1)
+            SET contatto_id = (SELECT id FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) AND NOT (id=ANY($2::int[])) ORDER BY id DESC LIMIT 1)
             WHERE r.webinar_tag = $1 AND r.contatto_id IS NULL
-            AND EXISTS (SELECT 1 FROM crm_contatti WHERE LOWER(email) = LOWER(r.email))
-        `, [webinar_tag]);
+            AND EXISTS (SELECT 1 FROM crm_contatti WHERE LOWER(email) = LOWER(r.email) AND NOT (id=ANY($2::int[])))
+        `, [webinar_tag,legacyPrivacy.blockedCrmIds()]);
         res.json({ ok: true, fixed: result.rowCount });
     } catch (err) {
         console.error('[Webinar Fix ContID]', err);
@@ -7824,6 +7836,7 @@ app.get('/api/webinar/stats', requireAdmin, async (req, res) => {
 
         const stats = {};
         for (const row of result.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             stats[row.webinar_tag] = {
                 totale: row.totale,
                 nuovi: row.nuovi,
@@ -7856,6 +7869,7 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
 
         const zoomWatchTime = {};
         for (const row of zoomResult.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             zoomWatchTime[row.webinar_tag] = {
                 watch_time_minuti: row.watch_time_minuti || 0,
                 watch_time_ore: Math.round((row.watch_time_minuti || 0) / 60 * 100) / 100
@@ -7871,6 +7885,7 @@ app.get('/api/webinar/watchtime', requireAdmin, async (req, res) => {
 
         const youtubeWatchTime = {};
         for (const row of youtubeResult.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             youtubeWatchTime[row.webinar_tag] = {
                 watch_time_ore: parseFloat(row.watch_time_ore) || 0,
                 views: parseInt(row.views) || 0
@@ -8090,6 +8105,7 @@ app.post('/api/webinar/registrants/recover', requireAdmin, async (req, res) => {
     const results = [];
     try {
         for (const reg of registrants) {
+            if (legacyPrivacy.matchesRecord(reg)) continue;
             const emailClean = (reg.email || '').trim().toLowerCase();
             const nomeClean = (reg.nome || '').trim();
             const cognomeClean = (reg.cognome || '').trim();
@@ -8232,6 +8248,7 @@ app.post('/api/webinar/send-reminder', requireAdmin, async (req, res) => {
         let inviati = 0;
         let errori = 0;
         for (const row of result.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             try {
                 await sendWebinarEmail('REMINDER', tag, row.email, row.zoom_link, 'WEBINAR_REMINDER_' + tag);
                 // Marca come inviato
@@ -8305,6 +8322,7 @@ app.post('/api/webinar/fix-zoom-links', requireAdmin, async (req, res) => {
         let fissati = 0, errori = 0;
         const emailErrori = [];
         for (const r of result.rows) {
+            if (legacyPrivacy.matchesRecord(r)) continue;
             try {
                 // Fallback nome/cognome: Zoom API rifiuta campi vuoti.
                 // Se uno dei due manca, uso l'altro. Se entrambi vuoti, placeholder.
@@ -8459,6 +8477,7 @@ app.post('/api/webinar/send-followup', requireAdmin, async (req, res) => {
         let inviati = 0;
         let errori = 0;
         for (const row of result.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             try {
                 await sendWebinarEmail('FOLLOWUP', tag, row.email, null, 'WEBINAR_FOLLOWUP_' + tag);
                 await pool.query('UPDATE crm_webinar_registrazioni SET followup_inviato = TRUE WHERE id = $1', [row.id]);
@@ -8850,21 +8869,22 @@ app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
     try {
         // 1. Rimuovi TUTTI i vecchi score_manuali video_watch per PT1 (i 15/15/30 sbagliati)
         const delSm = await pool.query(
-            `DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11'`
+            `DELETE FROM crm_score_manuali WHERE tipo_attivita = 'video_watch' AND data_evento >= '2026-03-11' AND NOT (COALESCE(contatto_id,0)=ANY($1::int[]))`,
+            [legacyPrivacy.blockedCrmIds()]
         );
         // 2. Rimuovi vecchi score events dal video_tracking
         const delVt = await pool.query(
-            `DELETE FROM crm_video_tracking WHERE evento IN ('score_30','score_60','score_90','score_10min','score_25min','score_40min') AND campagna = $1`,
-            [CAMPAGNA]
+            `DELETE FROM crm_video_tracking WHERE evento IN ('score_30','score_60','score_90','score_10min','score_25min','score_40min') AND campagna = $1 AND NOT (COALESCE(contatto_id,0)=ANY($2::int[]))`,
+            [CAMPAGNA,legacyPrivacy.blockedCrmIds()]
         );
         // 3. Calcola max secondi per ogni contatto dalla campagna
         const maxPerContatto = await pool.query(`
             SELECT contatto_id, email, MAX(secondi_visti) as max_sec
             FROM crm_video_tracking
-            WHERE campagna = $1 AND contatto_id IS NOT NULL AND evento NOT IN ('landing_open')
+            WHERE campagna = $1 AND contatto_id IS NOT NULL AND evento NOT IN ('landing_open') AND NOT (contatto_id=ANY($2::int[]))
             GROUP BY contatto_id, email
             HAVING MAX(secondi_visti) >= 600
-        `, [CAMPAGNA]);
+        `, [CAMPAGNA,legacyPrivacy.blockedCrmIds()]);
         // 4. Assegna nuovi score basati sui minuti (stesse soglie del webinar live)
         const soglie = [
             { nome: 'score_10min', minSec: 600, punti: 200, label: 'Video watch >=10min' },
@@ -8874,6 +8894,7 @@ app.post('/api/video-tracking/fix-campagna', requireAdmin, async (req, res) => {
         const oggi = new Date().toISOString().split('T')[0];
         let scoreAssegnati = 0;
         for (const row of maxPerContatto.rows) {
+            if (legacyPrivacy.matchesRecord(row)) continue;
             for (const soglia of soglie) {
                 if (row.max_sec >= soglia.minSec) {
                     await pool.query(
@@ -9580,6 +9601,7 @@ app.get('/api/consent-stats', requireAdmin, async (req, res) => {
 
         const risultato = { account: null, lead: null };
         for (const r of stats.rows) {
+            if (legacyPrivacy.matchesRecord(r)) continue;
             risultato[r.tipo] = {
                 totale: parseInt(r.totale),
                 consenso_completo: parseInt(r.consenso_completo),
